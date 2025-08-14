@@ -1,6 +1,48 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Adiciona a função de redirecionamentos
+  async redirects() {
+    return [
+      {
+        source: "/login",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/logout",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/profile/:path*",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/register",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/status",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/tables",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/migrations",
+        destination: "/",
+        permanent: false,
+      },
+    ];
+  },
+
   webpack: (config, { dev }) => {
     // Desabilita HMR em produção e preview
     if (!dev) {
