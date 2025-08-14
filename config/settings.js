@@ -235,68 +235,103 @@ export const settings = {
 
   // Configurações do cabeçalho
   header: {
-    LOGIN_REDIRECT: "/login",
-    CREATE_USER_REDIRECT: "/register",
-    LOGOUT_REDIRECT: "/logout",
+    // LOGIN_REDIRECT: "/login",
+    // CREATE_USER_REDIRECT: "/register",
+    // LOGOUT_REDIRECT: "/logout",
+    LOGIN_REDIRECT: "/",
+    CREATE_USER_REDIRECT: "/",
+    LOGOUT_REDIRECT: "/",
     NAVS: [
       {
         name: "Home",
         href: "/",
       },
       {
-        name: "Tabelas",
-        href: "/tables",
-        FEATURES: [["read:table"], ["read:table", "update:table"]],
+        name: "Sobre",
+        href: "/#1",
       },
+      {
+        name: "Aulas",
+        href: "/#2",
+      },
+      {
+        name: "Vídeos",
+        href: "/#3",
+      },
+      {
+        name: "Fotos",
+        href: "/#4",
+      },
+      {
+        name: "Depoimentos",
+        href: "/#5",
+      },
+      {
+        name: "Contato",
+        href: "/#6",
+      },
+      {
+        name: "Área do Aluno",
+        href: "/login",
+      },
+      // {
+      //   name: "Home",
+      //   href: "/",
+      // },
+      // {
+      //   name: "Tabelas",
+      //   href: "/tables",
+      //   FEATURES: [["read:table"], ["read:table", "update:table"]],
+      // },
     ],
     OTHER_NAVS: [
-      {
-        name: "Status",
-        href: "/status",
-      },
-      {
-        name: "Migrations",
-        href: "/migrations",
-        FEATURES: [["read:migration"], ["create:migration"]],
-      },
+      // {
+      //   name: "Status",
+      //   href: "/status",
+      // },
+      // {
+      //   name: "Migrations",
+      //   href: "/migrations",
+      //   FEATURES: [["read:migration"], ["create:migration"]],
+      // },
     ],
     PROFILE_NAVS: [
-      [
-        {
-          name: "Meu Perfil",
-          href: "/profile",
-          FEATURES: [["read:user:self"], ["read:user:other"]],
-          icon: "UserIcon",
-        },
-      ],
-      [
-        {
-          name: "Editar Perfil",
-          href: "/profile/edit",
-          FEATURES: [
-            ["update:user:self"],
-            ["update:user:features:self"],
-            ["read:user:other", "update:user:features:other"],
-          ],
-          icon: "PencilIcon",
-        },
-        {
-          name: "Alterar Senha",
-          href: "/profile/password",
-          FEATURES: [
-            ["update:user:self"],
-            ["read:user:other", "update:user:other"],
-          ],
-          icon: "KeyIcon",
-        },
-      ],
-      [
-        {
-          name: "Sair",
-          href: "/logout",
-          icon: "ArrowLeftOnRectangleIcon",
-        },
-      ],
+      // [
+      //   {
+      //     name: "Meu Perfil",
+      //     href: "/profile",
+      //     FEATURES: [["read:user:self"], ["read:user:other"]],
+      //     icon: "UserIcon",
+      //   },
+      // ],
+      // [
+      //   {
+      //     name: "Editar Perfil",
+      //     href: "/profile/edit",
+      //     FEATURES: [
+      //       ["update:user:self"],
+      //       ["update:user:features:self"],
+      //       ["read:user:other", "update:user:features:other"],
+      //     ],
+      //     icon: "PencilIcon",
+      //   },
+      //   {
+      //     name: "Alterar Senha",
+      //     href: "/profile/password",
+      //     FEATURES: [
+      //       ["update:user:self"],
+      //       ["read:user:other", "update:user:other"],
+      //     ],
+      //     icon: "KeyIcon",
+      //   },
+      // ],
+      // [
+      //   {
+      //     name: "Sair",
+      //     href: "/logout",
+      //     icon: "ArrowLeftOnRectangleIcon",
+      //   },
+      // ],
     ],
   },
 };
