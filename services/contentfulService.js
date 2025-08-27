@@ -27,8 +27,8 @@ const parseCarouselHeroAsset = (asset) => {
 export async function fetchHeroCarouselImages() {
   try {
     const entries = await client.getEntries({
-      content_type: "carroselHome", // <<< ATENÇÃO: Use o ID real do seu Content Type aqui!
-      select: "fields.imagens", // Seleciona apenas o campo de imagens
+      content_type: "images", // <<< ATENÇÃO: Use o ID real do seu Content Type aqui!
+      select: "fields.image", // Seleciona apenas o campo de imagens
       include: 1, // Inclui os dados dos assets (imagens) vinculados na mesma chamada
     });
 
@@ -39,10 +39,9 @@ export async function fetchHeroCarouselImages() {
 
     // Pega a primeira entrada encontrada (você só deve ter uma para o carrossel da home)
     const carouselEntry = entries.items[0];
-
     // Se o campo de imagens existir, mapeia os dados para o formato limpo.
-    if (carouselEntry.fields.imagens) {
-      return carouselEntry.fields.imagens.map(parseCarouselHeroAsset);
+    if (carouselEntry.fields.image) {
+      return carouselEntry.fields.image.map(parseCarouselHeroAsset);
     }
 
     return [];
