@@ -13,7 +13,7 @@ export default function Header() {
   const [isOthersDropdownOpen, setIsOthersDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const [headerBgOpacity, setHeaderBgOpacity] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const hasFeatureSet = (featureSet) => {
     if (!user || !user.features) return false;
@@ -47,9 +47,7 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const opacity = Math.min(scrollPosition / 10, 1);
-      setHeaderBgOpacity(opacity);
+      setIsScrolled(window.scrollY > 10);
     };
     window.addEventListener("scroll", handleScroll);
     return () => {
@@ -72,8 +70,9 @@ export default function Header() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 text-white transition-colors duration-300"
-      style={{ backgroundColor: `rgba(31, 41, 55, ${headerBgOpacity})` }}
+      className={`fixed top-0 left-0 right-0 z-50 text-white transition-colors duration-300 ${
+        isScrolled || isMenuOpen ? "bg-gray-800" : "bg-transparent"
+      }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
