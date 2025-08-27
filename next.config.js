@@ -2,6 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Adicionado para permitir imagens do Contentful
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.ctfassets.net",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
+
   // Adiciona a função de redirecionamentos
   async redirects() {
     return [

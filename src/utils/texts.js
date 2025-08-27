@@ -1,4 +1,10 @@
 export const texts = {
+  sections: {
+    heroSection: {
+      title: "Rakusai Taiko",
+      description: "A força e a alma da batida japonesa em Santo André",
+    },
+  },
   login: {
     title: "Login",
     label: {
@@ -509,8 +515,8 @@ export const texts = {
     },
   },
   home: {
-    title: "Sistema",
-    description: "Sistema",
+    title: "Rakusai Taiko",
+    description: "Grupo de Taiko em Santo André - SP",
   },
   errorPages: {
     notFound: {

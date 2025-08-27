@@ -2,18 +2,12 @@
 
 import React from "react";
 
+// Importando o novo componente HeroSection
+import HeroSection from "./HeroSection";
+
 // --- Placeholders para as seções da Landing Page ---
 // No futuro, você vai criar cada um destes como um componente separado
 // em sua própria pasta, assim como fizemos aqui.
-
-const HeroSection = () => (
-  <section className="flex items-center justify-center h-screen bg-gray-900 text-white">
-    <div className="text-center">
-      <h1 className="text-5xl font-bold">Rakusai Taiko</h1>
-      <p className="mt-4 text-xl">A força e a alma da batida japonesa</p>
-    </div>
-  </section>
-);
 
 const SobreSection = () => (
   <section className="py-20 bg-white">
@@ -51,13 +45,13 @@ const ContatoSection = () => (
 
 // --- Componente Principal da Landing Page ---
 
-export default function PublicLandingPage() {
+export default function PublicLandingPage({ heroImages }) {
   // No futuro, você pode adicionar estados aqui se precisar
   // gerenciar algo que afete múltiplas seções (ex: um tema claro/escuro).
 
   return (
     <main>
-      <HeroSection />
+      <HeroSection images={heroImages} />
       <SobreSection />
       <ApresentacoesSection />
       <ContatoSection />
