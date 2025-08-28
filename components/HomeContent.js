@@ -14,7 +14,7 @@ import Loader from "./ui/Loader";
  * Componente controlador que decide qual view exibir (pública ou de aluno)
  * com base no status de autenticação do usuário.
  */
-export default function HomeContent({ heroImages }) {
+export default function HomeContent({ pageData, presentations }) {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -32,6 +32,6 @@ export default function HomeContent({ heroImages }) {
   return user ? (
     <StudentDashboard user={user} />
   ) : (
-    <PublicLandingPage heroImages={heroImages} />
+    <PublicLandingPage pageData={pageData} presentations={presentations} />
   );
 }
