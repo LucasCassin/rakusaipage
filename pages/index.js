@@ -4,13 +4,14 @@ import { texts } from "src/utils/texts.js";
 import {
   fetchLandingPageData,
   fetchUpcomingPresentations,
+  fetchHorariosAula,
 } from "services/contentfulService.js";
 
 /**
  * Página inicial da aplicação
  */
 // A página agora recebe 'pageData' e 'presentations' como props
-export default function Home({ pageData, presentations }) {
+export default function Home({ pageData, presentations, horarios }) {
   return (
     <>
       <Head>
@@ -20,7 +21,11 @@ export default function Home({ pageData, presentations }) {
       </Head>
 
       {/* Passamos todos os dados para os componentes filhos */}
-      <HomeContent pageData={pageData} presentations={presentations} />
+      <HomeContent
+        pageData={pageData}
+        presentations={presentations}
+        horarios={horarios}
+      />
     </>
   );
 }
@@ -30,11 +35,13 @@ export async function getStaticProps() {
   // Chamamos as duas funções para buscar todos os dados necessários
   const pageData = await fetchLandingPageData();
   const presentations = await fetchUpcomingPresentations();
+  const horarios = await fetchHorariosAula();
 
   return {
     props: {
       pageData,
       presentations,
+      horarios,
     },
     revalidate: 60, // Regenera a página a cada 60s para buscar novos dados
   };

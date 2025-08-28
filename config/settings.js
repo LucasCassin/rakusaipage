@@ -252,7 +252,7 @@ export const settings = {
       },
       {
         name: "Aulas",
-        href: "/#2",
+        href: "/#aulas",
       },
       {
         name: "Vídeos",
