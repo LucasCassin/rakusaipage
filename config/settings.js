@@ -248,7 +248,7 @@ export const settings = {
       },
       {
         name: "Sobre",
-        href: "/#1",
+        href: "/#sobre",
       },
       {
         name: "Aulas",
