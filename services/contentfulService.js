@@ -40,6 +40,9 @@ const parseHomeSobre = (fields) => ({
 
 const parseHomeAulas = (fields) => ({
   description: parseRichText(fields.descricao),
+  featuredImage: fields.imagemDeDestaque
+    ? parseAsset(fields.imagemDeDestaque)
+    : null,
 });
 
 const parseHomeApreEventos = (fields) => ({
@@ -64,6 +67,12 @@ const parseRedesSociais = (fields) => ({
   instagram: fields.instagram || "",
   whatsapp: fields.whatsapp || "",
   youtube: fields.youtube || "",
+});
+
+const parseHorarioAula = (fields) => ({
+  diaDaSemana: fields.diaDaSemana || "",
+  ordem: fields.ordem || 0,
+  horarios: fields.horarios || [],
 });
 
 const parseHomeProximasApre = (fields) => ({
@@ -131,6 +140,23 @@ export async function fetchUpcomingPresentations() {
     );
   } catch (error) {
     console.error("Erro ao buscar apresentações do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os horários de aula e os ordena pelo campo 'ordem'.
+ */
+export async function fetchHorariosAula() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "horarioAula",
+      order: "fields.ordem", // Ordena pela ordem (Seg, Sex, Sab)
+    });
+    // Aqui retornamos o objeto completo, pois o componente precisa do 'sys.id' para a key
+    return entries.items || [];
+  } catch (error) {
+    console.error("Erro ao buscar horários de aula do Contentful:", error);
     return [];
   }
 }

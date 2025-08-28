@@ -3,9 +3,13 @@
 import React, { useState } from "react";
 import HeroSection from "./HeroSection";
 import SobreSection from "./SobreSection";
+import AulasSection from "./AulasSection";
 import Modal from "../modals/SobreModal.js";
 
-export default function PublicLandingPage({ pageData /*, presentations*/ }) {
+export default function PublicLandingPage({
+  pageData /*, presentations*/,
+  horarios,
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", content: "" });
 
@@ -33,6 +37,7 @@ export default function PublicLandingPage({ pageData /*, presentations*/ }) {
       <main>
         <HeroSection images={carouselData.images || []} />
         <SobreSection pageData={pageData} onOpenModal={handleOpenModal} />
+        <AulasSection pageData={pageData} horarios={horarios} />
       </main>
     </>
   );
