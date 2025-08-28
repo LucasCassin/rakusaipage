@@ -5,7 +5,7 @@ import HeroSection from "./HeroSection";
 import SobreSection from "./SobreSection";
 import Modal from "../modals/SobreModal.js";
 
-export default function PublicLandingPage({ pageData, presentations }) {
+export default function PublicLandingPage({ pageData /*, presentations*/ }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", content: "" });
 
