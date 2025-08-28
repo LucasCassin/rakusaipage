@@ -9,25 +9,28 @@ import HeroSection from "./HeroSection";
 // No futuro, você vai criar cada um destes como um componente separado
 // em sua própria pasta, assim como fizemos aqui.
 
-const SobreSection = () => (
+const SobreSection = ({ texto }) => (
   <section className="py-20 bg-white">
     <div className="container mx-auto px-6 text-center">
       <h2 className="text-4xl font-bold mb-6">Sobre o Grupo</h2>
       <p className="text-gray-600 max-w-2xl mx-auto">
-        Aqui virá a descrição do grupo Rakusai Taiko, sua história, filosofia e
-        paixão pela cultura japonesa.
+        <div dangerouslySetInnerHTML={{ __html: texto }} />
       </p>
     </div>
   </section>
 );
 
-const ApresentacoesSection = () => (
+const ApresentacoesSection = ({ presentations }) => (
   <section className="py-20 bg-gray-100">
     <div className="container mx-auto px-6 text-center">
       <h2 className="text-4xl font-bold mb-6">Próximas Apresentações</h2>
-      <p className="text-gray-600">
-        Aqui será exibida a lista de futuros eventos e apresentações.
-      </p>
+      <ul>
+        {presentations.map((event, index) => (
+          <li key={index}>
+            {event.title} - {new Date(event.date).toLocaleDateString()}
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 );
@@ -45,17 +48,22 @@ const ContatoSection = () => (
 
 // --- Componente Principal da Landing Page ---
 
-export default function PublicLandingPage({ heroImages }) {
-  // No futuro, você pode adicionar estados aqui se precisar
-  // gerenciar algo que afete múltiplas seções (ex: um tema claro/escuro).
+export default function PublicLandingPage({ pageData, presentations }) {
+  // Para pegar os dados do carrossel:
+  const carouselData = pageData?.homeCarrossel || {};
+
+  // Para pegar a descrição da seção "Sobre":
+  const aboutDescriptionHtml = pageData?.homeSobre?.description || "";
 
   return (
     <main>
-      <HeroSection images={heroImages} />
-      <SobreSection />
-      <ApresentacoesSection />
+      <HeroSection images={carouselData.images} />
+
+      <SobreSection texto={aboutDescriptionHtml} />
+      <ApresentacoesSection presentations={presentations} />
       <ContatoSection />
-      {/* Adicione outras seções como Galeria, etc., aqui */}
+
+      {/* ... e assim por diante para cada seção ... */}
     </main>
   );
 }

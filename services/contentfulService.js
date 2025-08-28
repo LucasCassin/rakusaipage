@@ -1,52 +1,136 @@
 import { createClient } from "contentful";
+import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
 
-// Inicializa o cliente Contentful com as credenciais do .env.local
+// Inicializa o cliente Contentful
 const client = createClient({
   space: process.env.CONTENTFUL_SPACE_ID,
   accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
 });
 
-/**
- * Mapeia os dados brutos da API do Contentful para um formato mais limpo e simples,
- * contendo apenas as informações que o componente precisa.
- */
-const parseCarouselHeroAsset = (asset) => {
+// --- HELPER PARSERS ---
+// Pequenas funções reutilizáveis para tratar tipos de campos comuns
+
+const parseAsset = (asset) => {
+  if (!asset?.fields?.file) return null;
   return {
     url: `https:${asset.fields.file.url}`,
-    description: asset.fields.description,
+    description: asset.fields.description || "",
     width: asset.fields.file.details.image.width,
     height: asset.fields.file.details.image.height,
   };
 };
 
+const parseRichText = (richTextDocument) => {
+  if (!richTextDocument) return "";
+  return documentToHtmlString(richTextDocument);
+};
+
+// --- PARSERS PRINCIPAIS ---
+// Cada um sabe como "limpar" os dados de um Content Type específico
+
+const parseHomeCarrossel = (fields) => ({
+  title: fields.titulo || "Rakusai Taiko",
+  description: fields.descricao || "",
+  images: fields.images?.map(parseAsset).filter(Boolean) || [],
+});
+
+const parseHomeSobre = (fields) => ({
+  description: parseRichText(fields.descricao),
+});
+
+const parseHomeAulas = (fields) => ({
+  description: parseRichText(fields.descricao),
+});
+
+const parseHomeApreEventos = (fields) => ({
+  description: parseRichText(fields.descricao),
+  videoUrls: fields.videosUrl || [],
+});
+
+const parseHomeContrate = (fields) => ({
+  description: parseRichText(fields.descricao),
+  whatsappPhone: fields.telefoneWpp || "",
+});
+
+const parseHomeHistoriaTaiko = (fields) => ({
+  description: parseRichText(fields.descricao),
+});
+
+const parseHomeInstrumentos = (fields) => ({
+  description: parseRichText(fields.descricao),
+});
+
+const parseRedesSociais = (fields) => ({
+  instagram: fields.instagram || "",
+  whatsapp: fields.whatsapp || "",
+  youtube: fields.youtube || "",
+});
+
+const parseHomeProximasApre = (fields) => ({
+  title: fields.titulo || "",
+  description: parseRichText(fields.descricao),
+  date: fields.data,
+  location: fields.local || null,
+});
+
+// --- CONFIGURAÇÃO CENTRAL ---
+// Mapeia cada Content Type ID (de entrada única) ao seu respectivo parser.
+// Para adicionar uma nova seção no futuro, basta adicioná-la aqui.
+const SINGLE_ENTRY_CONFIG = {
+  homeCarrossel: { parser: parseHomeCarrossel },
+  homeSobre: { parser: parseHomeSobre },
+  homeAulas: { parser: parseHomeAulas },
+  homeApreEventos: { parser: parseHomeApreEventos },
+  homeContrate: { parser: parseHomeContrate },
+  homeHistoriaTaiko: { parser: parseHomeHistoriaTaiko },
+  homeInstrumentos: { parser: parseHomeInstrumentos },
+  redesSociais: { parser: parseRedesSociais },
+};
+
+// --- FUNÇÕES DE BUSCA EXPORTADAS ---
+
 /**
- * Busca as imagens do carrossel da página inicial.
- * Presume que o ID do seu Content Type (modelo de conteúdo) é 'carroselHome'.
- * Verifique o ID real no seu painel do Contentful em "Content model".
+ * Busca os dados de todas as seções da landing page que possuem apenas uma entrada.
+ * Faz uma única chamada de API para otimização.
  */
-export async function fetchHeroCarouselImages() {
+export async function fetchLandingPageData() {
+  const pageData = {};
   try {
+    const contentTypeIds = Object.keys(SINGLE_ENTRY_CONFIG);
     const entries = await client.getEntries({
-      content_type: "images", // <<< ATENÇÃO: Use o ID real do seu Content Type aqui!
-      select: "fields.image", // Seleciona apenas o campo de imagens
-      include: 1, // Inclui os dados dos assets (imagens) vinculados na mesma chamada
+      "sys.contentType.sys.id[in]": contentTypeIds.join(","),
+      include: 2, // Inclui dados de assets vinculados (ex: imagens)
     });
 
-    if (entries.items.length === 0) {
-      console.warn("Nenhuma entrada do tipo 'carroselHome' foi encontrada.");
-      return [];
+    if (entries.items) {
+      for (const item of entries.items) {
+        const typeId = item.sys.contentType.sys.id;
+        const config = SINGLE_ENTRY_CONFIG[typeId];
+        if (config) {
+          pageData[typeId] = config.parser(item.fields);
+        }
+      }
     }
-
-    // Pega a primeira entrada encontrada (você só deve ter uma para o carrossel da home)
-    const carouselEntry = entries.items[0];
-    // Se o campo de imagens existir, mapeia os dados para o formato limpo.
-    if (carouselEntry.fields.image) {
-      return carouselEntry.fields.image.map(parseCarouselHeroAsset);
-    }
-
-    return [];
   } catch (error) {
-    console.error("Erro ao buscar dados do Contentful:", error);
-    return []; // Retorna um array vazio em caso de erro para não quebrar a página
+    console.error("Erro ao buscar dados da landing page do Contentful:", error);
+  }
+  return pageData;
+}
+
+/**
+ * Busca todas as próximas apresentações e as ordena pela data mais recente.
+ */
+export async function fetchUpcomingPresentations() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "homeProximasApre",
+      order: "fields.data", // Ordena pela data (mais antiga primeiro)
+    });
+    return (
+      entries.items?.map((item) => parseHomeProximasApre(item.fields)) || []
+    );
+  } catch (error) {
+    console.error("Erro ao buscar apresentações do Contentful:", error);
+    return [];
   }
 }
