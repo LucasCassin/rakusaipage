@@ -46,7 +46,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
     <section
       id="contrate"
       className="py-20"
-      style={{ backgroundColor: "#f0f0f0" }} // Usando o cinza da seção Sobre para alternar
+      style={{ backgroundColor: "#f7f7f7" }} // Usando o cinza da seção Sobre para alternar
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center">
@@ -61,7 +61,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
           {/* Coluna da Esquerda (agora ocupa 3/5 do espaço) */}
           <div className="md:col-span-3 space-y-12">
             <div
-              className="text-gray-700 leading-relaxed prose lg:prose-lg text-justify prose-h1:font-sans prose-h2:font-sans"
+              className="text-gray-700 leading-relaxed prose lg:prose-lg prose-h1:font-sans prose-h2:font-sans"
               dangerouslySetInnerHTML={{ __html: description }}
             />
             <div className="space-y-6 pt-4">

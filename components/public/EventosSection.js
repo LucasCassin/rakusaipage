@@ -51,7 +51,10 @@ export default function EventosSection({
   return (
     <section
       id="eventos"
-      className="py-20 bg-white" // Fundo branco para alternar
+      className="py-20" // Fundo branco para alternar
+      style={{
+        backgroundColor: "#f0f0f0",
+      }}
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center">
