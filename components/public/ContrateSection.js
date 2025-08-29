@@ -5,6 +5,7 @@ import {
   HeartIcon,
   AcademicCapIcon,
 } from "@heroicons/react/24/outline";
+import Button from "../ui/Button";
 
 // Objeto que mapeia o nome do ícone (do Contentful) para o componente React
 const iconMap = {
@@ -87,15 +88,10 @@ export default function ContrateSection({ pageData, tiposEvento }) {
                 Clique no botão abaixo para nos chamar no WhatsApp e solicitar
                 um orçamento sem compromisso.
               </p>
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple text-white
-                          inline-block py-4 px-10 rounded-full font-bold text-lg
-                          shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full"
-              >
-                Solicitar Orçamento
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                <Button variant="primary" className="w-full">
+                  Solicitar Orçamento
+                </Button>
               </a>
             </div>
           </div>

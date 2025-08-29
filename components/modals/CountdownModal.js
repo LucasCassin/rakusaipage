@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getDaysUntilEvent } from "src/utils/dateUtils";
+import Button from "../ui/Button";
 
 // --- DEFINIÇÃO DOS TEMAS ---
 // Cada objeto representa um tema completo para o modal.
@@ -153,18 +154,21 @@ export default function CountdownModal({
         {/* Rodapé fixo com os botões de ação */}
         <div className="p-6 mt-auto border-t border-white/20">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={onDismissForever}
-              className="font-semibold text-white bg-white/10 hover:bg-white/20 py-3 px-6 rounded-full transition-colors"
+              className="py-3 px-6 rounded-full "
             >
               Não mostrar novamente
-            </button>
-            <button
+            </Button>
+
+            <Button
+              variant="themed"
               onClick={onClose}
               className={`font-bold ${theme.primaryBtnBg} ${theme.primaryBtnText} ${theme.primaryBtnHover} py-3 px-8 rounded-full transition-colors`}
             >
               Fechar
-            </button>
+            </Button>
           </div>
         </div>
       </div>

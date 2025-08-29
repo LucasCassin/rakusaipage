@@ -1,5 +1,6 @@
 import React from "react";
 import { BookOpenIcon, MusicalNoteIcon } from "@heroicons/react/24/outline";
+import Button from "../ui/Button";
 
 export default function SobreSection({ pageData, onOpenModal }) {
   const sobreContent = pageData?.homeSobre;
@@ -31,34 +32,30 @@ export default function SobreSection({ pageData, onOpenModal }) {
         />
 
         <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-6">
-          <button
+          <Button
+            variant="secondary"
             onClick={() =>
               onOpenModal(
                 "A História do Taiko",
                 historiaTaikoContent.description,
               )
             }
-            className="group bg-gray-800 text-white hover:bg-rakusai-purple transition-all duration-300
-                       inline-flex items-center justify-center py-4 px-8 rounded-full font-bold text-lg
-                       shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <BookOpenIcon className="w-6 h-6 mr-3" />A História do Taiko
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="secondary"
             onClick={() =>
               onOpenModal(
                 "Nossos Instrumentos",
                 instrumentosContent.description,
               )
             }
-            className="group bg-gray-800 text-white hover:bg-rakusai-purple transition-all duration-300
-                       inline-flex items-center justify-center py-4 px-8 rounded-full font-bold text-lg
-                       shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <MusicalNoteIcon className="w-6 h-6 mr-3" />
             Nossos Instrumentos
-          </button>
+          </Button>
         </div>
       </div>
     </section>

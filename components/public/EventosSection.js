@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import Button from "../ui/Button";
 
 // Helper para extrair o ID do vídeo do YouTube
 const getYouTubeID = (url) => {
@@ -100,7 +101,9 @@ export default function EventosSection({
                     </a>
                   </div>
                   {/* MUDANÇA 2: O botão não encolhe mais */}
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() =>
                       onOpenTextModal(
                         event.title,
@@ -108,10 +111,10 @@ export default function EventosSection({
                         event.googleMapsUrl,
                       )
                     }
-                    className="bg-gray-800 text-white hover:bg-rakusai-purple font-semibold py-3 px-6 rounded-full transition-colors duration-300 w-full sm:w-auto flex-shrink-0"
+                    className="w-full sm:w-auto flex-shrink-0"
                   >
                     Ver Detalhes
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
