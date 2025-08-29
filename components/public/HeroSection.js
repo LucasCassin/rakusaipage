@@ -15,7 +15,7 @@ export default function HeroSection({ images }) {
   }
 
   return (
-    <section className="relative h-screen w-full">
+    <section className="relative h-screen w-full" id="home">
       {/* CAMADA 1: O Carrossel (fundo) */}
       <Swiper
         modules={[Autoplay, EffectFade]}

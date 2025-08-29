@@ -244,7 +244,7 @@ export const settings = {
     NAVS: [
       {
         name: "Home",
-        href: "/",
+        href: "/#home",
       },
       {
         name: "Sobre",
