@@ -26,7 +26,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
         </header>
 
         <main className="p-6 overflow-y-auto">
-          <div className="prose lg:prose-xl max-w-none prose-h1:font-sans prose-h2:font-sans">
+          <div className="prose lg:prose-xl max-w-none prose-h1:font-sans prose-h2:font-sans prose-p:text-justify">
             {children}
           </div>
         </main>

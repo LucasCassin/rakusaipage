@@ -144,7 +144,7 @@ export default function CountdownModal({
             </div>
 
             <div
-              className="prose prose-invert lg:prose-lg mx-auto text-gray-200"
+              className="prose prose-invert lg:prose-lg mx-auto text-gray-200 prose-p:text-justify"
               dangerouslySetInnerHTML={{ __html: event.description }}
             />
           </div>

@@ -23,7 +23,7 @@ const EventTypeItem = ({ icon, title, description }) => (
     </div>
     <div className="ml-4">
       <h4 className="text-lg font-bold text-gray-800">{title}</h4>
-      <p className="mt-1 text-gray-600">{description}</p>
+      <p className="mt-1 text-gray-600 text-justify">{description}</p>
     </div>
   </div>
 );
@@ -80,7 +80,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
           {/* Coluna da Direita (agora ocupa 2/5 do espaço e continua sticky) */}
           <div className="sticky top-24 md:col-span-2">
             <div className="bg-white p-8 md:p-10 rounded-lg shadow-2xl text-center border">
-              <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">
                 Vamos Conversar?
               </h3>
               <p className="text-gray-600 mb-8 text-lg">
@@ -92,7 +92,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple text-white
-                          inline-block py-4 px-10 rounded-full font-bold text-xl
+                          inline-block py-4 px-10 rounded-full font-bold text-lg
                           shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full"
               >
                 Solicitar Orçamento

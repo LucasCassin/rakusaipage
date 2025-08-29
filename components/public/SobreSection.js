@@ -26,7 +26,7 @@ export default function SobreSection({ pageData, onOpenModal }) {
         <span className="inline-block h-1 w-5/12 bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple rounded-full mb-8"></span>
 
         <div
-          className="text-gray-700 leading-relaxed prose lg:prose-lg mx-auto prose-h1:font-sans prose-h2:font-sans"
+          className="text-gray-700 leading-relaxed prose lg:prose-lg mx-auto prose-h1:font-sans prose-h2:font-sans prose-p:text-justify"
           dangerouslySetInnerHTML={{ __html: sobreContent.description }}
         />
 
