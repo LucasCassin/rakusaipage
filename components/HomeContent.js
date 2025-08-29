@@ -14,7 +14,12 @@ import Loader from "./ui/Loader";
  * Componente controlador que decide qual view exibir (pública ou de aluno)
  * com base no status de autenticação do usuário.
  */
-export default function HomeContent({ pageData, presentations, horarios }) {
+export default function HomeContent({
+  pageData,
+  presentations,
+  horarios,
+  tiposEvento,
+}) {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -36,6 +41,7 @@ export default function HomeContent({ pageData, presentations, horarios }) {
       pageData={pageData}
       presentations={presentations}
       horarios={horarios}
+      tiposEvento={tiposEvento}
     />
   );
 }

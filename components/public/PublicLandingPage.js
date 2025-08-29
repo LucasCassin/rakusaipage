@@ -5,6 +5,7 @@ import HeroSection from "./HeroSection";
 import SobreSection from "./SobreSection";
 import AulasSection from "./AulasSection";
 import EventosSection from "./EventosSection";
+import ContrateSection from "./ContrateSection";
 import Modal from "../modals/SobreModal.js";
 import VideoModal from "../modals/VideoModal";
 import CountdownModal from "../modals/CountdownModal";
@@ -14,6 +15,7 @@ export default function PublicLandingPage({
   pageData,
   presentations,
   horarios,
+  tiposEvento,
 }) {
   // Estados para o modal de TEXTO
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
@@ -120,6 +122,7 @@ export default function PublicLandingPage({
           onOpenTextModal={handleOpenTextModal}
           onOpenVideoModal={handleOpenVideoModal}
         />
+        <ContrateSection pageData={pageData} tiposEvento={tiposEvento} />
       </main>
     </>
   );
