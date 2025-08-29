@@ -3,15 +3,10 @@
 import React from "react";
 import Image from "next/image";
 
-// Importando os componentes e estilos do Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
-import { texts } from "src/utils/texts.js";
+import { Autoplay, EffectFade } from "swiper/modules";
 
-// Importando os arquivos CSS essenciais do Swiper
 import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 
 export default function HeroSection({ images }) {
@@ -20,11 +15,10 @@ export default function HeroSection({ images }) {
   }
 
   return (
-    // O container principal que controla o posicionamento de todas as camadas
     <section className="relative h-screen w-full">
-      {/* CAMADA 1: O Carrossel (no fundo de tudo) */}
+      {/* CAMADA 1: O Carrossel (fundo) */}
       <Swiper
-        modules={[Navigation, Pagination, Autoplay, EffectFade]}
+        modules={[Autoplay, EffectFade]}
         slidesPerView={1}
         loop={true}
         effect="fade"
@@ -35,10 +29,6 @@ export default function HeroSection({ images }) {
           delay: 5000,
           disableOnInteraction: false,
         }}
-        // pagination={{
-        //   clickable: false,
-        // }}
-        navigation={false}
         className="absolute inset-0 h-full w-full"
       >
         {images.map((image, index) => (
@@ -54,17 +44,43 @@ export default function HeroSection({ images }) {
         ))}
       </Swiper>
 
-      {/* CAMADA 2: O Overlay (acima do carrossel) */}
+      {/* CAMADA 2: O Overlay */}
       <div className="absolute inset-0 bg-[rgba(0,0,0,0.5)] z-10"></div>
 
-      {/* CAMADA 3: O Texto (acima de tudo) */}
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white p-4">
-        <h1 className="text-5xl md:text-7xl font-extrabold drop-shadow-md">
-          {texts.sections.heroSection.title}
-        </h1>
-        <p className="mt-4 text-lg md:text-2xl max-w-2xl drop-shadow-md">
-          {texts.sections.heroSection.description}
-        </p>
+      {/* Container do Logo */}
+      <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
+        {/* MUDANÇA AQUI: As classes de largura agora são responsivas */}
+        <div className="relative h-[80vh] w-[80vw] md:w-[55vw]">
+          <Image
+            src="/images/logoColoridoV2.svg"
+            alt="Logo Rakusai Taiko Colorido"
+            fill
+            style={{ objectFit: "contain" }}
+            priority
+            className="drop-shadow-lg"
+          />
+        </div>
+      </div>
+
+      {/* MUDANÇA: CAMADA 4 - A Seta Animada para Rolar */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
+        <a href="#sobre" aria-label="Rolar para a próxima seção">
+          <div className="w-10 h-10 md:w-12 md:h-12 text-white/70 animate-bounce">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m19.5 8.25-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </div>
+        </a>
       </div>
     </section>
   );
