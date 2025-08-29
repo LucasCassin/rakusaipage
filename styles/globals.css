@@ -15,3 +15,21 @@
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
+
+/* --- Estilos para a Paginação do Carrossel (Bolinhas) --- */
+
+/* Posiciona as bolinhas na parte de baixo do container */
+.swiper-pagination {
+  bottom: 0px !important;
+  position: absolute !important;
+}
+
+/* Estilo da bolinha inativa */
+.swiper-pagination-bullet {
+  background-color: #6b7280 !important; /* text-gray-500 */
+}
+
+/* Estilo da bolinha ativa */
+.swiper-pagination-bullet-active {
+  background-color: #b000b0 !important; /* rakusai-purple */
+}
