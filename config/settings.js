@@ -264,7 +264,7 @@ export const settings = {
       },
       {
         name: "Contato",
-        href: "/#6",
+        href: "/#contato",
       },
       // {
       //   name: "Área do Aluno",

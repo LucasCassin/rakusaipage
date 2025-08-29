@@ -63,17 +63,30 @@ const parseHomeInstrumentos = (fields) => ({
   description: parseRichText(fields.descricao),
 });
 
-const parseRedesSociais = (fields) => ({
-  instagram: fields.instagram || "",
-  whatsapp: fields.whatsapp || "",
-  youtube: fields.youtube || "",
-});
+const parseRedesSociais = (fields) => {
+  // MUDANÇA: URL do link externo melhorada para uma busca mais direta
+  const googleMapsLink =
+    fields.local?.lat && fields.local?.lon
+      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
+      : null;
 
-const parseHorarioAula = (fields) => ({
-  diaDaSemana: fields.diaDaSemana || "",
-  ordem: fields.ordem || 0,
-  horarios: fields.horarios || [],
-});
+  // MUDANÇA: URL do iframe para visualização limpa, sem a caixa de info
+  // Usamos 'll' para centralizar e 'iwloc' para remover o balão de informação
+  const mapEmbedUrl =
+    fields.local?.lat && fields.local?.lon
+      ? `https://www.google.com/maps/search/?api=1&query=$${fields.local.lat},${fields.local.lon}&z=17&output=embed&hl=pt`
+      : null;
+
+  return {
+    instagram: fields.instagram || null,
+    youtube: fields.youtube || null,
+    whatsapp: fields.whatsapp || null,
+    email: fields.email || null,
+    localName: fields.localName || "Local de Ensaio",
+    googleMapsLink: googleMapsLink,
+    mapEmbedUrl: fields.streetViewEmbedUrl || mapEmbedUrl,
+  };
+};
 
 const parseHomeProximasApre = (fields) => ({
   title: fields.titulo || "",
