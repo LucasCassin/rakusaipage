@@ -116,7 +116,9 @@ export default function CountdownModal({
                        scrollbar-track-transparent 
                        scrollbar-thumb-transparent"
         >
-          <p className="font-semibold text-gray-100 text-lg mb-4">Faltam</p>
+          {daysUntil > 1 && (
+            <p className="font-semibold text-gray-100 text-lg mb-4">Faltam</p>
+          )}
 
           <div className="flex flex-col items-center justify-center mb-8">
             <CountdownText days={daysUntil} />
