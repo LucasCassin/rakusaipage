@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import Button from "../ui/Button";
 
 export default function AulasSection({ pageData, horarios }) {
   const aulasContent = pageData?.homeAulas;
@@ -17,7 +18,6 @@ export default function AulasSection({ pageData, horarios }) {
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensagemWpp)}`;
 
   return (
-    // MUDANÇA: Usando a sua nova cor de fundo para esta seção
     <section
       id="aulas"
       className="py-20"
@@ -108,17 +108,11 @@ export default function AulasSection({ pageData, horarios }) {
           </div>
         </div>
 
-        {/* ...PARA CÁ! O BOTÃO AGORA FICA ABAIXO DO GRID */}
         <div className="mt-12">
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple text-white
-                        block w-full text-center py-4 px-10 rounded-full font-bold text-xl
-                        shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
-          >
-            Quero Fazer uma Aula Experimental!
+          <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+            <Button variant="primary" className="w-full text-center">
+              Quero Fazer uma Aula Experimental!
+            </Button>
           </a>
         </div>
       </div>
