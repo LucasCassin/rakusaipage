@@ -255,25 +255,21 @@ export const settings = {
         href: "/#aulas",
       },
       {
-        name: "Vídeos",
-        href: "/#3",
+        name: "Eventos",
+        href: "/#eventos",
       },
       {
-        name: "Fotos",
-        href: "/#4",
-      },
-      {
-        name: "Depoimentos",
-        href: "/#5",
+        name: "Contrate o Rakusai",
+        href: "/#6",
       },
       {
         name: "Contato",
         href: "/#6",
       },
-      {
-        name: "Área do Aluno",
-        href: "/login",
-      },
+      // {
+      //   name: "Área do Aluno",
+      //   href: "/login",
+      // },
       // {
       //   name: "Home",
       //   href: "/",

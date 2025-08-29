@@ -11,7 +11,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] relative flex flex-col font-sans"
+        className="bg-white rounded-lg shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative flex flex-col font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* MUDANÇA: Cabeçalho com o gradiente da marca */}
@@ -26,10 +26,9 @@ export default function Modal({ isOpen, onClose, title, children }) {
         </header>
 
         <main className="p-6 overflow-y-auto">
-          <div
-            className="prose lg:prose-xl max-w-none prose-h1:font-sans prose-h2:font-sans prose-h3:font-sans"
-            dangerouslySetInnerHTML={{ __html: children }}
-          />
+          <div className="prose lg:prose-xl max-w-none prose-h1:font-sans prose-h2:font-sans">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -79,7 +79,12 @@ const parseHomeProximasApre = (fields) => ({
   title: fields.titulo || "",
   description: parseRichText(fields.descricao),
   date: fields.data,
-  location: fields.local || null,
+  locationName: fields.localTexto || "Local a definir",
+  googleMapsUrl:
+    fields.local?.lat && fields.local?.lon
+      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
+      : null,
+  showCountdownDays: fields.mostrarTravaTelaNDiasAntes ?? -1,
 });
 
 // --- CONFIGURAÇÃO CENTRAL ---
@@ -131,13 +136,24 @@ export async function fetchLandingPageData() {
  */
 export async function fetchUpcomingPresentations() {
   try {
+    const today = new Date();
+    // Zera o horário para comparar apenas a data
+    today.setHours(0, 0, 0, 0);
+
     const entries = await client.getEntries({
       content_type: "homeProximasApre",
-      order: "fields.data", // Ordena pela data (mais antiga primeiro)
+      order: "fields.data",
     });
-    return (
-      entries.items?.map((item) => parseHomeProximasApre(item.fields)) || []
-    );
+
+    if (!entries.items) return [];
+
+    // MUDANÇA: Filtra a lista para incluir apenas eventos de hoje em diante
+    const upcomingEvents = entries.items.filter((item) => {
+      const eventDate = new Date(item.fields.data);
+      return eventDate >= today;
+    });
+
+    return upcomingEvents.map((item) => parseHomeProximasApre(item.fields));
   } catch (error) {
     console.error("Erro ao buscar apresentações do Contentful:", error);
     return [];
