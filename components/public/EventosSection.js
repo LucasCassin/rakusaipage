@@ -64,7 +64,7 @@ export default function EventosSection({
         {/* 1. Descrição principal da seção */}
         {description && (
           <div
-            className="text-gray-700 leading-relaxed prose lg:prose-lg mx-auto mb-16 text-center"
+            className="text-gray-700 leading-relaxed prose lg:prose-lg mx-auto mb-16 prose-p:text-justify"
             dangerouslySetInnerHTML={{ __html: description }}
           />
         )}
@@ -91,7 +91,7 @@ export default function EventosSection({
                       href={event.googleMapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-600 mt-1 block hover:underline"
+                      className="text-gray-600 mt-1 block hover:underline text-justify"
                     >
                       {event.locationName}
                     </a>

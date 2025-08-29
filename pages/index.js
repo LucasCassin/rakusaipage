@@ -5,13 +5,19 @@ import {
   fetchLandingPageData,
   fetchUpcomingPresentations,
   fetchHorariosAula,
+  fetchTiposEvento,
 } from "services/contentfulService.js";
 
 /**
  * Página inicial da aplicação
  */
 // A página agora recebe 'pageData' e 'presentations' como props
-export default function Home({ pageData, presentations, horarios }) {
+export default function Home({
+  pageData,
+  presentations,
+  horarios,
+  tiposEvento,
+}) {
   return (
     <>
       <Head>
@@ -25,6 +31,7 @@ export default function Home({ pageData, presentations, horarios }) {
         pageData={pageData}
         presentations={presentations}
         horarios={horarios}
+        tiposEvento={tiposEvento}
       />
     </>
   );
@@ -36,12 +43,14 @@ export async function getStaticProps() {
   const pageData = await fetchLandingPageData();
   const presentations = await fetchUpcomingPresentations();
   const horarios = await fetchHorariosAula();
+  const tiposEvento = await fetchTiposEvento(); // <<< BUSCA OS TIPOS DE EVENTO
 
   return {
     props: {
       pageData,
       presentations,
       horarios,
+      tiposEvento,
     },
     revalidate: 60, // Regenera a página a cada 60s para buscar novos dados
   };

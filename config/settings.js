@@ -260,7 +260,7 @@ export const settings = {
       },
       {
         name: "Contrate o Rakusai",
-        href: "/#6",
+        href: "/#contrate",
       },
       {
         name: "Contato",

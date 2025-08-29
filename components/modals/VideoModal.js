@@ -19,12 +19,6 @@ export default function VideoModal({ isOpen, onClose, videoId }) {
         <span className="text-2xl font-bold">&times;</span>
       </button>
 
-      {/* MUDANÇA PRINCIPAL:
-        - 'w-full' e 'max-h-full' fazem o container tentar ocupar todo o espaço disponível.
-        - 'aspect-w-16 aspect-h-9' força a proporção correta.
-        - O navegador automaticamente ajustará o tamanho para caber na tela, respeitando
-          a proporção, seja limitado pela largura ou pela altura.
-      */}
       <div
         className="relative w-full max-h-full aspect-w-16 aspect-h-9"
         onClick={(e) => e.stopPropagation()}

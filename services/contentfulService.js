@@ -87,6 +87,13 @@ const parseHomeProximasApre = (fields) => ({
   showCountdownDays: fields.mostrarTravaTelaNDiasAntes ?? -1,
 });
 
+const parseTipoEvento = (fields) => ({
+  order: fields.ordem || 0,
+  title: fields.titulo || "",
+  description: fields.descricao || "",
+  iconName: fields.iconName || "Sparkles", // Sparkles como padrão
+});
+
 // --- CONFIGURAÇÃO CENTRAL ---
 // Mapeia cada Content Type ID (de entrada única) ao seu respectivo parser.
 // Para adicionar uma nova seção no futuro, basta adicioná-la aqui.
@@ -173,6 +180,22 @@ export async function fetchHorariosAula() {
     return entries.items || [];
   } catch (error) {
     console.error("Erro ao buscar horários de aula do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os tipos de evento e os ordena pelo campo 'ordem'.
+ */
+export async function fetchTiposEvento() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "tipoEvento",
+      order: "fields.ordem",
+    });
+    return entries.items?.map((item) => parseTipoEvento(item.fields)) || [];
+  } catch (error) {
+    console.error("Erro ao buscar tipos de evento do Contentful:", error);
     return [];
   }
 }
