@@ -13,14 +13,14 @@ export default function Header() {
   const [isOthersDropdownOpen, setIsOthersDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // --- NOVA LÓGICA VISUAL ---
-  const [isScrolledSlightly, setIsScrolledSlightly] = useState(false);
-  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
+  // Estados para controle visual
+  const [headerOpacity, setHeaderOpacity] = useState(0);
+  const [logoOpacity, setLogoOpacity] = useState(0);
   const [activeSection, setActiveSection] = useState("home");
-  const isHomePage = router.pathname === "/";
-  // -------------------------
 
-  // --- SUA LÓGICA DE PERMISSÃO ORIGINAL MANTIDA ---
+  const isHomePage = router.pathname === "/";
+
+  // Lógica de permissão original
   const hasFeatureSet = (featureSet) => {
     if (!user || !user.features) return false;
     return featureSet.every((feature) => user.features.includes(feature));
@@ -36,9 +36,9 @@ export default function Header() {
     return hasPermission(navItem.FEATURES);
   };
 
+  const mainNavs = settings.header.NAVS.filter(shouldShowNavItem);
   const filteredOtherNavs =
     settings.header.OTHER_NAVS.filter(shouldShowNavItem);
-  // ------------------------------------------------
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -50,98 +50,112 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- NOVO useEffect PARA CONTROLE VISUAL ---
   useEffect(() => {
     if (!router.isReady) return;
+
     const isHomePageCheck = router.pathname === "/";
 
     const handleScroll = () => {
-      setIsScrolledSlightly(window.scrollY > 50);
-      setIsScrolledPastHero(window.scrollY > window.innerHeight - 50);
+      if (!isHomePageCheck) return;
+
+      const scrollY = window.scrollY;
+
+      // Estágio 1: Opacidade do Header (de 0 a 300px de scroll)
+      const headerFadeRange = 300;
+      const currentHeaderOpacity = Math.min(scrollY / headerFadeRange, 1);
+      setHeaderOpacity(currentHeaderOpacity);
+
+      // Estágio 2: Opacidade do Logo (começa depois do header, de 300px a 500px)
+      const logoFadeStart = 300;
+      const logoFadeRange = 200; // 500 - 300
+      const scrollAfterHeader = scrollY - logoFadeStart;
+      const rawLogoOpacity = scrollAfterHeader / logoFadeRange;
+      const currentLogoOpacity = Math.max(0, Math.min(rawLogoOpacity, 1)); // Garante que fique entre 0 e 1
+      setLogoOpacity(currentLogoOpacity);
     };
 
     if (!isHomePageCheck) {
-      setIsScrolledSlightly(true);
-      setIsScrolledPastHero(true);
-      setActiveSection("");
+      setHeaderOpacity(1);
+      setLogoOpacity(1);
     } else {
       handleScroll();
       window.addEventListener("scroll", handleScroll);
       return () => window.removeEventListener("scroll", handleScroll);
     }
   }, [router.isReady, router.pathname]);
-  // -------------------------------------------
 
-  // --- NOVO useEffect PARA DESTAQUE DE SEÇÃO ---
   useEffect(() => {
     if (!isHomePage) return;
-    const allNavLinks = settings.header.NAVS;
-    const timer = setTimeout(() => {
-      const sections = allNavLinks
-        .map((link) =>
-          link.href.startsWith("#") ? document.querySelector(link.href) : null,
-        )
-        .filter(Boolean);
-      if (sections.length === 0) return;
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveSection(entry.target.id);
-            }
-          });
-        },
-        { rootMargin: "-40% 0px -40% 0px" },
-      );
+    const allNavLinks = settings.header.NAVS;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-40% 0px -40% 0px" },
+    );
+
+    const sections = allNavLinks
+      .map((link) =>
+        link.href.startsWith("#") ? document.querySelector(link.href) : null,
+      )
+      .filter(Boolean);
+
+    if (sections.length > 0) {
       sections.forEach((section) => observer.observe(section));
-      return () => sections.forEach((section) => observer.unobserve(section));
-    }, 100);
-    return () => clearTimeout(timer);
+    }
+
+    return () =>
+      sections.forEach((section) => {
+        if (section) observer.unobserve(section);
+      });
   }, [isHomePage]);
-  // ------------------------------------------
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleOthersDropdown = () =>
     setIsOthersDropdownOpen(!isOthersDropdownOpen);
 
-  // --- SUA LÓGICA DE NAVEGAÇÃO ORIGINAL MANTIDA ---
   const handleNavigation = (href, e) => {
+    if (e) e.preventDefault();
     if (href.startsWith("#")) {
-      if (e) e.preventDefault();
       document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
     } else {
-      if (e) e.preventDefault();
       router.push(href);
     }
     if (isMenuOpen) setIsMenuOpen(false);
     if (isOthersDropdownOpen) setIsOthersDropdownOpen(false);
   };
-  // ---------------------------------------------
 
-  const headerBgClass =
-    !isHomePage || isScrolledSlightly || isMenuOpen
-      ? "bg-gray-800 shadow-lg"
-      : "bg-transparent";
-  const logoVisibilityClass =
-    !isHomePage || isScrolledPastHero || isMenuOpen
-      ? "opacity-100"
-      : "opacity-0 pointer-events-none";
-  const navVisibilityClass =
-    !isHomePage || isScrolledSlightly || isMenuOpen
-      ? "opacity-100"
-      : "opacity-0 pointer-events-none";
+  // const logoVisibilityClass =
+  //   !isHomePage || isScrolledPastHero || isMenuOpen
+  //     ? "opacity-100"
+  //     : "opacity-0 pointer-events-none";
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 text-white transition-all duration-500 ${headerBgClass}`}
+      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-opacity duration-200 ${
+        headerOpacity > 0 || isMenuOpen || !isHomePage
+          ? "pointer-events-auto"
+          : "pointer-events-none"
+      }`}
+      style={{ opacity: isMenuOpen ? 1 : headerOpacity }}
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0">
-            <Link
-              href="/"
-              className={`transition-opacity duration-300 ${logoVisibilityClass}`}
+            <a
+              href="#home"
+              onClick={(e) => handleNavigation("#home", e)}
+              className="transition-opacity duration-300 cursor-pointer"
+              style={{
+                opacity: isMenuOpen ? 1 : logoOpacity,
+                pointerEvents:
+                  logoOpacity > 0.1 || isMenuOpen ? "auto" : "none",
+              }}
             >
               <Image
                 src="/images/logoBranco.svg"
@@ -149,43 +163,43 @@ export default function Header() {
                 width={102.63}
                 height={50}
               />
-            </Link>
+            </a>
           </div>
 
           <div className="flex items-center">
-            <div
-              className={`hidden sm:flex items-center transition-opacity duration-300 ${navVisibilityClass}`}
-            >
-              <nav className="flex space-x-1">
-                {settings.header.NAVS.filter(shouldShowNavItem).map((item) => {
-                  const isActive = isHomePage
-                    ? activeSection === item.href.substring(1)
-                    : router.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={(e) => handleNavigation(item.href, e)}
-                      className={`relative px-3 py-2 text-sm font-bold transition-colors duration-200 ${isActive ? "text-white" : "text-gray-300 hover:text-white"}`}
-                    >
-                      <span>{item.name}</span>
-                      {isActive && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-rakusai-pink rounded-full"></span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </nav>
+            <nav className="hidden sm:ml-6 sm:flex sm:space-x-1">
+              {mainNavs.map((item) => {
+                const isActive = isHomePage
+                  ? activeSection === item.href.substring(1)
+                  : router.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={(e) => handleNavigation(item.href, e)}
+                    className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                      isActive ? "text-white" : "text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    <span>{item.name}</span>
+                    {isActive && (
+                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-rakusai-pink rounded-full"></span>
+                    )}
+                  </Link>
+                );
+              })}
 
               {filteredOtherNavs.length > 0 && (
-                <div className="relative ml-4" ref={dropdownRef}>
+                <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={toggleOthersDropdown}
-                    className="relative px-3 py-2 text-sm font-bold transition-colors duration-200 flex items-center text-gray-300 hover:text-white"
+                    className="relative px-3 py-2 text-sm font-medium transition-colors duration-200 flex items-center text-gray-300 hover:text-white"
                   >
                     <span>{texts.header.menu.others}</span>
                     <svg
-                      className={`ml-1 h-5 w-5 transition-transform duration-200 ${isOthersDropdownOpen ? "transform rotate-180" : ""}`}
+                      className={`ml-1 h-5 w-5 transition-transform duration-200 ${
+                        isOthersDropdownOpen ? "transform rotate-180" : ""
+                      }`}
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
@@ -205,7 +219,11 @@ export default function Header() {
                           key={item.href}
                           href={item.href}
                           onClick={(e) => handleNavigation(item.href, e)}
-                          className={`block px-4 py-2 text-sm ${router.pathname === item.href ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-100"}`}
+                          className={`block px-4 py-2 text-sm ${
+                            router.pathname === item.href
+                              ? "bg-gray-100 text-gray-900"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
                         >
                           {item.name}
                         </Link>
@@ -214,14 +232,14 @@ export default function Header() {
                   )}
                 </div>
               )}
-            </div>
+            </nav>
 
             <div className="flex items-center sm:hidden">
               <button
                 onClick={toggleMenu}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none"
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
               >
-                <span className="sr-only">Abrir menu</span>
+                <span className="sr-only">{texts.header.mobile.menu}</span>
                 {isMenuOpen ? (
                   <svg
                     className="block h-6 w-6"
@@ -251,7 +269,7 @@ export default function Header() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M4 6h16M4 12h16m-7 6h7"
+                      d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
                 )}
@@ -262,14 +280,18 @@ export default function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="sm:hidden bg-gray-800">
+        <div className="sm:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {settings.header.NAVS.filter(shouldShowNavItem).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavigation(item.href, e)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${isHomePage && activeSection === item.href.substring(1) ? "bg-rakusai-purple text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isHomePage && activeSection === item.href.substring(1)
+                    ? "bg-rakusai-purple text-white"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}
               >
                 {item.name}
               </Link>
@@ -279,7 +301,11 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavigation(item.href, e)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${router.pathname === item.href ? "bg-rakusai-purple text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  router.pathname === item.href
+                    ? "bg-rakusai-purple text-white"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}
               >
                 {item.name}
               </Link>
