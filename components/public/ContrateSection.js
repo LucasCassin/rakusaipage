@@ -24,7 +24,7 @@ const EventTypeItem = ({ icon, title, description }) => (
     </div>
     <div className="ml-4">
       <h4 className="text-lg font-bold text-gray-800">{title}</h4>
-      <p className="mt-1 text-gray-600 text-justify">{description}</p>
+      <p className="mt-1 text-gray-600">{description}</p>
     </div>
   </div>
 );
@@ -62,10 +62,10 @@ export default function ContrateSection({ pageData, tiposEvento }) {
           {/* Coluna da Esquerda (agora ocupa 3/5 do espaço) */}
           <div className="md:col-span-3 space-y-12">
             <div
-              className="text-gray-700 leading-relaxed prose lg:prose-lg prose-h1:font-sans prose-h2:font-sans"
+              className="text-gray-700 leading-relaxed prose lg:prose-lg prose-h1:font-sans prose-h2:font-sans prose-p:text-justify"
               dangerouslySetInnerHTML={{ __html: description }}
             />
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 pt-4 text-left">
               {tiposEvento &&
                 tiposEvento.map((item) => (
                   <EventTypeItem
