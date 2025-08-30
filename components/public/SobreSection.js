@@ -40,6 +40,7 @@ export default function SobreSection({ pageData, onOpenModal }) {
                 historiaTaikoContent.description,
               )
             }
+            className="w-full sm:w-auto"
           >
             <BookOpenIcon className="w-6 h-6 mr-3" />A História do Taiko
           </Button>
@@ -52,6 +53,7 @@ export default function SobreSection({ pageData, onOpenModal }) {
                 instrumentosContent.description,
               )
             }
+            className="w-full sm:w-auto"
           >
             <MusicalNoteIcon className="w-6 h-6 mr-3" />
             Nossos Instrumentos
