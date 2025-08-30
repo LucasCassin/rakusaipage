@@ -1,35 +1,28 @@
 import React from "react";
-import {
-  SparklesIcon,
-  BuildingOffice2Icon,
-  HeartIcon,
-  AcademicCapIcon,
-} from "@heroicons/react/24/outline";
-import Button from "../ui/Button";
+import Button from "components/ui/Button";
+import * as OutlineIcons from "@heroicons/react/24/outline";
 
-// Objeto que mapeia o nome do ícone (do Contentful) para o componente React
-const iconMap = {
-  Sparkles: <SparklesIcon className="w-6 h-6" />,
-  BuildingOffice2: <BuildingOffice2Icon className="w-6 h-6" />,
-  Heart: <HeartIcon className="w-6 h-6" />,
-  AcademicCap: <AcademicCapIcon className="w-6 h-6" />,
-};
+// O componente EventTypeItem agora é mais inteligente
+const EventTypeItem = ({ iconName, title, description }) => {
+  // Procura dinamicamente pelo ícone dentro do objeto OutlineIcons
+  const IconComponent = OutlineIcons[iconName];
 
-const EventTypeItem = ({ icon, title, description }) => (
-  <div className="flex items-start text-left">
-    <div className="flex-shrink-0">
-      <div className="flex items-center justify-center h-12 w-12 rounded-full bg-rakusai-purple text-white">
-        {icon}
+  return (
+    <div className="flex items-start text-left">
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-rakusai-purple text-white">
+          {/* Se o ícone for encontrado, ele é renderizado. Senão, não mostra nada. */}
+          {IconComponent && <IconComponent className="w-6 h-6" />}
+        </div>
+      </div>
+      <div className="ml-4">
+        <h4 className="text-lg font-bold text-gray-800">{title}</h4>
+        <p className="mt-1 text-gray-600">{description}</p>
       </div>
     </div>
-    <div className="ml-4">
-      <h4 className="text-lg font-bold text-gray-800">{title}</h4>
-      <p className="mt-1 text-gray-600">{description}</p>
-    </div>
-  </div>
-);
+  );
+};
 
-// A seção agora recebe 'tiposEvento' como uma nova prop
 export default function ContrateSection({ pageData, tiposEvento }) {
   const content = pageData?.homeContrate;
   const whatsappNumber = pageData?.redesSociais?.whatsapp;
@@ -47,7 +40,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
     <section
       id="contrate"
       className="py-20"
-      style={{ backgroundColor: "#f7f7f7" }} // Usando o cinza da seção Sobre para alternar
+      style={{ backgroundColor: "#f0f0f0" }}
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center">
@@ -57,20 +50,19 @@ export default function ContrateSection({ pageData, tiposEvento }) {
           <span className="inline-block h-1 w-5/12 bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple rounded-full mb-16"></span>
         </div>
 
-        {/* MUDANÇA: Usando um grid de 5 colunas para melhor proporção */}
         <div className="grid md:grid-cols-5 gap-12 lg:gap-16 items-start">
-          {/* Coluna da Esquerda (agora ocupa 3/5 do espaço) */}
           <div className="md:col-span-3 space-y-12">
             <div
-              className="text-gray-700 leading-relaxed prose lg:prose-lg prose-h1:font-sans prose-h2:font-sans prose-p:text-justify"
+              className="text-gray-700 leading-relaxed prose lg:prose-lg text-justify prose-p:text-justify"
               dangerouslySetInnerHTML={{ __html: description }}
             />
             <div className="space-y-6 pt-4 text-left">
               {tiposEvento &&
                 tiposEvento.map((item) => (
+                  // MUDANÇA 2: Passamos o 'iconName' (texto do Contentful) em vez do componente do ícone
                   <EventTypeItem
                     key={item.order}
-                    icon={iconMap[item.iconName]}
+                    iconName={item.iconName}
                     title={item.title}
                     description={item.description}
                   />
