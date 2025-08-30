@@ -35,14 +35,12 @@ export default function SobreSection({ pageData, onOpenModal }) {
           <Button
             variant="secondary"
             onClick={() =>
-              onOpenModal(
-                "A História do Taiko",
-                historiaTaikoContent.description,
-              )
+              onOpenModal("História do Taiko", historiaTaikoContent.description)
             }
             className="w-full sm:w-auto"
           >
-            <BookOpenIcon className="w-6 h-6 mr-3" />A História do Taiko
+            <BookOpenIcon className="w-6 h-6 mr-3" />
+            História do Taiko
           </Button>
 
           <Button

@@ -111,7 +111,7 @@ export default function AulasSection({ pageData, horarios }) {
         <div className="mt-12">
           <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
             <Button variant="primary" className="w-full text-center">
-              Quero Fazer uma Aula Experimental!
+              Quero fazer uma aula experimental!
             </Button>
           </a>
         </div>

@@ -87,7 +87,7 @@ export default function ContatoSection({ pageData }) {
             {localName && googleMapsLink && (
               <div>
                 <h3 className="text-3xl font-bold mb-4 text-gray-800">
-                  Nosso Local de Ensaio
+                  Endereço
                 </h3>
                 <a
                   href={googleMapsLink}

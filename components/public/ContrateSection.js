@@ -40,7 +40,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
     <section
       id="contrate"
       className="py-20"
-      style={{ backgroundColor: "#f0f0f0" }}
+      style={{ backgroundColor: "#f7f7f7" }}
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center">
