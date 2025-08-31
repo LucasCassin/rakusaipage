@@ -15,7 +15,9 @@ export default function AulasSection({ pageData, horarios }) {
 
   const mensagemWpp =
     "Olá! Tenho interesse em fazer uma aula experimental de Taiko.";
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensagemWpp)}`;
+  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+    mensagemWpp,
+  )}`;
 
   return (
     <section
@@ -31,19 +33,15 @@ export default function AulasSection({ pageData, horarios }) {
           <span className="inline-block h-1 w-5/12 bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple rounded-full mb-16"></span>
         </div>
 
-        {/* O grid agora contém apenas o texto e a coluna sticky */}
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-start">
-          {/* Coluna da Esquerda: Apenas o texto longo */}
           <div className="space-y-8 text-left">
             <div
               className="text-gray-700 leading-relaxed prose prose-p:text-justify lg:prose-lg prose-h1:font-sans prose-h2:font-sans"
               dangerouslySetInnerHTML={{ __html: description }}
             />
-            {/* O BOTÃO DE CTA FOI MOVIDO DAQUI... */}
           </div>
 
-          {/* Coluna da Direita: Imagem e Tabela (continua sticky) */}
-          <div className="sticky top-24">
+          <div className="md:sticky md:top-24">
             <div className="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200 space-y-6">
               {featuredImage && (
                 <div className="relative w-full h-64 rounded-md overflow-hidden">
@@ -60,12 +58,14 @@ export default function AulasSection({ pageData, horarios }) {
                   Nossos Horários
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                  {/* MUDANÇA 1: Adicionada a classe 'table-fixed' */}
+                  <table className="w-full">
                     <thead className="border-b-2 border-gray-300">
                       <tr>
-                        <th className="py-3 pr-2 font-semibold">Dia</th>
-                        <th className="py-3 px-2 font-semibold">Horário</th>
-                        <th className="py-3 pl-2 font-semibold">Turma</th>
+                        {/* MUDANÇA 2: Adicionadas classes de largura (w-...) */}
+                        <th className="py-3 pr-2 text-left">Dia</th>
+                        <th className="py-3 px-2 text-center">Horário</th>
+                        <th className="py-3 pl-2 text-right">Turma</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -85,15 +85,24 @@ export default function AulasSection({ pageData, horarios }) {
                                 key={`${dia.sys.id}-${horarioIndex}`}
                                 className="border-b border-gray-200 last:border-b-0"
                               >
-                                <td className="py-3 pr-2 font-medium text-gray-800">
+                                <td className="py-4 pr-2 font-medium text-gray-800">
                                   {horarioIndex === 0
                                     ? dia.fields.diaDaSemana
                                     : ""}
                                 </td>
-                                <td className="py-3 px-2 text-gray-600">
-                                  {horario}
+                                {/* O alinhamento manual com div e span está mantido */}
+                                <td className="py-4 px-2">
+                                  <div className="flex justify-between items-center text-gray-600 tracking-wider">
+                                    <span className="w-15 text-left">
+                                      {horario.split("-")[0].trim()}
+                                    </span>
+                                    <span>-</span>
+                                    <span className="w-15 text-right">
+                                      {horario.split("-")[1].trim()}
+                                    </span>
+                                  </div>
                                 </td>
-                                <td className="py-3 pl-2 text-gray-600">
+                                <td className="py-4 pl-2 text-gray-600 text-right">
                                   {turma}
                                 </td>
                               </tr>
