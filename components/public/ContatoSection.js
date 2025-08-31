@@ -25,11 +25,13 @@ export default function ContatoSection({ pageData }) {
     email,
     localName,
     googleMapsLink,
-    mapEmbedUrl,
+    mapEmbedUrl, // Esta variável agora conterá a URL do Street View (se houver) ou do mapa
   } = redesSociais;
 
   const whatsappLink = whatsapp
-    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent("Olá! Gostaria de entrar em contato com o Rakusai Taiko.")}`
+    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(
+        "Olá! Gostaria de entrar em contato com o Rakusai Taiko.",
+      )}`
     : null;
 
   return (
@@ -139,7 +141,7 @@ export default function ContatoSection({ pageData }) {
             </div>
           </div>
 
-          {/* Coluna da Direita: Mapa */}
+          {/* Coluna da Direita: Mapa ou Street View */}
           <div className="relative w-full h-80 md:h-full min-h-[400px]">
             <a
               href={googleMapsLink}
@@ -148,6 +150,7 @@ export default function ContatoSection({ pageData }) {
               className="absolute inset-0 z-10"
               aria-label={`Abrir ${localName} no Google Maps`}
             ></a>
+            {/* O 'src' agora usa a variável 'mapEmbedUrl', que será Street View se disponível */}
             <iframe
               src={mapEmbedUrl}
               width="100%"

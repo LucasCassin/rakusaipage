@@ -52,10 +52,8 @@ export default function EventosSection({
   return (
     <section
       id="eventos"
-      className="py-20" // Fundo branco para alternar
-      style={{
-        backgroundColor: "#f0f0f0",
-      }}
+      className="py-20"
+      style={{ backgroundColor: "#f0f0f0" }}
     >
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center">
@@ -65,7 +63,6 @@ export default function EventosSection({
           <span className="inline-block h-1 w-5/12 bg-gradient-to-r from-rakusai-yellow-dark via-rakusai-pink to-rakusai-purple rounded-full mb-12"></span>
         </div>
 
-        {/* 1. Descrição principal da seção */}
         {description && (
           <div
             className="text-gray-700 leading-relaxed prose lg:prose-lg mx-auto mb-16 prose-p:text-justify"
@@ -73,7 +70,6 @@ export default function EventosSection({
           />
         )}
 
-        {/* Próximas Apresentações */}
         {presentations && presentations.length > 0 && (
           <div id="agenda" className="mb-20">
             <h3 className="text-4xl font-bold text-gray-800 text-center mb-10">
@@ -90,9 +86,8 @@ export default function EventosSection({
                     <h4 className="text-2xl font-bold text-rakusai-purple">
                       {event.title}
                     </h4>
-                    {/* MUDANÇA 1: O local agora é um link e não tem mais ícone */}
                     <a
-                      href={event.googleMapsUrl}
+                      href={event.googleMapsLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-600 mt-1 block hover:underline text-justify"
@@ -100,7 +95,6 @@ export default function EventosSection({
                       {event.locationName}
                     </a>
                   </div>
-                  {/* MUDANÇA 2: O botão não encolhe mais */}
                   <Button
                     variant="secondary"
                     size="small"
@@ -108,7 +102,7 @@ export default function EventosSection({
                       onOpenTextModal(
                         event.title,
                         event.description,
-                        event.googleMapsUrl,
+                        event.mapsLinkForModal, // Usando o link correto para o modal
                       )
                     }
                     className="w-full sm:w-auto flex-shrink-0"
@@ -121,7 +115,6 @@ export default function EventosSection({
           </div>
         )}
 
-        {/* Galeria de Vídeos */}
         {videoUrls && videoUrls.length > 0 && (
           <div
             id="apresentacoes"
@@ -131,7 +124,6 @@ export default function EventosSection({
             <h3 className="text-4xl font-bold text-gray-800 text-center mb-10">
               Apresentações Anteriores
             </h3>
-
             <Swiper
               modules={[Pagination]}
               pagination={{ clickable: true }}
@@ -141,12 +133,8 @@ export default function EventosSection({
                 640: { slidesPerView: 2 },
                 1024: { slidesPerView: 3 },
               }}
-              // MUDANÇA PRINCIPAL: Usando a propriedade 'style' para forçar o padding
               className="w-full"
-              style={{
-                paddingTop: "1rem", // 16px de espaço no topo para o hover
-                paddingBottom: "3rem", // 48px de espaço embaixo para as bolinhas
-              }}
+              style={{ paddingTop: "1rem", paddingBottom: "3rem" }}
             >
               {videoUrls.map((url, index) => {
                 const videoId = getYouTubeID(url);
@@ -156,10 +144,8 @@ export default function EventosSection({
                   <SwiperSlide key={index}>
                     <div
                       onClick={() => onOpenVideoModal(videoId)}
-                      // O hover vai mover este container para cima, dentro do 'paddingTop' do Swiper
                       className="group cursor-pointer transform hover:-translate-y-2 transition-transform duration-300"
                     >
-                      {/* Adicionamos overflow-hidden aqui para garantir que a imagem respeite os cantos arredondados */}
                       <div className="relative shadow-xl rounded-lg overflow-hidden">
                         <div className="aspect-w-16 aspect-h-9 bg-black">
                           <Image

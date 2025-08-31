@@ -7,7 +7,7 @@ import AulasSection from "./AulasSection";
 import EventosSection from "./EventosSection";
 import ContrateSection from "./ContrateSection";
 import ContatoSection from "./ContatoSection";
-import Modal from "../modals/SobreModal.js";
+import Modal from "../modals/TextModal.js";
 import VideoModal from "../modals/VideoModal";
 import CountdownModal from "../modals/CountdownModal";
 import { getDaysUntilEvent } from "src/utils/dateUtils";

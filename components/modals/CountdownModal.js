@@ -135,7 +135,7 @@ export default function CountdownModal({
                 textColor={theme.dateText}
               />
               <a
-                href={event.googleMapsUrl}
+                href={event.googleMapsLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-lg text-gray-100 text-justify hover:text-white transition-colors"

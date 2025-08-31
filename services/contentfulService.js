@@ -8,8 +8,6 @@ const client = createClient({
 });
 
 // --- HELPER PARSERS ---
-// Pequenas funções reutilizáveis para tratar tipos de campos comuns
-
 const parseAsset = (asset) => {
   if (!asset?.fields?.file) return null;
   return {
@@ -26,7 +24,6 @@ const parseRichText = (richTextDocument) => {
 };
 
 // --- PARSERS PRINCIPAIS ---
-// Cada um sabe como "limpar" os dados de um Content Type específico
 
 const parseHomeCarrossel = (fields) => ({
   title: fields.titulo || "Rakusai Taiko",
@@ -63,40 +60,24 @@ const parseHomeInstrumentos = (fields) => ({
   description: parseRichText(fields.descricao),
 });
 
-const parseRedesSociais = (fields) => {
-  // MUDANÇA: URL do link externo melhorada para uma busca mais direta
-  const googleMapsLink =
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
-      : null;
+// MUDANÇA AQUI: Parser de Redes Sociais simplificado
+const parseRedesSociais = (fields) => ({
+  instagram: fields.instagram || null,
+  youtube: fields.youtube || null,
+  whatsapp: fields.whatsapp || null,
+  email: fields.email || null,
+  localName: fields.localName || "Local de Ensaio",
+  googleMapsLink: fields.googleMapsLink || null, // Link para o clique
+  mapEmbedUrl: fields.streetViewEmbedUrl || fields.googleMapsLinkLong || null, // Link para o iframe
+});
 
-  // MUDANÇA: URL do iframe para visualização limpa, sem a caixa de info
-  // Usamos 'll' para centralizar e 'iwloc' para remover o balão de informação
-  const mapEmbedUrl =
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=$${fields.local.lat},${fields.local.lon}&z=17&output=embed&hl=pt`
-      : null;
-
-  return {
-    instagram: fields.instagram || null,
-    youtube: fields.youtube || null,
-    whatsapp: fields.whatsapp || null,
-    email: fields.email || null,
-    localName: fields.localName || "Local de Ensaio",
-    googleMapsLink: googleMapsLink,
-    mapEmbedUrl: fields.streetViewEmbedUrl || mapEmbedUrl,
-  };
-};
-
+// MUDANÇA AQUI: Parser de Próximas Apresentações simplificado
 const parseHomeProximasApre = (fields) => ({
   title: fields.titulo || "",
   description: parseRichText(fields.descricao),
   date: fields.data,
   locationName: fields.localTexto || "Local a definir",
-  googleMapsUrl:
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
-      : null,
+  googleMapsLink: fields.googleMapsLink || null, // Apenas este link é necessário
   showCountdownDays: fields.mostrarTravaTelaNDiasAntes ?? -1,
 });
 
@@ -104,12 +85,10 @@ const parseTipoEvento = (fields) => ({
   order: fields.ordem || 0,
   title: fields.titulo || "",
   description: fields.descricao || "",
-  iconName: fields.iconName || "Sparkles", // Sparkles como padrão
+  iconName: fields.iconName || "Sparkles",
 });
 
 // --- CONFIGURAÇÃO CENTRAL ---
-// Mapeia cada Content Type ID (de entrada única) ao seu respectivo parser.
-// Para adicionar uma nova seção no futuro, basta adicioná-la aqui.
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
   homeSobre: { parser: parseHomeSobre },
