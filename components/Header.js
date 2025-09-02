@@ -52,67 +52,62 @@ export default function Header() {
 
   useEffect(() => {
     if (!router.isReady) return;
-
     const isHomePageCheck = router.pathname === "/";
 
-    const handleScroll = () => {
+    const handleVisualScroll = () => {
       if (!isHomePageCheck) return;
-
       const scrollY = window.scrollY;
-
-      // Estágio 1: Opacidade do Header (de 0 a 300px de scroll)
       const headerFadeRange = 300;
-      const currentHeaderOpacity = Math.min(scrollY / headerFadeRange, 1);
-      setHeaderOpacity(currentHeaderOpacity);
-
-      // Estágio 2: Opacidade do Logo (começa depois do header, de 300px a 500px)
-      const logoFadeStart = 300;
-      const logoFadeRange = 200; // 500 - 300
+      setHeaderOpacity(Math.min(scrollY / headerFadeRange, 1));
+      const logoFadeStart = 200;
+      const logoFadeRange = 200;
       const scrollAfterHeader = scrollY - logoFadeStart;
-      const rawLogoOpacity = scrollAfterHeader / logoFadeRange;
-      const currentLogoOpacity = Math.max(0, Math.min(rawLogoOpacity, 1)); // Garante que fique entre 0 e 1
-      setLogoOpacity(currentLogoOpacity);
+      setLogoOpacity(
+        Math.max(0, Math.min(scrollAfterHeader / logoFadeRange, 1)),
+      );
     };
 
     if (!isHomePageCheck) {
       setHeaderOpacity(1);
       setLogoOpacity(1);
     } else {
-      handleScroll();
-      window.addEventListener("scroll", handleScroll);
-      return () => window.removeEventListener("scroll", handleScroll);
+      handleVisualScroll();
+      window.addEventListener("scroll", handleVisualScroll);
+      return () => window.removeEventListener("scroll", handleVisualScroll);
     }
   }, [router.isReady, router.pathname]);
 
+  // --- LÓGICA DE DESTAQUE DE SEÇÃO CORRIGIDA E FINAL ---
   useEffect(() => {
     if (!isHomePage) return;
 
-    const allNavLinks = settings.header.NAVS;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
-          }
-        });
-      },
-      { rootMargin: "-40% 0px -40% 0px" },
-    );
+    const sections = settings.header.NAVS.map((link) => {
+      if (link.href.includes("/#")) {
+        const id = link.href.split("/#")[1];
+        return document.querySelector(`#${id}`);
+      }
+      return null;
+    }).filter(Boolean);
+    if (sections.length === 0) return;
 
-    const sections = allNavLinks
-      .map((link) =>
-        link.href.startsWith("#") ? document.querySelector(link.href) : null,
-      )
-      .filter(Boolean);
+    const handleActiveSectionScroll = () => {
+      let currentSectionId = "home";
+      const headerOffset = 350; // Um espaço de folga para o header
 
-    if (sections.length > 0) {
-      sections.forEach((section) => observer.observe(section));
-    }
-
-    return () =>
       sections.forEach((section) => {
-        if (section) observer.unobserve(section);
+        const sectionTop = section.offsetTop;
+        if (window.scrollY >= sectionTop - headerOffset) {
+          currentSectionId = section.id;
+        }
       });
+
+      setActiveSection(currentSectionId);
+    };
+
+    handleActiveSectionScroll(); // Define o estado inicial
+    window.addEventListener("scroll", handleActiveSectionScroll);
+    return () =>
+      window.removeEventListener("scroll", handleActiveSectionScroll);
   }, [isHomePage]);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -121,19 +116,27 @@ export default function Header() {
 
   const handleNavigation = (href, e) => {
     if (e) e.preventDefault();
-    if (href.startsWith("#")) {
-      document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+    if (href.includes("/#")) {
+      const id = href.split("/#")[1];
+      const section = document.querySelector(`#${id}`);
+      if (section) {
+        // Rola um pouco acima da seção para compensar o header fixo
+        const headerOffset = 80;
+        const elementPosition = section.getBoundingClientRect().top;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      }
     } else {
       router.push(href);
     }
     if (isMenuOpen) setIsMenuOpen(false);
     if (isOthersDropdownOpen) setIsOthersDropdownOpen(false);
   };
-
-  // const logoVisibilityClass =
-  //   !isHomePage || isScrolledPastHero || isMenuOpen
-  //     ? "opacity-100"
-  //     : "opacity-0 pointer-events-none";
 
   return (
     <header
@@ -169,11 +172,14 @@ export default function Header() {
           <div className="flex items-center">
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-1">
               {mainNavs.map((item) => {
+                const id = item.href.includes("/#")
+                  ? item.href.split("/#")[1]
+                  : null;
                 const isActive = isHomePage
-                  ? activeSection === item.href.substring(1)
+                  ? activeSection === id
                   : router.pathname === item.href;
                 return (
-                  <Link
+                  <a
                     key={item.href}
                     href={item.href}
                     onClick={(e) => handleNavigation(item.href, e)}
@@ -185,7 +191,7 @@ export default function Header() {
                     {isActive && (
                       <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-rakusai-pink rounded-full"></span>
                     )}
-                  </Link>
+                  </a>
                 );
               })}
 
@@ -280,33 +286,51 @@ export default function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="sm:hidden">
+        <div className="sm:hidden bg-gray-800">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {settings.header.NAVS.filter(shouldShowNavItem).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={(e) => handleNavigation(item.href, e)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isHomePage && activeSection === item.href.substring(1)
-                    ? "bg-rakusai-purple text-white"
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
+            {mainNavs.map((item) => {
+              const id = item.href.includes("/#")
+                ? item.href.split("/#")[1]
+                : null;
+              const isActive = isHomePage && activeSection === id;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => handleNavigation(item.href, e)}
+                  // MUDANÇA: Novas classes para posicionamento relativo e paddings
+                  className={`relative block pl-5 pr-4 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive
+                      ? "text-white"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}
+                >
+                  {/* MUDANÇA: Adicionado um div para ser o traço vertical */}
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-rakusai-pink rounded-full"></div>
+                  )}
+                  {item.name}
+                </Link>
+              );
+            })}
+
             {filteredOtherNavs.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavigation(item.href, e)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                // MUDANÇA: Novas classes para posicionamento relativo e paddings
+                className={`relative block pl-5 pr-4 py-2 rounded-md text-base font-medium ${
                   router.pathname === item.href
-                    ? "bg-rakusai-purple text-white"
+                    ? "text-white"
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}
               >
+                {/* MUDANÇA: Adicionado um div para ser o traço vertical */}
+                {router.pathname === item.href && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-rakusai-pink rounded-full"></div>
+                )}
                 {item.name}
               </Link>
             ))}
