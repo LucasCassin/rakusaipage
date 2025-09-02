@@ -13,28 +13,32 @@ export default function SobreSection({ pageData, onOpenModal, instrumentos }) {
       return "<p>Em breve, mais informações sobre nossos instrumentos.</p>";
     }
 
-    // Para cada instrumento, criamos um bloco de HTML com a imagem flutuando
-    return instrumentos
-      .map((instrumento) => {
-        const imageHtml = instrumento.image
-          ? `<div style="float: left; margin-right: 1.5rem; margin-bottom: 1rem; width: 150px;">
-             <img src="${instrumento.image.url}" alt="${instrumento.title}" style="border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);" />
+    return (
+      instrumentos
+        .map((instrumento) => {
+          // MUDANÇA: Usando 'float' para a imagem
+          const imageHtml = instrumento.image
+            ? `<div style="float: left; margin-right: 1rem; padding-top: 3.2rem;margin-bottom: 0.1rem; width: 150px;">
+             <img src="${instrumento.image.url}" alt="${instrumento.title || "Instrumento do Rakusai Taiko"}" style="border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);margin: 0px" />
            </div>`
-          : "";
+            : "";
 
-        const titleHtml = instrumento.title
-          ? `<h2>${instrumento.title}</h2>`
-          : "";
+          const titleHtml = instrumento.title
+            ? `<h2>${instrumento.title}</h2>`
+            : "";
 
-        return `
-        <div style="clear: both">
+          // MUDANÇA: O container principal agora usa 'overflow: auto' para se ajustar ao float
+          // e um 'padding-top' para criar espaço entre os itens
+          return `
+        <div style="overflow: auto; padding-top: 2rem;">
           ${imageHtml}
           ${titleHtml}
           ${instrumento.description}
         </div>
       `;
-      })
-      .join("");
+        })
+        .join("") + '<div style="clear: both;"></div>'
+    ); // Adiciona um clear final por segurança
   }, [instrumentos]);
   // ----------------------------------------------------
 
@@ -44,13 +48,22 @@ export default function SobreSection({ pageData, onOpenModal, instrumentos }) {
 
   // ----------------------------------------------------
 
+  const sectionStyle = {
+    backgroundColor: "#f0f0f0", // Cor de fallback
+    ...(sobreContent.backgroundImage && {
+      backgroundImage: `url(${sobreContent.backgroundImage.url})`,
+      backgroundRepeat: "repeat-x", // Repete a imagem horizontalmente
+      backgroundSize: "auto 100%", // Redimensiona a imagem para 100% da altura da seção
+    }),
+  };
+
   return (
-    <section
-      id="sobre"
-      className="py-20"
-      style={{ backgroundColor: "#f0f0f0" }}
-    >
-      <div className="container mx-auto px-6 text-center max-w-5xl">
+    <section id="sobre" className="py-20 relative" style={sectionStyle}>
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(240, 240, 240, 0.4)" }} // Fundo cinza com 80% de opacidade
+      ></div>
+      <div className="container mx-auto px-6 text-center max-w-5xl relative">
         <h2 className="text-5xl font-bold text-gray-800 mb-4">
           Nossa Batida, Nossa História
         </h2>
