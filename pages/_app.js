@@ -3,6 +3,7 @@ import { AuthProvider } from "src/contexts/AuthContext.js";
 import React from "react";
 import Layout from "pages/layout.js";
 import RouteChangeLoading from "components/RouteChangeLoading";
+import { poppins, caveat } from "src/utils/fonts";
 
 /**
  * Componente principal da aplicação
@@ -10,12 +11,15 @@ import RouteChangeLoading from "components/RouteChangeLoading";
  */
 function MyApp({ Component, pageProps }) {
   return (
-    <AuthProvider>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-      <RouteChangeLoading />
-    </AuthProvider>
+    // Aplica as variáveis das fontes na div principal
+    <div className={`${poppins.variable} ${caveat.variable} font-sans`}>
+      <AuthProvider>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+        <RouteChangeLoading />
+      </AuthProvider>
+    </div>
   );
 }
 

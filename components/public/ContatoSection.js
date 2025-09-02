@@ -26,10 +26,13 @@ export default function ContatoSection({ pageData }) {
     localName,
     googleMapsLink,
     mapEmbedUrl,
+    contactName,
   } = redesSociais;
 
   const whatsappLink = whatsapp
-    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent("Olá! Gostaria de entrar em contato com o Rakusai Taiko.")}`
+    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(
+        "Olá! Gostaria de entrar em contato com o Rakusai Taiko.",
+      )}`
     : null;
 
   return (
@@ -67,6 +70,11 @@ export default function ContatoSection({ pageData }) {
                       <FaWhatsapp className="w-7 h-7 mr-3 text-green-500" />
                       <span>{formatPhoneNumber(whatsapp)}</span>
                     </a>
+                    {contactName && (
+                      <p className="pl-10 text-sm text-gray-500">
+                        Fale com {contactName}
+                      </p>
+                    )}
                   </li>
                 )}
                 {email && (
@@ -87,7 +95,7 @@ export default function ContatoSection({ pageData }) {
             {localName && googleMapsLink && (
               <div>
                 <h3 className="text-3xl font-bold mb-4 text-gray-800">
-                  Nosso Local de Ensaio
+                  Endereço
                 </h3>
                 <a
                   href={googleMapsLink}
@@ -139,7 +147,7 @@ export default function ContatoSection({ pageData }) {
             </div>
           </div>
 
-          {/* Coluna da Direita: Mapa */}
+          {/* Coluna da Direita: Mapa ou Street View */}
           <div className="relative w-full h-80 md:h-full min-h-[400px]">
             <a
               href={googleMapsLink}
@@ -148,6 +156,7 @@ export default function ContatoSection({ pageData }) {
               className="absolute inset-0 z-10"
               aria-label={`Abrir ${localName} no Google Maps`}
             ></a>
+            {/* O 'src' agora usa a variável 'mapEmbedUrl', que será Street View se disponível */}
             <iframe
               src={mapEmbedUrl}
               width="100%"

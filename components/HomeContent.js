@@ -19,6 +19,7 @@ export default function HomeContent({
   presentations,
   horarios,
   tiposEvento,
+  instrumentos,
 }) {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
@@ -42,6 +43,7 @@ export default function HomeContent({
       presentations={presentations}
       horarios={horarios}
       tiposEvento={tiposEvento}
+      instrumentos={instrumentos}
     />
   );
 }

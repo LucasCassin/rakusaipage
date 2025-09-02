@@ -8,13 +8,11 @@ const client = createClient({
 });
 
 // --- HELPER PARSERS ---
-// Pequenas funções reutilizáveis para tratar tipos de campos comuns
-
 const parseAsset = (asset) => {
   if (!asset?.fields?.file) return null;
   return {
     url: `https:${asset.fields.file.url}`,
-    description: asset.fields.description || "",
+    description: asset.fields.description || asset.fields.title || "",
     width: asset.fields.file.details.image.width,
     height: asset.fields.file.details.image.height,
   };
@@ -26,7 +24,6 @@ const parseRichText = (richTextDocument) => {
 };
 
 // --- PARSERS PRINCIPAIS ---
-// Cada um sabe como "limpar" os dados de um Content Type específico
 
 const parseHomeCarrossel = (fields) => ({
   title: fields.titulo || "Rakusai Taiko",
@@ -48,11 +45,18 @@ const parseHomeAulas = (fields) => ({
 const parseHomeApreEventos = (fields) => ({
   description: parseRichText(fields.descricao),
   videoUrls: fields.videosUrl || [],
+  images:
+    fields.imagens
+      ?.sort(() => Math.random() - 0.5)
+      .slice(0, 4)
+      .map(parseAsset)
+      .filter(Boolean) || [],
 });
 
 const parseHomeContrate = (fields) => ({
   description: parseRichText(fields.descricao),
   whatsappPhone: fields.telefoneWpp || "",
+  contactName: fields.nomeContato || null,
 });
 
 const parseHomeHistoriaTaiko = (fields) => ({
@@ -60,43 +64,29 @@ const parseHomeHistoriaTaiko = (fields) => ({
 });
 
 const parseHomeInstrumentos = (fields) => ({
+  order: fields.ordem,
+  title: fields.titulo || "",
   description: parseRichText(fields.descricao),
+  image: fields.imagem ? parseAsset(fields.imagem) : null,
 });
 
-const parseRedesSociais = (fields) => {
-  // MUDANÇA: URL do link externo melhorada para uma busca mais direta
-  const googleMapsLink =
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
-      : null;
-
-  // MUDANÇA: URL do iframe para visualização limpa, sem a caixa de info
-  // Usamos 'll' para centralizar e 'iwloc' para remover o balão de informação
-  const mapEmbedUrl =
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=$${fields.local.lat},${fields.local.lon}&z=17&output=embed&hl=pt`
-      : null;
-
-  return {
-    instagram: fields.instagram || null,
-    youtube: fields.youtube || null,
-    whatsapp: fields.whatsapp || null,
-    email: fields.email || null,
-    localName: fields.localName || "Local de Ensaio",
-    googleMapsLink: googleMapsLink,
-    mapEmbedUrl: fields.streetViewEmbedUrl || mapEmbedUrl,
-  };
-};
+const parseRedesSociais = (fields) => ({
+  instagram: fields.instagram || null,
+  youtube: fields.youtube || null,
+  whatsapp: fields.whatsapp || null,
+  email: fields.email || null,
+  localName: fields.localName || "Endereço a definir",
+  googleMapsLink: fields.googleMapsLink || null,
+  mapEmbedUrl: fields.streetViewEmbedUrl || fields.googleMapsLinkLong || null,
+  contactName: fields.nomeContatoWpp || null,
+});
 
 const parseHomeProximasApre = (fields) => ({
   title: fields.titulo || "",
   description: parseRichText(fields.descricao),
   date: fields.data,
   locationName: fields.localTexto || "Local a definir",
-  googleMapsUrl:
-    fields.local?.lat && fields.local?.lon
-      ? `https://www.google.com/maps/search/?api=1&query=${fields.local.lat},${fields.local.lon}`
-      : null,
+  googleMapsLink: fields.googleMapsLink || null,
   showCountdownDays: fields.mostrarTravaTelaNDiasAntes ?? -1,
 });
 
@@ -104,12 +94,10 @@ const parseTipoEvento = (fields) => ({
   order: fields.ordem || 0,
   title: fields.titulo || "",
   description: fields.descricao || "",
-  iconName: fields.iconName || "Sparkles", // Sparkles como padrão
+  iconName: fields.iconName || "Sparkles",
 });
 
 // --- CONFIGURAÇÃO CENTRAL ---
-// Mapeia cada Content Type ID (de entrada única) ao seu respectivo parser.
-// Para adicionar uma nova seção no futuro, basta adicioná-la aqui.
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
   homeSobre: { parser: parseHomeSobre },
@@ -117,7 +105,6 @@ const SINGLE_ENTRY_CONFIG = {
   homeApreEventos: { parser: parseHomeApreEventos },
   homeContrate: { parser: parseHomeContrate },
   homeHistoriaTaiko: { parser: parseHomeHistoriaTaiko },
-  homeInstrumentos: { parser: parseHomeInstrumentos },
   redesSociais: { parser: parseRedesSociais },
 };
 
@@ -176,6 +163,25 @@ export async function fetchUpcomingPresentations() {
     return upcomingEvents.map((item) => parseHomeProximasApre(item.fields));
   } catch (error) {
     console.error("Erro ao buscar apresentações do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os instrumentos e os ordena pelo campo 'ordem'.
+ */
+export async function fetchInstrumentos() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "homeInstrumentos",
+      order: "fields.ordem",
+      include: 2,
+    });
+    return (
+      entries.items?.map((item) => parseHomeInstrumentos(item.fields)) || []
+    );
+  } catch (error) {
+    console.error("Erro ao buscar instrumentos do Contentful:", error);
     return [];
   }
 }

@@ -19,6 +19,21 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Aplica este cabeçalho a todas as rotas do seu site
+        source: "/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            // Diz ao navegador para desativar o acesso ao giroscópio e acelerômetro
+            value: "gyroscope=(), accelerometer=()",
+          },
+        ],
+      },
+    ];
+  },
 
   // Adiciona a função de redirecionamentos
   async redirects() {

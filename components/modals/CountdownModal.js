@@ -135,7 +135,7 @@ export default function CountdownModal({
                 textColor={theme.dateText}
               />
               <a
-                href={event.googleMapsUrl}
+                href={event.googleMapsLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-lg text-gray-100 text-justify hover:text-white transition-colors"
@@ -157,7 +157,7 @@ export default function CountdownModal({
             <Button
               variant="ghost"
               onClick={onDismissForever}
-              className="py-3 px-6 rounded-full "
+              className="py-3 px-6 rounded-full w-full sm:w-auto"
             >
               Não mostrar novamente
             </Button>
@@ -165,7 +165,7 @@ export default function CountdownModal({
             <Button
               variant="themed"
               onClick={onClose}
-              className={`font-bold ${theme.primaryBtnBg} ${theme.primaryBtnText} ${theme.primaryBtnHover} py-3 px-8 rounded-full transition-colors`}
+              className={`font-bold ${theme.primaryBtnBg} ${theme.primaryBtnText} ${theme.primaryBtnHover} py-3 px-8 rounded-full transition-colors w-full sm:w-auto`}
             >
               Fechar
             </Button>
