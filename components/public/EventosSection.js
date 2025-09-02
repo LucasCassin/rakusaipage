@@ -166,12 +166,12 @@ export default function EventosSection({
         first: {
           rot: "-rotate-[0.02rad]",
           z: "z-20",
-          pos: "translate-x-[5rem] -translate-y-[1.4rem]",
+          pos: "translate-x-[3.5rem] -translate-y-[1.4rem]",
         },
         second: {
           rot: "rotate-[0.03rad]",
           z: "z-10",
-          pos: "translate-x-[-5rem] translate-y-[-0.8rem]",
+          pos: "translate-x-[-3.5rem] translate-y-[-0.8rem]",
         },
       },
     ],
