@@ -1,23 +1,52 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { BookOpenIcon, MusicalNoteIcon } from "@heroicons/react/24/outline";
 import Button from "../ui/Button";
 
-export default function SobreSection({ pageData, onOpenModal }) {
+// A seção agora recebe 'instrumentos' como prop
+export default function SobreSection({ pageData, onOpenModal, instrumentos }) {
   const sobreContent = pageData?.homeSobre;
   const historiaTaikoContent = pageData?.homeHistoriaTaiko;
-  const instrumentosContent = pageData?.homeInstrumentos;
 
   if (!sobreContent) {
     return null;
   }
 
+  // --- LÓGICA PARA CONSTRUIR O HTML DOS INSTRUMENTOS ---
+  const instrumentosHtml = useMemo(() => {
+    if (!instrumentos || instrumentos.length === 0) {
+      return "<p>Em breve, mais informações sobre nossos instrumentos.</p>";
+    }
+
+    // Para cada instrumento, criamos um bloco de HTML com a imagem flutuando
+    return instrumentos
+      .map((instrumento) => {
+        const imageHtml = instrumento.image
+          ? `<div style="float: left; margin-right: 1.5rem; margin-bottom: 1rem; width: 150px;">
+             <img src="${instrumento.image.url}" alt="${instrumento.title}" style="border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);" />
+           </div>`
+          : "";
+
+        const titleHtml = instrumento.title
+          ? `<h2>${instrumento.title}</h2>`
+          : "";
+
+        return `
+        <div style="clear: both">
+          ${imageHtml}
+          ${titleHtml}
+          ${instrumento.description}
+        </div>
+      `;
+      })
+      .join("");
+  }, [instrumentos]);
+  // ----------------------------------------------------
+
   return (
     <section
       id="sobre"
       className="py-20"
-      style={{
-        backgroundColor: "#f0f0f0",
-      }}
+      style={{ backgroundColor: "#f0f0f0" }}
     >
       <div className="container mx-auto px-6 text-center max-w-5xl">
         <h2 className="text-5xl font-bold text-gray-800 mb-4">
@@ -43,14 +72,10 @@ export default function SobreSection({ pageData, onOpenModal }) {
             História do Taiko
           </Button>
 
+          {/* O botão agora passa o HTML que construímos */}
           <Button
             variant="secondary"
-            onClick={() =>
-              onOpenModal(
-                "Nossos Instrumentos",
-                instrumentosContent.description,
-              )
-            }
+            onClick={() => onOpenModal("Nossos Instrumentos", instrumentosHtml)}
             className="w-full sm:w-auto"
           >
             <MusicalNoteIcon className="w-6 h-6 mr-3" />

@@ -64,6 +64,7 @@ const parseHomeHistoriaTaiko = (fields) => ({
 
 const parseHomeInstrumentos = (fields) => ({
   order: fields.ordem,
+  title: fields.titulo || "",
   description: parseRichText(fields.descricao),
   image: fields.imagem ? parseAsset(fields.imagem) : null,
 });

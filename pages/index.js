@@ -6,6 +6,7 @@ import {
   fetchUpcomingPresentations,
   fetchHorariosAula,
   fetchTiposEvento,
+  fetchInstrumentos,
 } from "services/contentfulService.js";
 
 /**
@@ -17,6 +18,7 @@ export default function Home({
   presentations,
   horarios,
   tiposEvento,
+  instrumentos,
 }) {
   return (
     <>
@@ -32,18 +34,22 @@ export default function Home({
         presentations={presentations}
         horarios={horarios}
         tiposEvento={tiposEvento}
+        instrumentos={instrumentos}
       />
     </>
   );
 }
 
-// Função do Next.js para buscar dados estáticos na hora da build
 export async function getStaticProps() {
-  // Chamamos as duas funções para buscar todos os dados necessários
-  const pageData = await fetchLandingPageData();
-  const presentations = await fetchUpcomingPresentations();
-  const horarios = await fetchHorariosAula();
-  const tiposEvento = await fetchTiposEvento(); // <<< BUSCA OS TIPOS DE EVENTO
+  // Chamamos todas as funções em paralelo para otimizar
+  const [pageData, presentations, horarios, tiposEvento, instrumentos] =
+    await Promise.all([
+      fetchLandingPageData(),
+      fetchUpcomingPresentations(),
+      fetchHorariosAula(),
+      fetchTiposEvento(),
+      fetchInstrumentos(),
+    ]);
 
   return {
     props: {
@@ -51,7 +57,8 @@ export async function getStaticProps() {
       presentations,
       horarios,
       tiposEvento,
+      instrumentos,
     },
-    revalidate: 60, // Regenera a página a cada 60s para buscar novos dados
+    revalidate: 60,
   };
 }

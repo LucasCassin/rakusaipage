@@ -17,6 +17,7 @@ export default function PublicLandingPage({
   presentations,
   horarios,
   tiposEvento,
+  instrumentos,
 }) {
   // Estados para o modal de TEXTO
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
@@ -115,7 +116,11 @@ export default function PublicLandingPage({
 
       <main>
         <HeroSection images={carouselData.images || []} />
-        <SobreSection pageData={pageData} onOpenModal={handleOpenTextModal} />
+        <SobreSection
+          pageData={pageData}
+          onOpenModal={handleOpenTextModal}
+          instrumentos={instrumentos}
+        />
         <AulasSection pageData={pageData} horarios={horarios} />
         <EventosSection
           pageData={pageData}
