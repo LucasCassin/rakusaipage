@@ -136,13 +136,6 @@ export default function EventosSection({
     }
   }, [content?.description]);
 
-  if (!content) {
-    return null;
-  }
-
-  const { videoUrls, images } = content;
-
-  // Lógica para duplas de rotação aleatórias
   const photoPairStyles = React.useMemo(
     () => [
       {
@@ -184,6 +177,14 @@ export default function EventosSection({
     ],
     [],
   );
+
+  if (!content) {
+    return null;
+  }
+
+  const { videoUrls, images } = content;
+
+  // Lógica para duplas de rotação aleatórias
 
   const firstPairStyle = photoPairStyles[0];
   const secondPairStyle = photoPairStyles[1];

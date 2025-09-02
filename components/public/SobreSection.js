@@ -7,10 +7,6 @@ export default function SobreSection({ pageData, onOpenModal, instrumentos }) {
   const sobreContent = pageData?.homeSobre;
   const historiaTaikoContent = pageData?.homeHistoriaTaiko;
 
-  if (!sobreContent) {
-    return null;
-  }
-
   // --- LÓGICA PARA CONSTRUIR O HTML DOS INSTRUMENTOS ---
   const instrumentosHtml = useMemo(() => {
     if (!instrumentos || instrumentos.length === 0) {
@@ -40,6 +36,12 @@ export default function SobreSection({ pageData, onOpenModal, instrumentos }) {
       })
       .join("");
   }, [instrumentos]);
+  // ----------------------------------------------------
+
+  if (!sobreContent) {
+    return null;
+  }
+
   // ----------------------------------------------------
 
   return (
