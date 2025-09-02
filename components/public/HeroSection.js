@@ -39,6 +39,7 @@ export default function HeroSection({ images }) {
               fill
               style={{ objectFit: "cover" }}
               priority={index === 0}
+              sizes="100vw"
             />
           </SwiperSlide>
         ))}
@@ -56,8 +57,9 @@ export default function HeroSection({ images }) {
             alt="Logo Rakusai Taiko Colorido"
             fill
             style={{ objectFit: "contain" }}
-            priority
             className="drop-shadow-lg"
+            priority
+            sizes="(max-width: 768px) 80vw, 55vw"
           />
         </div>
       </div>

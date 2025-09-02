@@ -51,6 +51,7 @@ export default function AulasSection({ pageData, horarios }) {
                     alt={featuredImage.description || "Aula de Taiko"}
                     fill
                     style={{ objectFit: "cover" }}
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               )}
