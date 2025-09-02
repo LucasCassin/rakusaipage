@@ -85,7 +85,7 @@ export default function AulasSection({ pageData, horarios }) {
                                 key={`${dia.sys.id}-${horarioIndex}`}
                                 className="border-b border-gray-200 last:border-b-0"
                               >
-                                <td className="py-4 pr-2 font-medium text-gray-800">
+                                <td className="py-4 pr-2 font-semibold text-gray-800">
                                   {horarioIndex === 0
                                     ? dia.fields.diaDaSemana
                                     : ""}
