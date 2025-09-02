@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  min-width: 330px;
+}
+
 /* Seus outros estilos globais (keyframes, etc.) vêm depois */
 @keyframes fadeIn {
   from {
