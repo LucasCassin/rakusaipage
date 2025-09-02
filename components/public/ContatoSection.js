@@ -25,7 +25,8 @@ export default function ContatoSection({ pageData }) {
     email,
     localName,
     googleMapsLink,
-    mapEmbedUrl, // Esta variável agora conterá a URL do Street View (se houver) ou do mapa
+    mapEmbedUrl,
+    contactName,
   } = redesSociais;
 
   const whatsappLink = whatsapp
@@ -69,6 +70,11 @@ export default function ContatoSection({ pageData }) {
                       <FaWhatsapp className="w-7 h-7 mr-3 text-green-500" />
                       <span>{formatPhoneNumber(whatsapp)}</span>
                     </a>
+                    {contactName && (
+                      <p className="pl-10 text-sm text-gray-500">
+                        Fale com {contactName}
+                      </p>
+                    )}
                   </li>
                 )}
                 {email && (

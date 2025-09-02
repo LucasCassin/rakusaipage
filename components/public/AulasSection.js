@@ -5,6 +5,7 @@ import Button from "../ui/Button";
 export default function AulasSection({ pageData, horarios }) {
   const aulasContent = pageData?.homeAulas;
   const whatsappNumber = pageData?.redesSociais?.whatsapp;
+  const contactName = pageData?.redesSociais?.contactName;
 
   if (!aulasContent) {
     return null;
@@ -58,11 +59,9 @@ export default function AulasSection({ pageData, horarios }) {
                   Nossos Horários
                 </h3>
                 <div className="overflow-x-auto">
-                  {/* MUDANÇA 1: Adicionada a classe 'table-fixed' */}
                   <table className="w-full">
                     <thead className="border-b-2 border-gray-300">
                       <tr>
-                        {/* MUDANÇA 2: Adicionadas classes de largura (w-...) */}
                         <th className="py-3 pr-2 text-left">Dia</th>
                         <th className="py-3 px-2 text-center">Horário</th>
                         <th className="py-3 pl-2 text-right">Turma</th>
@@ -90,7 +89,6 @@ export default function AulasSection({ pageData, horarios }) {
                                     ? dia.fields.diaDaSemana
                                     : ""}
                                 </td>
-                                {/* O alinhamento manual com div e span está mantido */}
                                 <td className="py-4 px-2">
                                   <div className="flex justify-between items-center text-gray-600 tracking-wider">
                                     <span className="w-15 text-left">
@@ -117,12 +115,21 @@ export default function AulasSection({ pageData, horarios }) {
           </div>
         </div>
 
-        <div className="mt-12">
-          <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-            <Button variant="primary" className="w-full text-center">
+        <div className="mt-12 text-center">
+          <a
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block w-full"
+          >
+            <Button variant="primary" className="w-full">
               Quero fazer uma aula experimental!
             </Button>
           </a>
+          {/* MUDANÇA: Adicionado o subtexto com o nome do contato */}
+          {contactName && (
+            <p className="mt-1 text-sm text-gray-500">Fale com {contactName}</p>
+          )}
         </div>
       </div>
     </section>

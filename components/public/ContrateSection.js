@@ -35,6 +35,7 @@ export default function ContrateSection({ pageData, tiposEvento }) {
   const mensagemWpp =
     "Olá! Gostaria de solicitar um orçamento para uma apresentação do Rakusai Taiko no meu evento.";
   const whatsappLink = `https://wa.me/${finalWppNumber}?text=${encodeURIComponent(mensagemWpp)}`;
+  const contactName = pageData?.redesSociais?.contactName;
 
   return (
     <section
@@ -85,6 +86,11 @@ export default function ContrateSection({ pageData, tiposEvento }) {
                   Solicitar Orçamento
                 </Button>
               </a>
+              {contactName && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Fale com {contactName}
+                </p>
+              )}
             </div>
           </div>
         </div>

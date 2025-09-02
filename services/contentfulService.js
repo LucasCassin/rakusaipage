@@ -47,8 +47,8 @@ const parseHomeApreEventos = (fields) => ({
   videoUrls: fields.videosUrl || [],
   images:
     fields.imagens
-      ?.sort(() => Math.random() - 0.5) // Randomize the array
-      .slice(0, 4) // Get the first 4 elements
+      ?.sort(() => Math.random() - 0.5)
+      .slice(0, 4)
       .map(parseAsset)
       .filter(Boolean) || [],
 });
@@ -56,6 +56,7 @@ const parseHomeApreEventos = (fields) => ({
 const parseHomeContrate = (fields) => ({
   description: parseRichText(fields.descricao),
   whatsappPhone: fields.telefoneWpp || "",
+  contactName: fields.nomeContato || null,
 });
 
 const parseHomeHistoriaTaiko = (fields) => ({
@@ -69,24 +70,23 @@ const parseHomeInstrumentos = (fields) => ({
   image: fields.imagem ? parseAsset(fields.imagem) : null,
 });
 
-// MUDANÇA AQUI: Parser de Redes Sociais simplificado
 const parseRedesSociais = (fields) => ({
   instagram: fields.instagram || null,
   youtube: fields.youtube || null,
   whatsapp: fields.whatsapp || null,
   email: fields.email || null,
-  localName: fields.localName || "Local de Ensaio",
-  googleMapsLink: fields.googleMapsLink || null, // Link para o clique
-  mapEmbedUrl: fields.streetViewEmbedUrl || fields.googleMapsLinkLong || null, // Link para o iframe
+  localName: fields.localName || "Endereço a definir",
+  googleMapsLink: fields.googleMapsLink || null,
+  mapEmbedUrl: fields.streetViewEmbedUrl || fields.googleMapsLinkLong || null,
+  contactName: fields.nomeContatoWpp || null,
 });
 
-// MUDANÇA AQUI: Parser de Próximas Apresentações simplificado
 const parseHomeProximasApre = (fields) => ({
   title: fields.titulo || "",
   description: parseRichText(fields.descricao),
   date: fields.data,
   locationName: fields.localTexto || "Local a definir",
-  googleMapsLink: fields.googleMapsLink || null, // Apenas este link é necessário
+  googleMapsLink: fields.googleMapsLink || null,
   showCountdownDays: fields.mostrarTravaTelaNDiasAntes ?? -1,
 });
 
