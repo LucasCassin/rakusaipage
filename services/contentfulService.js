@@ -33,6 +33,7 @@ const parseHomeCarrossel = (fields) => ({
 
 const parseHomeSobre = (fields) => ({
   description: parseRichText(fields.descricao),
+  backgroundImage: fields.image ? parseAsset(fields.image) : null,
 });
 
 const parseHomeAulas = (fields) => ({
