@@ -1,3 +1,4 @@
+const { fontFamily } = require("tailwindcss/defaultTheme");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -14,7 +15,8 @@ module.exports = {
         "rakusai-purple": "#b000b0",
       },
       fontFamily: {
-        sans: ["Poppins", "sans-serif"],
+        sans: ["var(--font-poppins)", ...fontFamily.sans],
+        handwriting: ["var(--font-caveat)", "cursive"],
       },
     },
   },

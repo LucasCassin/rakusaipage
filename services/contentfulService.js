@@ -12,7 +12,7 @@ const parseAsset = (asset) => {
   if (!asset?.fields?.file) return null;
   return {
     url: `https:${asset.fields.file.url}`,
-    description: asset.fields.description || "",
+    description: asset.fields.description || asset.fields.title || "",
     width: asset.fields.file.details.image.width,
     height: asset.fields.file.details.image.height,
   };
@@ -45,6 +45,12 @@ const parseHomeAulas = (fields) => ({
 const parseHomeApreEventos = (fields) => ({
   description: parseRichText(fields.descricao),
   videoUrls: fields.videosUrl || [],
+  images:
+    fields.imagens
+      ?.sort(() => Math.random() - 0.5) // Randomize the array
+      .slice(0, 4) // Get the first 4 elements
+      .map(parseAsset)
+      .filter(Boolean) || [],
 });
 
 const parseHomeContrate = (fields) => ({
@@ -57,7 +63,9 @@ const parseHomeHistoriaTaiko = (fields) => ({
 });
 
 const parseHomeInstrumentos = (fields) => ({
+  order: fields.ordem,
   description: parseRichText(fields.descricao),
+  image: fields.imagem ? parseAsset(fields.imagem) : null,
 });
 
 // MUDANÇA AQUI: Parser de Redes Sociais simplificado
@@ -96,7 +104,6 @@ const SINGLE_ENTRY_CONFIG = {
   homeApreEventos: { parser: parseHomeApreEventos },
   homeContrate: { parser: parseHomeContrate },
   homeHistoriaTaiko: { parser: parseHomeHistoriaTaiko },
-  homeInstrumentos: { parser: parseHomeInstrumentos },
   redesSociais: { parser: parseRedesSociais },
 };
 
@@ -155,6 +162,25 @@ export async function fetchUpcomingPresentations() {
     return upcomingEvents.map((item) => parseHomeProximasApre(item.fields));
   } catch (error) {
     console.error("Erro ao buscar apresentações do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os instrumentos e os ordena pelo campo 'ordem'.
+ */
+export async function fetchInstrumentos() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "homeInstrumentos",
+      order: "fields.ordem",
+      include: 2,
+    });
+    return (
+      entries.items?.map((item) => parseHomeInstrumentos(item.fields)) || []
+    );
+  } catch (error) {
+    console.error("Erro ao buscar instrumentos do Contentful:", error);
     return [];
   }
 }
