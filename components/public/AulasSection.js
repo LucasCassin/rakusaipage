@@ -30,6 +30,8 @@ export default function AulasSection({ pageData, horarios }) {
     return isDesktop;
   };
 
+  const isDesktop = useIsDesktop();
+
   if (!aulasContent) {
     return null;
   }
@@ -133,8 +135,6 @@ export default function AulasSection({ pageData, horarios }) {
       </div>
     </div>
   );
-
-  const isDesktop = useIsDesktop();
 
   return (
     <section
