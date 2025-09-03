@@ -17,7 +17,10 @@ exports.up = (pgm) => {
         'create:session',
         'read:session:self',
         'read:session:other',
-        'block:other:update:self'
+        'block:other:update:self',
+        'create:user',
+        'nivel:taiko:admin',
+        'nivel:fue:admin'
       ],
       '2019-09-21 00:00:00'
     );

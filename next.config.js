@@ -38,41 +38,41 @@ const nextConfig = {
   // Adiciona a função de redirecionamentos
   async redirects() {
     return [
-      {
-        source: "/login",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/logout",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/profile/:path*",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/register",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/status",
-        destination: "/",
-        permanent: false,
-      },
+      // {
+      //   source: "/login",
+      //   destination: "/",
+      //   permanent: false,
+      // },
+      // {
+      //   source: "/logout",
+      //   destination: "/",
+      //   permanent: false,
+      // },
+      // {
+      //   source: "/profile/:path*",
+      //   destination: "/",
+      //   permanent: false,
+      // },
+      // {
+      //   source: "/register",
+      //   destination: "/",
+      //   permanent: false,
+      // },
+      // {
+      //   source: "/status",
+      //   destination: "/",
+      //   permanent: false,
+      // },
       {
         source: "/tables",
         destination: "/",
         permanent: false,
       },
-      {
-        source: "/migrations",
-        destination: "/",
-        permanent: false,
-      },
+      // {
+      //   source: "/migrations",
+      //   destination: "/",
+      //   permanent: false,
+      // },
     ];
   },
 

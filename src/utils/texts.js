@@ -62,17 +62,17 @@ export const texts = {
     },
     message: {
       success: {
-        registration:
-          "Cadastro realizado com sucesso! Redirecionando para o login...",
+        registration: "Cadastro realizado com sucesso!",
       },
       error: {
-        loggedIn: "Você não pode criar uma nova conta enquanto estiver logado.",
+        loggedIn: "Você não pode criar uma nova conta se não estiver logado.",
         termsRequired: "Você precisa aceitar os termos de uso para continuar.",
         connection:
           "Erro de conexão. Verifique sua internet e tente novamente.",
         passwordCriteria: "A senha deve atender todos os critérios abaixo",
         passwordSecurity:
           "A senha deve atender todos os critérios de segurança",
+        forbidden: "Você não tem permissão para acessar esta página.",
       },
     },
     terms: {

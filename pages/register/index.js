@@ -33,7 +33,7 @@ const { REQUIRE_TERMS } = settings.register;
  */
 export default function Register() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: isLoadingAuth } = useAuth();
   const {
     error,
     setError,
@@ -88,7 +88,7 @@ export default function Register() {
   );
 
   // Hook de validação do formulário
-  const { formData, handleChange, isFormValid, updateField } =
+  const { formData, handleChange, isFormValid, updateField, resetForm } =
     useFormValidation(
       {
         username: "",
@@ -97,7 +97,7 @@ export default function Register() {
         ...(REQUIRE_TERMS && { acceptTerms: false }),
       },
       {
-        passwordHook,
+        passwordValidation: passwordHook,
         validateForm: validateRegistrationForm,
         setFieldErrorsHandlers: {
           setFieldError,
@@ -111,7 +111,8 @@ export default function Register() {
   const { submitForm, isLoading } = useFormSubmit({
     url: settings.global.API.ENDPOINTS.USERS,
     method: "POST",
-    successRedirect: settings.register.REDIRECT_AFTER_REGISTER,
+    // successRedirect: settings.register.REDIRECT_AFTER_REGISTER,
+    // onSucess: resetForm,
     successMessage: texts.register.message.success.registration,
     router,
     setFieldErrorsHandlers: {
@@ -146,23 +147,49 @@ export default function Register() {
 
   // Efeito para verificar se usuário já está logado
   useEffect(() => {
-    if (user) {
-      setError(
-        <div className="flex flex-col items-center">
-          <p>{texts.register.message.error.loggedIn}</p>
-          <button
-            onClick={() => {
-              setShowContent(false);
-              router.push(`/logout?from=${encodeURIComponent("/register")}`);
-            }}
-            className="mt-4 text-blue-600 hover:text-blue-800 underline"
-          >
-            {texts.register.button.logoutAndContinue}
-          </button>
-        </div>,
-      );
+    if (isLoadingAuth) return;
+
+    if (!user) {
+      setError(texts.tables.message.error.notAuthenticated);
+      setShowContent(false);
+      setTimeout(() => {
+        router.push(settings.global.REDIRECTS.LOGIN, {
+          scroll: false,
+        });
+      }, 3000);
+      return;
     }
-  }, [user, router, setError]);
+
+    const userPermissions = {
+      canCreate: user.features?.includes(settings.register.FEATURE_CREATE_USER),
+    };
+
+    if (!userPermissions.canCreate) {
+      setError(texts.register.message.error.forbidden);
+      setShowContent(false);
+      router.push(settings.register.FORBIDDEN_REDIRECT, { scroll: false });
+      return;
+    }
+
+    setShowContent(true);
+
+    // if (user) {
+    //   setError(
+    //     <div className="flex flex-col items-center">
+    //       <p>{texts.register.message.error.loggedIn}</p>
+    //       <button
+    //         onClick={() => {
+    //           setShowContent(false);
+    //           router.push(`/logout?from=${encodeURIComponent("/register")}`);
+    //         }}
+    //         className="mt-4 text-blue-600 hover:text-blue-800 underline"
+    //       >
+    //         {texts.register.button.logoutAndContinue}
+    //       </button>
+    //     </div>,
+    //   );
+    // }
+  }, [user, router, isLoadingAuth, setError, setShowContent]);
 
   // Efeito para focar no campo de username na montagem inicial
   useEffect(() => {
@@ -197,22 +224,23 @@ export default function Register() {
     async (e) => {
       e.preventDefault();
 
-      // Verificar se usuário já está logado
-      if (user) {
-        setError(
-          <div className="flex flex-col items-center">
-            <p>{texts.register.message.error.loggedIn}</p>
-            <button
-              onClick={() => {
-                setShowContent(false);
-                router.push(`/logout?from=${encodeURIComponent("/register")}`);
-              }}
-              className="mt-4 text-blue-600 hover:text-blue-800 underline"
-            >
-              {texts.register.button.logoutAndContinue}
-            </button>
-          </div>,
-        );
+      // Verificar se usuário não está logado
+      if (!user) {
+        // setError(
+        //   <div className="flex flex-col items-center">
+        //     <p>{texts.register.message.error.loggedIn}</p>
+        //     <button
+        //       onClick={() => {
+        //         setShowContent(false);
+        //         router.push(`/logout?from=${encodeURIComponent("/register")}`);
+        //       }}
+        //       className="mt-4 text-blue-600 hover:text-blue-800 underline"
+        //     >
+        //       {texts.register.button.logoutAndContinue}
+        //     </button>
+        //   </div>,
+        // );
+        setError(texts.register.message.error.loggedIn);
         return;
       }
 
@@ -227,6 +255,11 @@ export default function Register() {
 
       if (success) {
         setShowContent(false);
+        setTimeout(() => {
+          setShowContent(true);
+          clearAll();
+        }, 2000);
+        resetForm();
       }
     },
     [formData, user, router, submitForm, setFieldErrors, setError],

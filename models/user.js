@@ -30,6 +30,7 @@ async function create(userData) {
     "read:session:self",
     "read:user:self",
     "update:user:self",
+    "nivel:taiko:iniciante",
   ];
 
   const query = {
@@ -47,7 +48,7 @@ async function create(userData) {
       validatedUserData.email,
       validatedUserData.password,
       validatedUserData.features,
-      datePasswordExpiresAt(),
+      datePasswordExpiresAt("2019-09-21 00:00:00"),
     ],
   };
   const results = await database.query(query);
@@ -60,7 +61,7 @@ async function create(userData) {
  */
 function createAnonymous() {
   return {
-    features: ["create:user", "create:session"],
+    features: [/*"create:user",*/ "create:session"],
   };
 }
 
@@ -180,7 +181,6 @@ async function addFeatures(userObject, features) {
       features: "required",
     },
   );
-
   const query = {
     text: `
       UPDATE

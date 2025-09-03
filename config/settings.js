@@ -33,8 +33,10 @@ export const settings = {
 
   // Configurações de registro
   register: {
-    REQUIRE_TERMS: true,
-    REDIRECT_AFTER_REGISTER: "/login",
+    REQUIRE_TERMS: false,
+    REDIRECT_AFTER_REGISTER: "/register",
+    FEATURE_CREATE_USER: "create:user",
+    FORBIDDEN_REDIRECT: "/403",
   },
 
   // Configurações de perfil
