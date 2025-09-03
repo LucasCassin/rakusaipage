@@ -13,6 +13,10 @@ beforeAll(async () => {
     email: "testuser@example.com",
     password: "Senha@123",
   });
+  testUser = await user.update({
+    id: testUser.id,
+    password: "Senha@123",
+  });
   testSession = await session.create(testUser);
 });
 
@@ -37,6 +41,7 @@ describe("GET /api/v1/user", () => {
           "read:session:self",
           "read:user:self",
           "update:user:self",
+          "nivel:taiko:iniciante",
         ],
         password_expires_at: testUser.password_expires_at.toISOString(),
         created_at: testUser.created_at.toISOString(),
@@ -155,6 +160,7 @@ describe("GET /api/v1/user", () => {
           "read:session:self",
           "read:user:self",
           "update:user:self",
+          "nivel:taiko:iniciante",
         ],
         password_expires_at: expiredUser.password_expires_at.toISOString(),
         created_at: expiredUser.created_at.toISOString(),

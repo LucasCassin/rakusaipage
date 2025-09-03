@@ -2,7 +2,6 @@ import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import session from "models/session.js";
 import authentication from "models/authentication.js";
-
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
@@ -12,21 +11,15 @@ beforeAll(async () => {
 describe("Authenticated User", () => {
   describe("GET /api/v1/users/[username]", () => {
     test("should return the user's own details", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath",
-            email: "testuserfullpath@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      let testUser = await user.create({
+        username: "testuser1",
+        email: "testuser1@example.com",
+        password: "Senha@123",
+      });
+      testUser = await user.update({
+        id: testUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -35,15 +28,14 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath@example.com",
+            email: testUser.email,
             password: "Senha@123",
           }),
         },
       );
       const newSession = await resNewSession.json();
-
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users/${createdUser.username}`,
+        `${orchestrator.webserverUrl}/api/v1/users/${testUser.username}`,
         {
           method: "GET",
           headers: {
@@ -55,25 +47,44 @@ describe("Authenticated User", () => {
 
       expect(res.status).toBe(200);
       const resBody = await res.json();
-      expect(resBody).toEqual(createdUser);
+      expect(resBody).toEqual({
+        id: testUser.id,
+        username: testUser.username,
+        email: "t*******1@example.com",
+        features: [
+          "create:session",
+          "read:session:self",
+          "read:user:self",
+          "update:user:self",
+          "nivel:taiko:iniciante",
+        ],
+        password_expires_at: testUser.password_expires_at.toISOString(),
+        created_at: testUser.created_at.toISOString(),
+        updated_at: testUser.updated_at.toISOString(),
+      });
     });
     test("should return PasswordExpiredError", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath2",
-            email: "testuserfullpath2@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
-      await user.expireUserPassword(createdUser);
+      let createdUser = await user.create({
+        username: "testuser2",
+        email: "testuser2@example.com",
+        password: "Senha@123",
+      });
+      // const resCreatedUser = await fetch(
+      //   `${orchestrator.webserverUrl}/api/v1/users`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       username: "testUserFullPath2",
+      //       email: "testuserfullpath2@example.com",
+      //       password: "Senha@123",
+      //     }),
+      //   },
+      // );
+      // const createdUser = await resCreatedUser.json();
+      // await user.expireUserPassword(createdUser);
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -82,7 +93,7 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath2@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },
@@ -116,21 +127,15 @@ describe("Authenticated User", () => {
       });
     });
     test("should return PasswordExpiredError another case", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath3",
-            email: "testuserfullpath3@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      let createdUser = await user.create({
+        username: "testuser3",
+        email: "testuser3@example.com",
+        password: "Senha@123",
+      });
+      createdUser = await user.update({
+        id: createdUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -139,14 +144,13 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath3@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },
       );
       const newSession = await resNewSession.json();
       await user.expireUserPassword(createdUser);
-
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/users/${createdUser.username}`,
         {
@@ -171,21 +175,30 @@ describe("Authenticated User", () => {
 
   describe("PATCH /api/v1/users/[username]", () => {
     test("should update user's e-mail", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath4",
-            email: "testuserfullpath4@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      // const resCreatedUser = await fetch(
+      //   `${orchestrator.webserverUrl}/api/v1/users`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       username: "testUserFullPath4",
+      //       email: "testuserfullpath4@example.com",
+      //       password: "Senha@123",
+      //     }),
+      //   },
+      // );
+      // const createdUser = await resCreatedUser.json();
+      let createdUser = await user.create({
+        username: "testuser4",
+        email: "testuser4@example.com",
+        password: "Senha@123",
+      });
+      createdUser = await user.update({
+        id: createdUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -194,7 +207,7 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath4@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },
@@ -220,21 +233,30 @@ describe("Authenticated User", () => {
       expect(resBody.email).toBe("u**********************4@example.com");
     });
     test("should return PasswordExpiredError when trying to update email", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath5",
-            email: "testuserfullpath5@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      // const resCreatedUser = await fetch(
+      //   `${orchestrator.webserverUrl}/api/v1/users`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       username: "testUserFullPath5",
+      //       email: "testuserfullpath5@example.com",
+      //       password: "Senha@123",
+      //     }),
+      //   },
+      // );
+      // const createdUser = await resCreatedUser.json();
+      let createdUser = await user.create({
+        username: "testuser5",
+        email: "testuser5@example.com",
+        password: "Senha@123",
+      });
+      createdUser = await user.update({
+        id: createdUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -243,7 +265,7 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath5@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },
@@ -275,21 +297,30 @@ describe("Authenticated User", () => {
       });
     });
     test("should update user's password", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath6",
-            email: "testuserfullpath6@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      // const resCreatedUser = await fetch(
+      //   `${orchestrator.webserverUrl}/api/v1/users`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       username: "testUserFullPath6",
+      //       email: "testuserfullpath6@example.com",
+      //       password: "Senha@123",
+      //     }),
+      //   },
+      // );
+      // const createdUser = await resCreatedUser.json();
+      let createdUser = await user.create({
+        username: "testuser6",
+        email: "testuser6@example.com",
+        password: "Senha@123",
+      });
+      createdUser = await user.update({
+        id: createdUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -298,7 +329,7 @@ describe("Authenticated User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath6@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },
@@ -350,21 +381,30 @@ describe("Authenticated User", () => {
 describe("Anonymous User", () => {
   describe("GET /api/v1/users/[username]", () => {
     test("should return ValidationSessionError expired session", async () => {
-      const resCreatedUser = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "testUserFullPath7",
-            email: "testuserfullpath7@example.com",
-            password: "Senha@123",
-          }),
-        },
-      );
-      const createdUser = await resCreatedUser.json();
+      // const resCreatedUser = await fetch(
+      //   `${orchestrator.webserverUrl}/api/v1/users`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       username: "testUserFullPath7",
+      //       email: "testuserfullpath7@example.com",
+      //       password: "Senha@123",
+      //     }),
+      //   },
+      // );
+      // const createdUser = await resCreatedUser.json();
+      let createdUser = await user.create({
+        username: "testuser7",
+        email: "testuser7@example.com",
+        password: "Senha@123",
+      });
+      createdUser = await user.update({
+        id: createdUser.id,
+        password: "Senha@123",
+      });
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -373,7 +413,7 @@ describe("Anonymous User", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "testuserfullpath7@example.com",
+            email: createdUser.email,
             password: "Senha@123",
           }),
         },

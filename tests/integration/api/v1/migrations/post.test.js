@@ -37,9 +37,13 @@ describe("POST /api/v1/migrations", () => {
       let newSession;
 
       test("should successfully run migrations for the first time", async () => {
-        const newUser = await user.create({
+        let newUser = await user.create({
           username: "testuser",
           email: "testuser@example.com",
+          password: "Senha@123",
+        });
+        newUser = await user.update({
+          id: newUser.id,
           password: "Senha@123",
         });
         newSession = await session.create(newUser);
@@ -62,9 +66,13 @@ describe("POST /api/v1/migrations", () => {
       });
 
       test("should return ForbiddenError if the user lacks the 'create:migration' feature", async () => {
-        const newUser = await user.create({
+        let newUser = await user.create({
           username: "testuser2",
           email: "testuser2@example.com",
+          password: "Senha@123",
+        });
+        newUser = await user.update({
+          id: newUser.id,
           password: "Senha@123",
         });
         newSession = await session.create(newUser);

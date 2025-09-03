@@ -1,4 +1,3 @@
-import password from "models/password";
 import session from "models/session";
 import user from "models/user.js";
 import orchestrator from "tests/orchestrator.js";
@@ -11,6 +10,10 @@ beforeAll(async () => {
   testUser = await user.create({
     username: "testuser",
     email: "testuser@example.com",
+    password: "Senha@123",
+  });
+  testUser = await user.update({
+    id: testUser.id,
     password: "Senha@123",
   });
 });

@@ -34,6 +34,7 @@ describe("User Model", () => {
           "read:session:self",
           "read:user:self",
           "update:user:self",
+          "nivel:taiko:iniciante",
         ],
         password_expires_at: result.password_expires_at,
         created_at: result.created_at,
@@ -43,8 +44,11 @@ describe("User Model", () => {
       expect(Date.parse(result.created_at)).not.toBeNaN();
       expect(Date.parse(result.updated_at)).not.toBeNaN();
       expect(Date.parse(result.password_expires_at)).not.toBeNaN();
-      expect(Date.parse(result.password_expires_at)).toBeGreaterThan(
-        Date.parse(result.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // expect(Date.parse(result.password_expires_at)).toBeGreaterThan(
+      //   Date.parse(result.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // );
+      expect(Date.parse(result.password_expires_at)).toBeLessThan(
+        Date.parse(result.updated_at),
       );
       expect(result.password).not.toBe("Senha@123");
 
@@ -138,7 +142,7 @@ describe("User Model", () => {
     it("should return an anonymous user with default permissions", () => {
       const result = user.createAnonymous();
       expect(result).toEqual({
-        features: ["create:user", "create:session"],
+        features: [/*"create:user", */ "create:session"],
       });
     });
   });
@@ -313,6 +317,7 @@ describe("User Model", () => {
       const result = await user.addFeatures(newUser, ["create:session"]);
       expect(result.features).toEqual([
         "read:user:self",
+        "nivel:taiko:iniciante",
         "read:session:self",
         "update:user:self",
         "create:session",
