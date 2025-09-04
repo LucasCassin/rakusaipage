@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 import { USER_ENDPOINT } from "src/contexts/AuthContext.js";
+import { useView } from "src/contexts/ViewContext";
 import { settings } from "config/settings.js";
 import { handleApiResponse } from "src/utils/handleApiResponse.js";
 import { texts } from "src/utils/texts.js";
@@ -33,6 +34,7 @@ export default function LoginForm() {
     isPasswordExpired: false,
     showContent: true,
   });
+  const { switchToStudent } = useView();
 
   useEffect(() => {
     emailInputRef.current?.focus();
@@ -102,6 +104,7 @@ export default function LoginForm() {
           },
         },
         onSuccess: async () => {
+          switchToStudent();
           setSuccess(texts.login.message.success.login);
           setState((prev) => ({
             ...prev,
