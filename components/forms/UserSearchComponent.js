@@ -70,7 +70,7 @@ const UserSearchComponent = React.memo(
     );
 
     return (
-      <div className="flex w-full gap-4">
+      <div className="flex w-full gap-4 items-center">
         <div className="flex-1">
           <FormInput
             id="username"
@@ -97,7 +97,7 @@ const UserSearchComponent = React.memo(
             onClick={handleTargetUserSearch}
             disabled={disabled}
             variant="primary"
-            className="whitespace-nowrap"
+            className="whitespace-nowrap h-10"
           >
             {texts.button.search}
           </Button>

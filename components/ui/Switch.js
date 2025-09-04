@@ -11,7 +11,7 @@ export default function Switch({
       disabled={disabled}
       className={`${
         checked
-          ? "bg-blue-600 focus:ring-blue-500"
+          ? "bg-rakusai-purple focus:ring-rakusai-purple"
           : "bg-gray-200 focus:ring-gray-500"
       } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
@@ -51,7 +51,7 @@ export default function Switch({
           aria-hidden="true"
         >
           <svg
-            className="h-3 w-3 text-blue-600"
+            className="h-3 w-3 text-rakusai-purple"
             fill="currentColor"
             viewBox="0 0 12 12"
           >

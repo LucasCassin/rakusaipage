@@ -17,6 +17,7 @@ export default function PageLayout({
   children,
   className = "",
   showInitialLoading = true,
+  maxWidth = "max-w-md",
 }) {
   return (
     <Fragment>
@@ -27,7 +28,7 @@ export default function PageLayout({
 
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         {showInitialLoading && <InitialLoading />}
-        <div className={`max-w-2/6 w-full space-y-8 ${className}`}>
+        <div className={`${maxWidth} w-full space-y-8 ${className}`}>
           {children}
         </div>
       </div>
