@@ -7,6 +7,8 @@ import { useView } from "src/contexts/ViewContext.js";
 import { settings } from "config/settings.js";
 import * as HeroIcons from "@heroicons/react/24/outline";
 import { texts } from "src/utils/texts.js";
+import { useUserNivel } from "src/hooks/useUserNivel";
+import NivelTag from "components/ui/NivelTag";
 
 export default function StudentHeader() {
   const router = useRouter();
@@ -80,9 +82,11 @@ export default function StudentHeader() {
     setIsProfileMenuOpen(false);
   };
 
+  const userNiveis = useUserNivel(user?.features);
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg">
-      <div className="container mx-auto px-6 max-w-5xl">
+      <div className="container mx-auto px-4 md:px-6 max-w-5xl">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0">
             <Link href="/" onClick={switchToPublic}>
@@ -154,15 +158,6 @@ export default function StudentHeader() {
                   )}
                 </div>
               )}
-
-              {/* Botão para voltar à Área Pública */}
-              {/* <Link
-                href="/"
-                onClick={switchToPublic}
-                className="ml-4 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/30 rounded-full transition-colors"
-              >
-                Área Pública
-              </Link> */}
             </nav>
 
             {/* Menu de Perfil e Botão Mobile */}
@@ -192,17 +187,29 @@ export default function StudentHeader() {
                           <div className="px-4 py-4 border-b border-gray-700">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
-                                <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
+                                {/* <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
                                   <span className="text-sm font-medium text-white">
                                     {user.username.charAt(0).toUpperCase()}
                                   </span>
-                                </div>
+                                </div> */}
                                 <div>
                                   <div className="text-sm font-medium text-white">
                                     {user.username}
                                   </div>
-                                  <div className="text-xs text-gray-400">
+                                  {/* <div className="text-xs text-gray-400">
                                     {texts.header.menu.viewProfile}
+                                  </div> */}
+                                  <div className="flex flex-col items-start gap-y-2 mt-3">
+                                    {userNiveis.taiko || userNiveis.fue ? (
+                                      <>
+                                        <NivelTag nivel={userNiveis.taiko} />
+                                        <NivelTag nivel={userNiveis.fue} />
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">
+                                        {texts.header.menu.viewProfile}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -310,6 +317,23 @@ export default function StudentHeader() {
 
       {isMenuOpen && (
         <div className="sm:hidden bg-gray-800 border-t border-gray-700">
+          <div className="pl-2 px-2 pt-2 pb-3 border-b border-gray-700 ">
+            <div className="px-3 text-md font-semibold text-white">
+              {user.username}
+            </div>
+            <div className="flex flex-col items-start gap-y-2 mt-3 px-3">
+              {userNiveis.taiko || userNiveis.fue ? (
+                <>
+                  <NivelTag nivel={userNiveis.taiko} />
+                  <NivelTag nivel={userNiveis.fue} />
+                </>
+              ) : (
+                <span className="text-xs text-gray-400">
+                  {texts.header.menu.viewProfile}
+                </span>
+              )}
+            </div>
+          </div>
           <div className="px-2 pt-2 pb-3 space-y-1">
             {mainStudentNavs.map((item) => (
               <Link
@@ -335,14 +359,6 @@ export default function StudentHeader() {
                 {item.name}
               </Link>
             ))}
-            {/* <div className="border-t border-gray-700 my-2" />
-            <Link
-              href="/"
-              onClick={switchToPublic}
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-            >
-              Área Pública
-            </Link> */}
           </div>
           <div className="pt-4 pb-3 border-t border-gray-700">
             {user ? (

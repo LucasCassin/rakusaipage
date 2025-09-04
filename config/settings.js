@@ -370,4 +370,52 @@ export const settings = {
       ],
     ],
   },
+
+  // Configurações de nivel
+  nivel: {
+    taiko: [
+      {
+        ord: 0,
+        feature: "nivel:taiko:iniciante",
+        label: "Iniciante",
+      },
+      {
+        ord: 1,
+        feature: "nivel:taiko:intermediario",
+        label: "Intermediário",
+      },
+      {
+        ord: 2,
+        feature: "nivel:taiko:avancado",
+        label: "Avançado",
+      },
+      {
+        ord: 3,
+        feature: "nivel:taiko:admin",
+        label: "Professor",
+      },
+    ],
+    fue: [
+      {
+        ord: 0,
+        feature: "nivel:fue:iniciante",
+        label: "Iniciante",
+      },
+      {
+        ord: 1,
+        feature: "nivel:fue:intermediario",
+        label: "Intermediário",
+      },
+      {
+        ord: 2,
+        feature: "nivel:fue:avancado",
+        label: "Avançado",
+      },
+      {
+        ord: 3,
+        feature: "nivel:fue:admin",
+        label: "Professor",
+      },
+    ],
+  },
 };

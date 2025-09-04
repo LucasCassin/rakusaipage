@@ -308,7 +308,7 @@ export const texts = {
     },
   },
   header: {
-    title: "Sistema",
+    title: "Rakusai Taiko",
     menu: {
       others: "Outros",
       viewProfile: "Ver perfil",

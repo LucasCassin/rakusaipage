@@ -30,20 +30,23 @@ const availableFeatures = new Set([
   "update:table",
 
   //Taiko
-  "nivel:taiko:admin",
+
   "nivel:taiko:iniciante",
   "nivel:taiko:intermediario",
   "nivel:taiko:avancado",
-  "nivel:taiko:default",
-  "nivel:taiko:blocked",
+  // "nivel:taiko:default",
+  // "nivel:taiko:blocked",
 
   //Fue
-  "nivel:fue:admin",
   "nivel:fue:iniciante",
   "nivel:fue:intermediario",
   "nivel:fue:avancado",
-  "nivel:fue:default",
-  "nivel:fue:blocked",
+  // "nivel:fue:default",
+  // "nivel:fue:blocked",
+
+  //Admin
+  "nivel:taiko:admin",
+  "nivel:fue:admin",
 ]);
 
 export default availableFeatures;
