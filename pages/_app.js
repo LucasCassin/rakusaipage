@@ -1,5 +1,6 @@
 import "styles/globals.css";
 import { AuthProvider } from "src/contexts/AuthContext.js";
+import { ViewProvider } from "src/contexts/ViewContext.js";
 import React from "react";
 import Layout from "pages/layout.js";
 import RouteChangeLoading from "components/RouteChangeLoading";
@@ -14,10 +15,12 @@ function MyApp({ Component, pageProps }) {
     // Aplica as variáveis das fontes na div principal
     <div className={`${poppins.variable} ${caveat.variable} font-sans`}>
       <AuthProvider>
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
-        <RouteChangeLoading />
+        <ViewProvider>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+          <RouteChangeLoading />
+        </ViewProvider>
       </AuthProvider>
     </div>
   );

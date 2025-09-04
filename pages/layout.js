@@ -1,6 +1,8 @@
 import { texts } from "src/utils/texts";
 import { useAuth } from "src/contexts/AuthContext";
-import Header from "components/Header";
+import { useView } from "src/contexts/ViewContext.js";
+import PublicHeader from "components/PublicHeader";
+import StudentHeader from "components/StudentHeader.js";
 
 /**
  * Layout principal da aplicação
@@ -8,7 +10,8 @@ import Header from "components/Header";
  */
 export default function RootLayout({ children }) {
   // Hook de autenticação para obter o estado de carregamento
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const { isPublicView } = useView();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -17,8 +20,10 @@ export default function RootLayout({ children }) {
         <div className="flex justify-center items-center h-16 bg-gray-800 text-white shadow-md">
           <p className="text-gray-300">{texts.layout.message.loading}</p>
         </div>
+      ) : isPublicView || !user ? (
+        <PublicHeader />
       ) : (
-        <Header />
+        <StudentHeader />
       )}
 
       {/* Conteúdo principal */}

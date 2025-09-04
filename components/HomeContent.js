@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "src/contexts/AuthContext";
+import { useView } from "src/contexts/ViewContext";
 import { useEffect, useState } from "react";
 
 // Importando os componentes de view
@@ -22,6 +23,7 @@ export default function HomeContent({
   instrumentos,
 }) {
   const { user } = useAuth();
+  const { isStudentView } = useView();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -33,9 +35,9 @@ export default function HomeContent({
   if (!isMounted) {
     return <Loader />;
   }
-
+  const shouldShowStudentDashboard = user && isStudentView;
   // Se o usuário existir, mostra o Dashboard. Senão, mostra a Landing Page.
-  return user ? (
+  return shouldShowStudentDashboard ? (
     <StudentDashboard user={user} />
   ) : (
     <PublicLandingPage

@@ -243,7 +243,7 @@ export const settings = {
     LOGIN_REDIRECT: "/",
     CREATE_USER_REDIRECT: "/",
     LOGOUT_REDIRECT: "/",
-    NAVS: [
+    PUBLIC_NAVS: [
       {
         name: "Home",
         href: "/#home",
@@ -282,6 +282,32 @@ export const settings = {
       //   FEATURES: [["read:table"], ["read:table", "update:table"]],
       // },
     ],
+    STUDENT_NAVS: [
+      {
+        name: "Mural",
+        href: "/#1",
+      },
+      {
+        name: "Playlists Taiko",
+        href: "/#2",
+        FEATURES: [
+          ["nivel:taiko:admin"],
+          ["nivel:taiko:iniciante"],
+          ["nivel:taiko:intermediario"],
+          ["nivel:taiko:avancado"],
+        ],
+      },
+      {
+        name: "Playlists Fue",
+        href: "/#3",
+        FEATURES: [
+          ["nivel:fue:admin"],
+          ["nivel:fue:iniciante"],
+          ["nivel:fue:intermediario"],
+          ["nivel:fue:avancado"],
+        ],
+      },
+    ],
     OTHER_NAVS: [
       // {
       //   name: "Status",
@@ -294,42 +320,54 @@ export const settings = {
       // },
     ],
     PROFILE_NAVS: [
-      // [
-      //   {
-      //     name: "Meu Perfil",
-      //     href: "/profile",
-      //     FEATURES: [["read:user:self"], ["read:user:other"]],
-      //     icon: "UserIcon",
-      //   },
-      // ],
-      // [
-      //   {
-      //     name: "Editar Perfil",
-      //     href: "/profile/edit",
-      //     FEATURES: [
-      //       ["update:user:self"],
-      //       ["update:user:features:self"],
-      //       ["read:user:other", "update:user:features:other"],
-      //     ],
-      //     icon: "PencilIcon",
-      //   },
-      //   {
-      //     name: "Alterar Senha",
-      //     href: "/profile/password",
-      //     FEATURES: [
-      //       ["update:user:self"],
-      //       ["read:user:other", "update:user:other"],
-      //     ],
-      //     icon: "KeyIcon",
-      //   },
-      // ],
-      // [
-      //   {
-      //     name: "Sair",
-      //     href: "/logout",
-      //     icon: "ArrowLeftOnRectangleIcon",
-      //   },
-      // ],
+      [
+        {
+          name: "Meu Perfil",
+          href: "/profile",
+          FEATURES: [["read:user:self"], ["read:user:other"]],
+          icon: "UserIcon",
+        },
+      ],
+      [
+        {
+          name: "Criar usuário",
+          href: "/register",
+          FEATURES: [["create:user"]],
+          icon: "UserPlusIcon",
+        },
+        {
+          name: "Editar Perfil",
+          href: "/profile/edit",
+          FEATURES: [
+            ["update:user:self"],
+            ["update:user:features:self"],
+            ["read:user:other", "update:user:features:other"],
+          ],
+          icon: "PencilIcon",
+        },
+        {
+          name: "Alterar Senha",
+          href: "/profile/password",
+          FEATURES: [
+            ["update:user:self"],
+            ["read:user:other", "update:user:other"],
+          ],
+          icon: "KeyIcon",
+        },
+      ],
+      [
+        {
+          name: "Área Pública",
+          href: "/",
+          icon: "ArrowsRightLeftIcon",
+          ap: true,
+        },
+        {
+          name: "Sair",
+          href: "/logout",
+          icon: "ArrowLeftOnRectangleIcon",
+        },
+      ],
     ],
   },
 };

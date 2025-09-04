@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "src/contexts/AuthContext.js";
+import { useView } from "src/contexts/ViewContext.js";
 import { settings } from "config/settings.js";
 import { texts } from "src/utils/texts.js";
 import Image from "next/image";
@@ -9,6 +10,9 @@ import Image from "next/image";
 export default function Header() {
   const router = useRouter();
   const { user } = useAuth();
+
+  const { switchToStudent } = useView();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOthersDropdownOpen, setIsOthersDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -36,7 +40,7 @@ export default function Header() {
     return hasPermission(navItem.FEATURES);
   };
 
-  const mainNavs = settings.header.NAVS.filter(shouldShowNavItem);
+  const mainNavs = settings.header.PUBLIC_NAVS.filter(shouldShowNavItem);
   const filteredOtherNavs =
     settings.header.OTHER_NAVS.filter(shouldShowNavItem);
 
@@ -81,7 +85,7 @@ export default function Header() {
   useEffect(() => {
     if (!isHomePage) return;
 
-    const sections = settings.header.NAVS.map((link) => {
+    const sections = settings.header.PUBLIC_NAVS.map((link) => {
       if (link.href.includes("/#")) {
         const id = link.href.split("/#")[1];
         return document.querySelector(`#${id}`);
@@ -138,6 +142,19 @@ export default function Header() {
     if (isOthersDropdownOpen) setIsOthersDropdownOpen(false);
   };
 
+  const studentAreaButton = (
+    <Link
+      href={user ? "/" : "/login"}
+      onClick={() => {
+        if (user) switchToStudent();
+        if (isMenuOpen) setIsMenuOpen(false);
+      }}
+      className="block w-full text-left pl-5 pr-4 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+    >
+      Área do Aluno
+    </Link>
+  );
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-opacity duration-200 ${
@@ -150,9 +167,9 @@ export default function Header() {
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0">
-            <a
-              href="#home"
-              onClick={(e) => handleNavigation("#home", e)}
+            <Link
+              href="/"
+              onClick={(e) => handleNavigation("/", e)}
               className="transition-opacity duration-300 cursor-pointer"
               style={{
                 opacity: isMenuOpen ? 1 : logoOpacity,
@@ -166,7 +183,7 @@ export default function Header() {
                 width={102.63}
                 height={50}
               />
-            </a>
+            </Link>
           </div>
 
           <div className="flex items-center">
@@ -238,6 +255,15 @@ export default function Header() {
                   )}
                 </div>
               )}
+              <div className="relative px-3 py-2">
+                <Link
+                  href={user ? "/" : "/login"}
+                  onClick={user ? switchToStudent : undefined}
+                  className="px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  Área do Aluno
+                </Link>
+              </div>
             </nav>
 
             <div className="flex items-center sm:hidden">
@@ -306,7 +332,6 @@ export default function Header() {
                       : "text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}
                 >
-                  {/* MUDANÇA: Adicionado um div para ser o traço vertical */}
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-rakusai-pink rounded-full"></div>
                   )}
@@ -320,20 +345,20 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavigation(item.href, e)}
-                // MUDANÇA: Novas classes para posicionamento relativo e paddings
                 className={`relative block pl-5 pr-4 py-2 rounded-md text-base font-medium ${
                   router.pathname === item.href
                     ? "text-white"
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}
               >
-                {/* MUDANÇA: Adicionado um div para ser o traço vertical */}
                 {router.pathname === item.href && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-rakusai-pink rounded-full"></div>
                 )}
                 {item.name}
               </Link>
             ))}
+            <div className="border-t border-gray-700 my-2"></div>
+            {studentAreaButton}
           </div>
         </div>
       )}

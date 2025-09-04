@@ -7,7 +7,6 @@ html,
 body {
   min-width: 330px;
   width: 100%;
-  overflow-x: hidden;
 }
 
 /* Seus outros estilos globais (keyframes, etc.) vêm depois */
