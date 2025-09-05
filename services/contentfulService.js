@@ -106,6 +106,17 @@ const parseAlunoBoasVindas = (fields) => ({
     : null,
 });
 
+const parseComunicado = (fields) => ({
+  title: fields.titulo || "",
+  description: parseRichText(fields.descricao),
+  subject: fields.assunto || "Geral",
+  features: fields.features || [],
+  startDate: fields.dataDeInicio,
+  endDate: fields.dataDeFim,
+  showSplashDaysBefore: fields.travaTelaDiasAntes ?? -1,
+  canDismissSplash: fields.travaTelaPodeFechar ?? true,
+});
+
 // --- CONFIGURAÇÃO CENTRAL ---
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
@@ -225,6 +236,22 @@ export async function fetchTiposEvento() {
     return entries.items?.map((item) => parseTipoEvento(item.fields)) || [];
   } catch (error) {
     console.error("Erro ao buscar tipos de evento do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os comunicados e os ordena pela data de início mais recente.
+ */
+export async function fetchComunicados() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "aulaComunicado",
+      order: "-fields.dataDeInicio", // O '-' ordena do mais novo para o mais antigo
+    });
+    return entries.items?.map((item) => parseComunicado(item.fields)) || [];
+  } catch (error) {
+    console.error("Erro ao buscar comunicados do Contentful:", error);
     return [];
   }
 }

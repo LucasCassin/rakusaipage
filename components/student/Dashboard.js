@@ -1,29 +1,92 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import WelcomeHeader from "./WelcomeHeader";
-// Futuramente, importaremos outros componentes aqui, como Comunicados, Playlists, etc.
+import ComunicadoModal from "../modals/ComunicadoModal";
+import ComunicadosSection from "./ComunicadosSection";
+import { getDaysUntilEvent } from "src/utils/dateUtils";
 
-export default function StudentDashboard({ user, pageData }) {
-  // Pega os dados de boas-vindas que vêm da página principal
+export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
+  const [splashComunicados, setSplashComunicados] = useState([]);
+  const [isSplashOpen, setIsSplashOpen] = useState(false);
+
+  // A lógica de filtragem e ordenação agora vive aqui
+  const visibleComunicados = useMemo(() => {
+    if (!comunicados) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return (
+      comunicados
+        .filter((com) => {
+          const isVisibleForUser =
+            com.features.length === 0 ||
+            com.features.some((feature) => user.features.includes(feature));
+          const startDate = new Date(com.startDate);
+          const endDate = new Date(com.endDate);
+          const isWithinDateRange = startDate <= today && endDate >= today;
+          return isVisibleForUser && isWithinDateRange;
+        })
+        // MUDANÇA: Adicionada a lógica de ordenação para priorizar 'Urgente'
+        .sort((a, b) => {
+          if (a.subject === "Urgente" && b.subject !== "Urgente") return -1;
+          if (a.subject !== "Urgente" && b.subject === "Urgente") return 1;
+          return 0; // Mantém a ordem original (por data) para os outros
+        })
+    );
+  }, [comunicados, user.features]);
+
+  useEffect(() => {
+    const splashCandidates = visibleComunicados.filter((com) => {
+      if (com.showSplashDaysBefore === -1) return false;
+      const daysUntil = getDaysUntilEvent(com.startDate);
+      const isDismissed = localStorage.getItem(
+        `dismissComunicado_${com.title}`,
+      );
+      return (
+        daysUntil >= 0 && daysUntil <= com.showSplashDaysBefore && !isDismissed
+      );
+    });
+
+    if (splashCandidates.length > 0) {
+      setSplashComunicados(splashCandidates);
+      setIsSplashOpen(true);
+    }
+  }, [visibleComunicados]);
+
+  const handleDismissSplash = (comunicado) => {
+    if (comunicado) {
+      localStorage.setItem(`dismissComunicado_${comunicado.title}`, "true");
+    }
+    const remainingSplashes = splashComunicados.filter(
+      (c) => c.title !== comunicado.title,
+    );
+    setSplashComunicados(remainingSplashes);
+    if (remainingSplashes.length === 0) {
+      setIsSplashOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 pt-16">
-      {/* 1. Mensagem Inicial */}
+      <ComunicadoModal
+        isOpen={isSplashOpen}
+        onClose={() => setIsSplashOpen(false)}
+        onDismiss={handleDismissSplash}
+        comunicados={splashComunicados}
+      />
+
       <WelcomeHeader user={user} welcomeData={welcomeData} />
 
-      {/* Container para o resto do conteúdo */}
-      <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        {/*
-          Aqui entrarão as próximas seções:
-          - Comunicados
-          - Playlists de Vídeos
-          - etc.
-        */}
-        <div className="bg-white p-8 rounded-lg shadow">
-          <h2 className="text-2xl font-bold text-gray-800">Próximas Seções</h2>
-          <p className="mt-4 text-gray-600">
-            O conteúdo de comunicados e playlists de vídeo aparecerá aqui.
-          </p>
+      <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-12">
+        <ComunicadosSection visibleComunicados={visibleComunicados} />
+
+        <div id="video-aulas">
+          <h2 className="text-3xl font-bold text-gray-800 mb-6">Vídeo Aulas</h2>
+          <div className="bg-white p-8 rounded-lg shadow">
+            <p className="text-gray-500">
+              Em breve: playlists de Taiko e Fue, separadas por nível.
+            </p>
+          </div>
         </div>
       </main>
     </div>

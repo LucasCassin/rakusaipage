@@ -14,7 +14,7 @@ module.exports = {
         "rakusai-pink": "#e40788",
         "rakusai-pink-light": "#ee86c4ff",
         "rakusai-purple": "#b000b0",
-        "rakusai-purple-light": "#f1b1f1ff",
+        "rakusai-purple-light": "#c472c4ff",
       },
       fontFamily: {
         sans: ["var(--font-poppins)", ...fontFamily.sans],

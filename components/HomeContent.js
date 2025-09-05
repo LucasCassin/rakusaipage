@@ -21,6 +21,7 @@ export default function HomeContent({
   horarios,
   tiposEvento,
   instrumentos,
+  comunicados,
 }) {
   const { user } = useAuth();
   const { isStudentView } = useView();
@@ -38,7 +39,11 @@ export default function HomeContent({
   const shouldShowStudentDashboard = user && isStudentView;
   // Se o usuário existir, mostra o Dashboard. Senão, mostra a Landing Page.
   return shouldShowStudentDashboard ? (
-    <StudentDashboard user={user} pageData={pageData} />
+    <StudentDashboard
+      user={user}
+      pageData={pageData}
+      comunicados={comunicados}
+    />
   ) : (
     <PublicLandingPage
       pageData={pageData}

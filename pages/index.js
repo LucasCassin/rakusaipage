@@ -7,6 +7,7 @@ import {
   fetchHorariosAula,
   fetchTiposEvento,
   fetchInstrumentos,
+  fetchComunicados,
 } from "services/contentfulService.js";
 
 /**
@@ -19,6 +20,7 @@ export default function Home({
   horarios,
   tiposEvento,
   instrumentos,
+  comunicados,
 }) {
   return (
     <>
@@ -35,6 +37,7 @@ export default function Home({
         horarios={horarios}
         tiposEvento={tiposEvento}
         instrumentos={instrumentos}
+        comunicados={comunicados}
       />
     </>
   );
@@ -42,14 +45,21 @@ export default function Home({
 
 export async function getStaticProps() {
   // Chamamos todas as funções em paralelo para otimizar
-  const [pageData, presentations, horarios, tiposEvento, instrumentos] =
-    await Promise.all([
-      fetchLandingPageData(),
-      fetchUpcomingPresentations(),
-      fetchHorariosAula(),
-      fetchTiposEvento(),
-      fetchInstrumentos(),
-    ]);
+  const [
+    pageData,
+    presentations,
+    horarios,
+    tiposEvento,
+    instrumentos,
+    comunicados,
+  ] = await Promise.all([
+    fetchLandingPageData(),
+    fetchUpcomingPresentations(),
+    fetchHorariosAula(),
+    fetchTiposEvento(),
+    fetchInstrumentos(),
+    fetchComunicados(),
+  ]);
 
   return {
     props: {
@@ -58,6 +68,7 @@ export async function getStaticProps() {
       horarios,
       tiposEvento,
       instrumentos,
+      comunicados,
     },
     revalidate: 60,
   };

@@ -32,7 +32,7 @@ export default function ToggleFeaturesList({
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     isSelected
-                      ? "bg-rakusai-purple-light text-rakusai-purple"
+                      ? "bg-rakusai-pink-light text-white"
                       : "bg-gray-100 text-gray-800"
                   }`}
                 >
