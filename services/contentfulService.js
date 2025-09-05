@@ -98,6 +98,14 @@ const parseTipoEvento = (fields) => ({
   iconName: fields.iconName || "Sparkles",
 });
 
+const parseAlunoBoasVindas = (fields) => ({
+  title: fields.titulo || "Bem-vindo(a) de volta,",
+  subtitle: fields.subtitulo || "Vamos fazer barulho!",
+  backgroundImage: fields.imagemDeFundo
+    ? parseAsset(fields.imagemDeFundo)
+    : null,
+});
+
 // --- CONFIGURAÇÃO CENTRAL ---
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
@@ -107,6 +115,7 @@ const SINGLE_ENTRY_CONFIG = {
   homeContrate: { parser: parseHomeContrate },
   homeHistoriaTaiko: { parser: parseHomeHistoriaTaiko },
   redesSociais: { parser: parseRedesSociais },
+  alunoBoasVindas: { parser: parseAlunoBoasVindas },
 };
 
 // --- FUNÇÕES DE BUSCA EXPORTADAS ---

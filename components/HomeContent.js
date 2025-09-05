@@ -38,7 +38,7 @@ export default function HomeContent({
   const shouldShowStudentDashboard = user && isStudentView;
   // Se o usuário existir, mostra o Dashboard. Senão, mostra a Landing Page.
   return shouldShowStudentDashboard ? (
-    <StudentDashboard user={user} />
+    <StudentDashboard user={user} pageData={pageData} />
   ) : (
     <PublicLandingPage
       pageData={pageData}
