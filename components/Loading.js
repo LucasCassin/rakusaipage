@@ -1,62 +1,59 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+
+const rakusaiFilterStrings = [
+  // Amarela (#ffd800)
+  "invert(81%) sepia(39%) saturate(2947%) hue-rotate(359deg) brightness(107%) contrast(111%)",
+  // Rosa (#e40788)
+  "invert(19%) sepia(93%) saturate(5430%) hue-rotate(314deg) brightness(89%) contrast(104%)",
+  // Roxo (#b000b0)
+  "invert(13%) sepia(76%) saturate(5574%) hue-rotate(294deg) brightness(90%) contrast(117%)",
+];
 
 export default function Loading({ message = "Carregando..." }) {
+  const [filterStyle, setFilterStyle] = useState(
+    "invert(81%) sepia(39%) saturate(2947%) hue-rotate(359deg) brightness(107%) contrast(111%)",
+  );
+
+  useEffect(() => {
+    const randomFilter =
+      rakusaiFilterStrings[
+        Math.floor(Math.random() * rakusaiFilterStrings.length)
+      ];
+    setFilterStyle(randomFilter);
+  }, []);
+
   return (
-    // MUDANÇA 1: O container agora é um overlay de tela inteira
+    // O overlay de fundo, cobrindo a tela inteira
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-      <div className="relative w-48 h-48">
-        {/* SVG do Tambor Taiko Animado */}
-        <svg
-          className="w-full h-full"
-          viewBox="0 0 120 120"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Fundo do tambor (pele branca) */}
-          <circle cx="60" cy="60" r="45" fill="#f7f7f7" />
-
-          {/* Pregos (Byo) do tambor */}
-          <circle cx="30" cy="60" r="3" fill="#374151" />
-          <circle cx="90" cy="60" r="3" fill="#374151" />
-          <circle cx="60" cy="30" r="3" fill="#374151" />
-          <circle cx="60" cy="90" r="3" fill="#374151" />
-
-          {/* Círculo de 'batida' pulsante no centro */}
-          <circle
-            cx="60"
-            cy="60"
-            r="15"
-            className="center-dot"
-            style={{
-              // MUDANÇA 2: Cor alterada para o rosa da marca
-              fill: "rgba(228, 7, 136, 0.4)",
-              animation: "dot-pulse 1.5s ease-in-out infinite",
-            }}
-          />
-        </svg>
+      <div className="relative w-24 h-24">
+        <Image
+          src="/images/loader-icon.svg"
+          alt="Ícone de carregamento do Rakusai Taiko"
+          width={96}
+          height={96}
+          style={{
+            animation: "rakusai-spin 2s infinite",
+            animationTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
+            filter: filterStyle,
+          }}
+        />
       </div>
-      {/* MUDANÇA 3: Adicionada a mensagem de texto */}
+
+      {/* Mensagem de texto opcional */}
       {message && (
         <p className="mt-4 text-lg font-semibold text-white">{message}</p>
       )}
 
-      {/* Estilos CSS para a animação de pulso */}
+      {/* Estilos CSS para a animação de rotação customizada */}
       <style jsx>{`
-        @keyframes dot-pulse {
-          0% {
-            transform: scale(0.8);
-            opacity: 0.5;
+        @keyframes rakusai-spin {
+          from {
+            transform: rotate(0deg);
           }
-          50% {
-            transform: scale(1.2);
-            opacity: 1;
+          to {
+            transform: rotate(360deg);
           }
-          100% {
-            transform: scale(0.8);
-            opacity: 0.5;
-          }
-        }
-        .center-dot {
-          transform-origin: center;
         }
       `}</style>
     </div>
