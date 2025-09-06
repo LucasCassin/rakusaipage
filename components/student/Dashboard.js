@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import WelcomeHeader from "./WelcomeHeader";
 import ComunicadoModal from "../modals/ComunicadoModal";
 import ComunicadosSection from "./ComunicadosSection";
-import { getDaysUntilEvent } from "src/utils/dateUtils";
 
 export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
