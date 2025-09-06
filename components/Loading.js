@@ -30,8 +30,7 @@ export default function Loading({ message = "Carregando..." }) {
         <Image
           src="/images/loader-icon.svg"
           alt="Ícone de carregamento do Rakusai Taiko"
-          width={96}
-          height={96}
+          fill
           style={{
             animation: "rakusai-spin 2s infinite",
             animationTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
