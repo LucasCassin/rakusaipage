@@ -1,3 +1,12 @@
+const FEATURE_NIVEL_TAIKO_INICIANTE = "nivel:taiko:iniciante";
+const FEATURE_NIVEL_TAIKO_INTERMEDIARIO = "nivel:taiko:intermediario";
+const FEATURE_NIVEL_TAIKO_AVANCADO = "nivel:taiko:avancado";
+const FEATURE_NIVEL_TAIKO_PROFESSOR = "nivel:taiko:admin";
+const FEATURE_NIVEL_FUE_INICIANTE = "nivel:fue:iniciante";
+const FEATURE_NIVEL_FUE_INTERMEDIARIO = "nivel:fue:intermediario";
+const FEATURE_NIVEL_FUE_AVANCADO = "nivel:fue:avancado";
+const FEATURE_NIVEL_FUE_PROFESSOR = "nivel:fue:admin";
+
 export const settings = {
   // Configurações globais
   global: {
@@ -376,22 +385,22 @@ export const settings = {
     taiko: [
       {
         ord: 0,
-        feature: "nivel:taiko:iniciante",
+        feature: FEATURE_NIVEL_TAIKO_INICIANTE,
         label: "Iniciante",
       },
       {
         ord: 1,
-        feature: "nivel:taiko:intermediario",
+        feature: FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
         label: "Intermediário",
       },
       {
         ord: 2,
-        feature: "nivel:taiko:avancado",
+        feature: FEATURE_NIVEL_TAIKO_AVANCADO,
         label: "Avançado",
       },
       {
         ord: 3,
-        feature: "nivel:taiko:admin",
+        feature: FEATURE_NIVEL_TAIKO_PROFESSOR,
         label: "Professor",
       },
       {
@@ -403,22 +412,22 @@ export const settings = {
     fue: [
       {
         ord: 0,
-        feature: "nivel:fue:iniciante",
+        feature: FEATURE_NIVEL_FUE_INICIANTE,
         label: "Iniciante",
       },
       {
         ord: 1,
-        feature: "nivel:fue:intermediario",
+        feature: FEATURE_NIVEL_FUE_INTERMEDIARIO,
         label: "Intermediário",
       },
       {
         ord: 2,
-        feature: "nivel:fue:avancado",
+        feature: FEATURE_NIVEL_FUE_AVANCADO,
         label: "Avançado",
       },
       {
         ord: 3,
-        feature: "nivel:fue:admin",
+        feature: FEATURE_NIVEL_FUE_PROFESSOR,
         label: "Professor",
       },
       {
@@ -427,5 +436,16 @@ export const settings = {
         label: "Não Mostrar",
       },
     ],
+  },
+
+  videoAulas: {
+    FEATURE_TAIKO_INICIANTE: FEATURE_NIVEL_TAIKO_INICIANTE,
+    FEATURE_TAIKO_INTERMEDIARIO: FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+    FEATURE_TAIKO_AVANCADO: FEATURE_NIVEL_TAIKO_AVANCADO,
+    FEATURE_TAIKO_PROFESSOR: FEATURE_NIVEL_TAIKO_PROFESSOR,
+    FEATURE_FUE_INICIANTE: FEATURE_NIVEL_FUE_INICIANTE,
+    FEATURE_FUE_INTERMEDIARIO: FEATURE_NIVEL_FUE_INTERMEDIARIO,
+    FEATURE_FUE_AVANCADO: FEATURE_NIVEL_FUE_AVANCADO,
+    FEATURE_FUE_PROFESSOR: FEATURE_NIVEL_FUE_PROFESSOR,
   },
 };

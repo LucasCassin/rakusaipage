@@ -562,4 +562,14 @@ export const texts = {
       button: "Voltar para a página inicial",
     },
   },
+  videoAulas: {
+    title: "Vídeos Aula",
+    description: "Vídeos Aulas",
+    message: {
+      error: {
+        notAuthenticated: "Você não está autenticado. Por favor, faça login.",
+        noPermission: "Você não tem permissão para acessar esta página.",
+      },
+    },
+  },
 };

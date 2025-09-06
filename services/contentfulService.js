@@ -117,6 +117,15 @@ const parseComunicado = (fields) => ({
   showSplash: fields.podeMostrarTravaTela ?? false,
 });
 
+const parseVideoAulaCollection = (fields) => ({
+  title: fields.titulo || null,
+  description: parseRichText(fields.descricao),
+  youtubeLinks: fields.youTubeLinks || [],
+  niveis: fields.niveis || [],
+  thumbnail: fields.image ? parseAsset(fields.image) : null,
+  slug: fields.slug || null,
+});
+
 // --- CONFIGURAÇÃO CENTRAL ---
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
@@ -253,5 +262,42 @@ export async function fetchComunicados() {
   } catch (error) {
     console.error("Erro ao buscar comunicados do Contentful:", error);
     return [];
+  }
+}
+
+/**
+ * Busca todas as coleções de vídeo aulas.
+ */
+export async function fetchVideoAulaCollections() {
+  try {
+    const entries = await client.getEntries({
+      content_type: "videoAulaCollection",
+    });
+    return (
+      entries.items?.map((item) => parseVideoAulaCollection(item.fields)) || []
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao buscar coleções de vídeo aulas do Contentful:",
+      error,
+    );
+    return [];
+  }
+}
+
+export async function fetchVideoAulaCollectionBySlug(slug) {
+  try {
+    const entries = await client.getEntries({
+      content_type: "videoAulaCollection",
+      "fields.slug": slug,
+      limit: 1,
+    });
+    if (entries.items && entries.items.length > 0) {
+      return parseVideoAulaCollection(entries.items[0].fields);
+    }
+    return null;
+  } catch (error) {
+    console.error(`Erro ao buscar coleção com slug ${slug}:`, error);
+    return null;
   }
 }

@@ -2,8 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import WelcomeHeader from "./WelcomeHeader";
 import ComunicadoModal from "../modals/ComunicadoModal";
 import ComunicadosSection from "./ComunicadosSection";
+import VideoAulasSection from "./VideoAulasSection";
 
-export default function StudentDashboard({ user, pageData, comunicados }) {
+export default function StudentDashboard({
+  user,
+  pageData,
+  comunicados,
+  videoAulaCollections,
+}) {
   const welcomeData = pageData?.alunoBoasVindas;
   const [splashComunicados, setSplashComunicados] = useState([]);
   const [isSplashOpen, setIsSplashOpen] = useState(false);
@@ -74,15 +80,14 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
       <WelcomeHeader user={user} welcomeData={welcomeData} />
 
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-12">
-        <ComunicadosSection visibleComunicados={visibleComunicados} />
-
+        <ComunicadosSection user={user} comunicados={comunicados} />
         <div id="video-aulas">
           <h2 className="text-3xl font-bold text-gray-800 mb-6">Vídeo Aulas</h2>
-          <div className="bg-white p-8 rounded-lg shadow">
-            <p className="text-gray-500">
-              Em breve: playlists de Taiko e Fue, separadas por nível.
-            </p>
-          </div>
+          <VideoAulasSection
+            user={user}
+            collections={videoAulaCollections}
+            youtubeApiKey={process.env.NEXT_PUBLIC_YOUTUBE_API_KEY}
+          />
         </div>
       </main>
     </div>

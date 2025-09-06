@@ -8,6 +8,7 @@ import {
   fetchTiposEvento,
   fetchInstrumentos,
   fetchComunicados,
+  fetchVideoAulaCollections,
 } from "services/contentfulService.js";
 
 /**
@@ -21,6 +22,7 @@ export default function Home({
   tiposEvento,
   instrumentos,
   comunicados,
+  videoAulaCollections,
 }) {
   return (
     <>
@@ -38,6 +40,7 @@ export default function Home({
         tiposEvento={tiposEvento}
         instrumentos={instrumentos}
         comunicados={comunicados}
+        videoAulaCollections={videoAulaCollections}
       />
     </>
   );
@@ -52,6 +55,7 @@ export async function getStaticProps() {
     tiposEvento,
     instrumentos,
     comunicados,
+    videoAulaCollections,
   ] = await Promise.all([
     fetchLandingPageData(),
     fetchUpcomingPresentations(),
@@ -59,6 +63,7 @@ export async function getStaticProps() {
     fetchTiposEvento(),
     fetchInstrumentos(),
     fetchComunicados(),
+    fetchVideoAulaCollections(),
   ]);
 
   return {
@@ -69,6 +74,7 @@ export async function getStaticProps() {
       tiposEvento,
       instrumentos,
       comunicados,
+      videoAulaCollections,
     },
     revalidate: 60,
   };

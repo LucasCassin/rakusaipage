@@ -22,6 +22,7 @@ export default function HomeContent({
   tiposEvento,
   instrumentos,
   comunicados,
+  videoAulaCollections,
 }) {
   const { user } = useAuth();
   const { isStudentView } = useView();
@@ -43,6 +44,7 @@ export default function HomeContent({
       user={user}
       pageData={pageData}
       comunicados={comunicados}
+      videoAulaCollections={videoAulaCollections}
     />
   ) : (
     <PublicLandingPage
