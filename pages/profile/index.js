@@ -344,7 +344,7 @@ export default function Profile() {
     state.updateMode,
     state.userData,
   ]);
-  const layoutMaxWidth = state.canUpdateOthers ? "max-w-xl" : "max-w-md";
+  const layoutMaxWidth = state.canViewOthers ? "max-w-xl" : "max-w-md";
   return (
     <PageLayout
       title={texts.profile.title}
