@@ -27,14 +27,46 @@ describe("PATCH /api/v1/users/[username]", () => {
         "create:session",
         "read:session:self",
         "read:user:self",
-        "update:user:self",
+        "update:user:password:self",
+        "nivel:taiko:iniciante",
+        // "update:user:self",
       ]);
     });
 
-    test("should allow the user to update their own details", async () => {
+    test("should not allow the user to update their own details (email)", async () => {
       await session.expireAllFromUser(testUser);
       const newSession = await session.create(testUser);
       await user.addFeatures(testUser, ["block:other:update:self"]);
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users/${testUser.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify({ email: "updated@example.com" }),
+        },
+      );
+
+      const resBody = await res.json();
+      expect(res.status).toBe(403);
+      expect(resBody).toEqual({
+        name: "ForbiddenError",
+        message: "Usuário não pode executar esta operação.",
+        action:
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+        status_code: 403,
+      });
+    });
+
+    test("should allow the user to update their own details (email)", async () => {
+      await session.expireAllFromUser(testUser);
+      const newSession = await session.create(testUser);
+      await user.addFeatures(testUser, [
+        "block:other:update:self",
+        "update:user:self",
+      ]);
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/users/${testUser.username}`,
         {
@@ -99,6 +131,40 @@ describe("PATCH /api/v1/users/[username]", () => {
             "Verifique se a senha informada está correta e tente novamente.",
         }),
       );
+    });
+
+    test("should not allow the user to update their own password without the 'update:user:password:self' feature", async () => {
+      const expiredUser = await user.expireUserPassword(
+        await user.create({
+          username: "expiredUser475",
+          email: "expiredUseremail475@example.com",
+          password: "Senha@123",
+        }),
+      );
+      await user.removeFeatures(expiredUser, ["update:user:password:self"]);
+      const newSession = await session.create(expiredUser);
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users/${expiredUser.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify({ password: "oth3rP@ssword" }),
+        },
+      );
+
+      expect(res.status).toBe(403);
+      const resBody = await res.json();
+      expect(resBody).toEqual({
+        name: "ForbiddenError",
+        message: "Usuário não pode executar esta operação.",
+        action:
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+        status_code: 403,
+      });
     });
 
     test("should allow the user to update their own features with 'update:user:features:self'", async () => {
@@ -269,7 +335,7 @@ describe("PATCH /api/v1/users/[username]", () => {
       expect(updatedUser.updated_at > otherUser.updated_at).toBe(true);
     });
 
-    test("should return ForbiddenError for user without 'update:user:self' or 'update:user:other' feature", async () => {
+    test("should return ForbiddenError for user without 'update:user:self' or 'update:user:other' or 'update:user:password:self' feature", async () => {
       await session.expireAllFromUser(testUser);
       const newSession = await session.create(testUser);
       await user.removeFeatures(testUser, ["update:user:self"]);
@@ -292,7 +358,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -320,7 +386,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -353,7 +419,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -380,7 +446,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -411,7 +477,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -447,7 +513,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -483,7 +549,43 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+        status_code: 403,
+      });
+    });
+
+    test("should return ForbiddenError for user without 'update:user:self' and with 'update:user:password:self' feature", async () => {
+      await session.expireAllFromUser(testUser);
+      const newSession = await session.create(testUser);
+      await user.create({
+        username: "otheruser451",
+        email: "otheruser451@example.com",
+        password: "Senha@123",
+      }); // Create another user to test against
+
+      // Remove the 'update:user:features:self' feature to test the case
+      await user.addFeatures(testUser, ["update:user:password:self"]);
+      // Ensure the user only has 'update:user:features:other'
+      await user.removeFeatures(testUser, ["update:user:self"]);
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users/otheruser45`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify({ username: "otheruser45" }),
+        },
+      );
+
+      const resBody = await res.json();
+      expect(res.status).toBe(403);
+      expect(resBody).toEqual({
+        name: "ForbiddenError",
+        message: "Usuário não pode executar esta operação.",
+        action:
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });
@@ -589,6 +691,7 @@ describe("PATCH /api/v1/users/[username]", () => {
           password: "Senha@123",
         }),
       );
+      await user.addFeatures(expiredUser, ["update:user:self"]);
       const newSession = await session.create(expiredUser);
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/users/${expiredUser.username}`,
@@ -619,7 +722,10 @@ describe("PATCH /api/v1/users/[username]", () => {
           password: "Senha@123",
         }),
       );
-      await user.addFeatures(expiredUser, ["update:user:features:self"]);
+      await user.addFeatures(expiredUser, [
+        "update:user:features:self",
+        "update:user:self",
+      ]);
       const newSession = await session.create(expiredUser);
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/users/${expiredUser.username}`,
@@ -930,6 +1036,41 @@ describe("PATCH /api/v1/users/[username]", () => {
       expect(updatedUser.updated_at > originalUser.updated_at).toBe(true);
     });
 
+    test("should only update password if user has 'update:user:password:self' but not 'update:user:self'", async () => {
+      await session.expireAllFromUser(testUser);
+      const newSession = await session.create(testUser);
+      // Ensure user has self update but not feature update
+      await user.addFeatures(testUser, ["update:user:password:self"]);
+      await user.removeFeatures(testUser, ["update:user:self"]);
+      const originalUser = await user.findOneUser({ id: testUser.id });
+
+      const newUsername = "updatedusername";
+      const newPassword = "Senh@1234";
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users/${originalUser.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify({
+            username: newUsername,
+            password: newPassword,
+          }),
+        },
+      );
+
+      const resBody = await res.json();
+      expect(res.status).toBe(200);
+
+      const updatedUser = await user.findOneUser({ id: testUser.id });
+      expect(updatedUser.username).toBe(originalUser.username); // Username should NOT have changed
+      expect(updatedUser.password).not.toBe(originalUser.password);
+      expect(updatedUser.updated_at > originalUser.updated_at).toBe(true);
+    });
+
     test("should only update features if user has 'update:user:features:self' but not 'update:user:self'", async () => {
       await session.expireAllFromUser(testUser);
       const newSession = await session.create(testUser);
@@ -1001,6 +1142,47 @@ describe("PATCH /api/v1/users/[username]", () => {
       expect(updatedUser.features).toEqual(newFeatures);
       expect(updatedUser.updated_at > originalUser.updated_at).toBe(true);
     });
+
+    test("should update username, passoword and features if user has both permissions", async () => {
+      await session.expireAllFromUser(testUser);
+      const newSession = await session.create(testUser);
+      // Ensure user has both permissions
+      await user.addFeatures(testUser, [
+        "update:user:self",
+        "update:user:password:self",
+        "update:user:features:self",
+      ]);
+      const originalUser = await user.findOneUser({ id: testUser.id });
+
+      const newUsername = "bothupdated2";
+      const newFeatures = ["read:user:self", "read:user:other"];
+      const newPassword = "Senh@1234";
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users/${originalUser.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify({
+            username: newUsername,
+            features: newFeatures,
+            password: newPassword,
+          }),
+        },
+      );
+
+      const resBody = await res.json();
+      expect(res.status).toBe(200);
+
+      const updatedUser = await user.findOneUser({ id: testUser.id });
+      expect(updatedUser.username).toBe(newUsername);
+      expect(updatedUser.username).not.toBe(originalUser.password);
+      expect(updatedUser.features).toEqual(newFeatures);
+      expect(updatedUser.updated_at > originalUser.updated_at).toBe(true);
+    });
   });
 
   describe("Anonymous User", () => {
@@ -1022,7 +1204,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         name: "ForbiddenError",
         message: "Usuário não pode executar esta operação.",
         action:
-          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
+          'Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".',
         status_code: 403,
       });
     });

@@ -37,14 +37,11 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
 
   useEffect(() => {
     const splashCandidates = visibleComunicados.filter((com) => {
-      if (com.showSplashDaysBefore === -1) return false;
-      const daysUntil = getDaysUntilEvent(com.startDate);
+      if (!com.showSplash) return false;
       const isDismissed = localStorage.getItem(
         `dismissComunicado_${com.title}`,
       );
-      return (
-        daysUntil >= 0 && daysUntil <= com.showSplashDaysBefore && !isDismissed
-      );
+      return !isDismissed;
     });
 
     if (splashCandidates.length > 0) {

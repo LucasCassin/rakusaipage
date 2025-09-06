@@ -64,7 +64,7 @@ export const settings = {
   updatePassword: {
     FORBIDDEN_REDIRECT: "/403",
     REDIRECT_AFTER_UPDATE: "/login",
-    FEATURE_UPDATE_SELF: "update:user:self",
+    FEATURE_UPDATE_SELF: "update:user:password:self",
     FEATURE_UPDATE_OTHER: "update:user:other",
     FEATURE_READ_OTHER: "read:user:other",
   },
@@ -349,7 +349,7 @@ export const settings = {
           name: "Alterar Senha",
           href: "/profile/password",
           FEATURES: [
-            ["update:user:self"],
+            ["update:user:password:self"],
             ["read:user:other", "update:user:other"],
           ],
           icon: "KeyIcon",
@@ -394,6 +394,11 @@ export const settings = {
         feature: "nivel:taiko:admin",
         label: "Professor",
       },
+      {
+        ord: 999,
+        feature: "nivel:taiko:nao:mostrar",
+        label: "Não Mostrar",
+      },
     ],
     fue: [
       {
@@ -415,6 +420,11 @@ export const settings = {
         ord: 3,
         feature: "nivel:fue:admin",
         label: "Professor",
+      },
+      {
+        ord: 999,
+        feature: "nivel:fue:nao:mostrar",
+        label: "Não Mostrar",
       },
     ],
   },

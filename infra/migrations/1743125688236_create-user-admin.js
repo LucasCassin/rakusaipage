@@ -9,6 +9,7 @@ exports.up = (pgm) => {
         'read:user:self',
         'read:user:other',
         'update:user:self',
+        'update:user:password:self',
         'update:user:other',
         'update:user:features:self',
         'update:user:features:other',

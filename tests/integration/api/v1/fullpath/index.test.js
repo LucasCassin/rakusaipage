@@ -51,13 +51,7 @@ describe("Authenticated User", () => {
         id: testUser.id,
         username: testUser.username,
         email: "t*******1@example.com",
-        features: [
-          "create:session",
-          "read:session:self",
-          "read:user:self",
-          "update:user:self",
-          "nivel:taiko:iniciante",
-        ],
+        features: user.DEFAULT_FEATURES,
         password_expires_at: testUser.password_expires_at.toISOString(),
         created_at: testUser.created_at.toISOString(),
         updated_at: testUser.updated_at.toISOString(),
@@ -175,21 +169,6 @@ describe("Authenticated User", () => {
 
   describe("PATCH /api/v1/users/[username]", () => {
     test("should update user's e-mail", async () => {
-      // const resCreatedUser = await fetch(
-      //   `${orchestrator.webserverUrl}/api/v1/users`,
-      //   {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       username: "testUserFullPath4",
-      //       email: "testuserfullpath4@example.com",
-      //       password: "Senha@123",
-      //     }),
-      //   },
-      // );
-      // const createdUser = await resCreatedUser.json();
       let createdUser = await user.create({
         username: "testuser4",
         email: "testuser4@example.com",
@@ -199,6 +178,7 @@ describe("Authenticated User", () => {
         id: createdUser.id,
         password: "Senha@123",
       });
+      await user.addFeatures(createdUser, ["update:user:self"]);
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -257,6 +237,7 @@ describe("Authenticated User", () => {
         id: createdUser.id,
         password: "Senha@123",
       });
+      await user.addFeatures(createdUser, ["update:user:self"]);
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {
@@ -321,6 +302,7 @@ describe("Authenticated User", () => {
         id: createdUser.id,
         password: "Senha@123",
       });
+      await user.addFeatures(createdUser, ["update:user:self"]);
       const resNewSession = await fetch(
         `${orchestrator.webserverUrl}/api/v1/sessions`,
         {

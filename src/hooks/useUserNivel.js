@@ -24,6 +24,8 @@ export function useUserNivel(features) {
           }
         }
       });
+      if (highestNivel === null) return null;
+      if (highestNivel.ord === 999) return null;
       return highestNivel;
     };
 

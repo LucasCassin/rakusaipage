@@ -29,13 +29,7 @@ describe("User Model", () => {
         username: "testuser1",
         email: "testuser@example.com",
         password: result.password,
-        features: [
-          "create:session",
-          "read:session:self",
-          "read:user:self",
-          "update:user:self",
-          "nivel:taiko:iniciante",
-        ],
+        features: user.DEFAULT_FEATURES,
         password_expires_at: result.password_expires_at,
         created_at: result.created_at,
         updated_at: result.updated_at,
@@ -319,8 +313,8 @@ describe("User Model", () => {
         "read:user:self",
         "nivel:taiko:iniciante",
         "read:session:self",
-        "update:user:self",
         "create:session",
+        "update:user:password:self",
       ]);
     });
   });

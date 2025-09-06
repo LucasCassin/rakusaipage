@@ -10,6 +10,13 @@ import { NotFoundError, ValidationError } from "errors/index.js";
 import ERROR_MESSAGES from "models/error-messages.js";
 
 const DEFAULT_PASSWORD_EXPIRATION_IN_SECONDS = 60 * 60 * 24 * 90; // 90 day
+const DEFAULT_FEATURES = [
+  "create:session",
+  "read:session:self",
+  "read:user:self",
+  "update:user:password:self",
+  "nivel:taiko:iniciante",
+];
 
 /**
  * Creates a new user in the database.
@@ -25,13 +32,7 @@ async function create(userData) {
   await validateUniqueUser(validatedUserData);
   await hashPasswordInObject(validatedUserData);
 
-  validatedUserData.features = [
-    "create:session",
-    "read:session:self",
-    "read:user:self",
-    "update:user:self",
-    "nivel:taiko:iniciante",
-  ];
+  validatedUserData.features = DEFAULT_FEATURES;
 
   const query = {
     text: `
@@ -426,6 +427,7 @@ const user = {
   removeFeatures,
   expireUserPassword,
   updateFeatures,
+  DEFAULT_FEATURES,
 };
 
 export default user;

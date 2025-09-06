@@ -45,7 +45,7 @@ const UserInfo = ({
               {userData.features.map((feature) => (
                 <span
                   key={feature}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rakusai-purple-light text-rakusai-purple"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rakusai-pink-light text-white"
                 >
                   {feature}
                 </span>

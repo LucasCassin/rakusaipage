@@ -25,6 +25,9 @@ function can(user, feature, resource) {
     case "update:user:self":
       return resource?.id && user.id === resource.id;
 
+    case "update:user:password:self":
+      return resource?.id && user.id === resource.id;
+
     case "read:user:self":
       return resource?.id && user.id === resource.id;
 
@@ -95,8 +98,13 @@ function filterInput(user, feature, input, target) {
   if (feature === "update:user:self" && can(user, feature, target)) {
     filteredInputValues = {
       email: input.email,
-      password: input.password,
       username: input.username,
+    };
+  }
+
+  if (feature === "update:user:password:self" && can(user, feature, target)) {
+    filteredInputValues = {
+      password: input.password,
     };
   }
 
@@ -195,7 +203,10 @@ function filterOutput(user, feature, output) {
     };
   }
 
-  if (feature === "update:user:self") {
+  if (
+    feature === "update:user:self" ||
+    feature === "update:user:password:self"
+  ) {
     if (user.id && output.id && user.id === output.id) {
       filteredOutputValues = {
         id: output.id,

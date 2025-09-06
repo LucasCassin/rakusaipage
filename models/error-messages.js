@@ -53,7 +53,7 @@ const ERROR_MESSAGES = {
   },
   FORBIDDEN_UPDATE_USER: {
     message: `Usuário não pode executar esta operação.`,
-    action: `Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".`,
+    action: `Verifique se o usuário está logado e possui uma das features "update:user:self", "update:user:password:self", "update:user:other", "update:user:features:self" ou "update:user:features:self".`,
   },
   CAN_REQUEST_FORBIDDEN: (feature) => ({
     message: `Usuário não pode executar esta operação.`,
@@ -102,7 +102,11 @@ const ERROR_MESSAGES = {
   },
   NO_KEY_UPDATE_SELF_USER: {
     message: `Objeto enviado deve ter no mínimo uma chave.`,
-    action: `Apenas os campos 'username', 'email' e 'password' podem ser atualizados. Verifique se o objeto enviado possui umas dessas.`,
+    action: `Apenas os campos 'username' e 'email' podem ser atualizados. Verifique se o objeto enviado possui umas dessas.`,
+  },
+  NO_KEY_UPDATE_PASSWORD_SELF_USER: {
+    message: `Objeto enviado deve ter no mínimo uma chave.`,
+    action: `Apenas o campo 'password' pode ser atualizado. Verifique se o objeto enviado possui esse campo.`,
   },
   NO_FEATURES_UPDATE_USER: {
     message: `Objeto enviado deve ter no mínimo uma chave.`,

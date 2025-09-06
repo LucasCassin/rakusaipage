@@ -186,8 +186,25 @@ describe("Authorization Model", () => {
 
       expect(result).toEqual({
         email: "user@example.com",
+        username: "validuser",
+      });
+    });
+
+    it("should correctly filter input fields for the 'update:user:password:self' feature", () => {
+      const user = { features: ["update:user:password:self"], id: "123" };
+      const feature = "update:user:password:self";
+      const input = {
+        email: "user@example.com",
         password: "ValidPassword@123",
         username: "validuser",
+        extraField: "ignored",
+      };
+      const target = { id: "123" };
+
+      const result = authorization.filterInput(user, feature, input, target);
+
+      expect(result).toEqual({
+        password: "ValidPassword@123",
       });
     });
 

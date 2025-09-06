@@ -9,6 +9,7 @@ const availableFeatures = new Set([
   "read:user:self",
   "read:user:other",
   "update:user:self",
+  "update:user:password:self",
   "update:user:other",
   "update:user:features:self",
   "update:user:features:other",
@@ -34,6 +35,7 @@ const availableFeatures = new Set([
   "nivel:taiko:iniciante",
   "nivel:taiko:intermediario",
   "nivel:taiko:avancado",
+  "nivel:taiko:nao:mostrar",
   // "nivel:taiko:default",
   // "nivel:taiko:blocked",
 
@@ -41,6 +43,8 @@ const availableFeatures = new Set([
   "nivel:fue:iniciante",
   "nivel:fue:intermediario",
   "nivel:fue:avancado",
+  "nivel:fue:nao:mostrar",
+  // "nivel:fue:default"
   // "nivel:fue:default",
   // "nivel:fue:blocked",
 

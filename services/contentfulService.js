@@ -113,8 +113,8 @@ const parseComunicado = (fields) => ({
   features: fields.features || [],
   startDate: fields.dataDeInicio,
   endDate: fields.dataDeFim,
-  showSplashDaysBefore: fields.travaTelaDiasAntes ?? -1,
   canDismissSplash: fields.travaTelaPodeFechar ?? true,
+  showSplash: fields.podeMostrarTravaTela ?? false,
 });
 
 // --- CONFIGURAÇÃO CENTRAL ---
