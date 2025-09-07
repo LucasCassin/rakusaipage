@@ -19,6 +19,7 @@ export default function StudentHeader() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
+  const [isHiddenOnScroll, setIsHiddenOnScroll] = useState(false);
 
   // --- LÓGICA DE PERMISSÃO E FILTRAGEM (DO SEU CÓDIGO ORIGINAL) ---
   const hasFeatureSet = (featureSet) => {
@@ -63,6 +64,29 @@ export default function StudentHeader() {
     };
   }, []);
 
+  useEffect(() => {
+    // Verifica se estamos em uma das páginas de vídeo aula
+    const isVideoPage =
+      router.pathname.startsWith("/videoaulas-taiko") ||
+      router.pathname.startsWith("/videoaulas-fue");
+
+    // Se não for uma página de vídeo, não faz nada
+    if (!isVideoPage) {
+      setIsHiddenOnScroll(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      // Se rolou mais de 50px, o header NÃO fica escondido.
+      // Se está no topo (menos de 50px), o header FICA escondido.
+      setIsHiddenOnScroll(window.scrollY > 50);
+    };
+
+    handleScroll(); // Verifica a posição inicial
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [router.pathname]);
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleOthersDropdown = () =>
     setIsOthersDropdownOpen(!isOthersDropdownOpen);
@@ -85,7 +109,9 @@ export default function StudentHeader() {
   const userNiveis = useUserNivel(user?.features);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-all ${isHiddenOnScroll ? "-translate-y-full" : "translate-y-0"}`}
+    >
       <div className="container mx-auto px-4 md:px-6 max-w-5xl">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0">

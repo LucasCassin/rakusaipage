@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAuth } from "src/contexts/AuthContext.js";
@@ -79,26 +79,30 @@ export default function CollectionDetailPage({ collection, youtubeApiKey }) {
       return;
     }
 
-    const nivelOrder = {
-      iniciante: 0,
-      intermediario: 1,
-      avancado: 2,
-      admin: 3,
-    };
-    let userMaxNiveis = { taiko: -1, fue: -1 };
-    settings.nivel.taiko.forEach((n) => {
-      if (user.features.includes(n.feature) && n.ord > userMaxNiveis.taiko)
-        userMaxNiveis.taiko = n.ord;
-    });
-    settings.nivel.fue.forEach((n) => {
-      if (user.features.includes(n.feature) && n.ord > userMaxNiveis.fue)
-        userMaxNiveis.fue = n.ord;
-    });
+    // const nivelOrder = {
+    //   iniciante: 0,
+    //   intermediario: 1,
+    //   avancado: 2,
+    //   admin: 3,
+    // };
+    // let userMaxNiveis = { taiko: -1, fue: -1 };
+    // settings.nivel.taiko.forEach((n) => {
+    //   if (user.features.includes(n.feature) && n.ord > userMaxNiveis.taiko)
+    //     userMaxNiveis.taiko = n.ord;
+    // });
+    // settings.nivel.fue.forEach((n) => {
+    //   if (user.features.includes(n.feature) && n.ord > userMaxNiveis.fue)
+    //     userMaxNiveis.fue = n.ord;
+    // });
 
-    const canAccess = collection.niveis.some((nivelFeature) => {
-      const [_, mod, niv] = nivelFeature.split(":");
-      return userMaxNiveis[mod] >= nivelOrder[niv];
-    });
+    // const canAccess = collection.niveis.some((nivelFeature) => {
+    //   const [_, mod, niv] = nivelFeature.split(":");
+    //   return userMaxNiveis[mod] >= nivelOrder[niv];
+    // });
+
+    const canAccess = collection.niveis.some((requiredFeature) =>
+      user.features.includes(requiredFeature),
+    );
 
     if (!canAccess) {
       setError(texts.videoAulas.message.error.noPermission);
@@ -154,35 +158,33 @@ export default function CollectionDetailPage({ collection, youtubeApiKey }) {
   }
 
   return (
-    <RootLayout>
-      <div className="min-h-screen bg-gray-100 pt-16">
-        <main className="container mx-auto max-w-7xl py-10 px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/video-aulas"
-            className="text-rakusai-purple hover:underline mb-6 inline-block"
-          >
-            &larr; Voltar para todas as coleções
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {collection.title}
-          </h1>
-          {collection.description && (
-            <div
-              className="prose mb-8"
-              dangerouslySetInnerHTML={{ __html: collection.description }}
-            />
-          )}
+    <div className="min-h-screen bg-gray-100 pt-16">
+      <main className="container mx-auto max-w-7xl py-10 px-4 sm:px-6 lg:px-8">
+        <Link
+          href="/videoaulas-taiko"
+          className="text-rakusai-purple hover:underline mb-6 inline-block"
+        >
+          &larr; Voltar para todas as coleções
+        </Link>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          {collection.title}
+        </h1>
+        {collection.description && (
+          <div
+            className="prose mb-8"
+            dangerouslySetInnerHTML={{ __html: collection.description }}
+          />
+        )}
 
-          {isLoadingVideos ? (
-            <Loading message="A carregar vídeos da coleção..." />
-          ) : (
-            processedCollection && (
-              <VideoPlayer collection={processedCollection} />
-            )
-          )}
-        </main>
-      </div>
-    </RootLayout>
+        {isLoadingVideos ? (
+          <Loading message="A carregar vídeos da coleção..." />
+        ) : (
+          processedCollection && (
+            <VideoPlayer collection={processedCollection} />
+          )
+        )}
+      </main>
+    </div>
   );
 }
 

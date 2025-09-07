@@ -124,6 +124,7 @@ const parseVideoAulaCollection = (fields) => ({
   niveis: fields.niveis || [],
   thumbnail: fields.image ? parseAsset(fields.image) : null,
   slug: fields.slug || null,
+  type: fields.type || null,
 });
 
 // --- CONFIGURAÇÃO CENTRAL ---

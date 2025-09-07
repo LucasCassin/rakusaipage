@@ -294,11 +294,11 @@ export const settings = {
     STUDENT_NAVS: [
       {
         name: "Mural",
-        href: "/#1",
+        href: "/",
       },
       {
-        name: "Playlists Taiko",
-        href: "/#2",
+        name: "Videoaulas Taiko",
+        href: "/videoaulas-taiko",
         FEATURES: [
           ["nivel:taiko:admin"],
           ["nivel:taiko:iniciante"],
@@ -307,8 +307,8 @@ export const settings = {
         ],
       },
       {
-        name: "Playlists Fue",
-        href: "/#3",
+        name: "Videoaulas Fue",
+        href: "/videoaulas-fue",
         FEATURES: [
           ["nivel:fue:admin"],
           ["nivel:fue:iniciante"],

@@ -1,14 +1,54 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import VideoCard from "./VideoCard";
+import { useViewportSize } from "src/hooks/useViewportSize";
 
 export default function VideoPlayer({ collection }) {
   const [activeVideo, setActiveVideo] = useState(null);
+  const { width: viewportWidth, height: viewportHeight } = useViewportSize();
+  const playerColumnRef = useRef(null); // Ref para medir a largura da coluna do player
+  const isMobile = viewportWidth < 1024; // Breakpoint 'lg'
 
   useEffect(() => {
     if (collection.videos && collection.videos.length > 0) {
       setActiveVideo(collection.videos[0]);
     }
   }, [collection.videos]);
+
+  // Lógica para calcular a altura do player e da lista de forma dinâmica
+  const { playerHeight, listMaxHeight, playerWith } = useMemo(() => {
+    // Lógica para mobile
+    if (isMobile) {
+      if (viewportWidth === 0) return { playerHeight: 0, listMaxHeight: 384 }; // Evita cálculo com 0
+      const availableWidth = viewportWidth - 48; // Considera os paddings (px-4)
+      // const calculatedHeight = availableWidth * (9 / 16);
+      const availableHeight = viewportHeight;
+      const calculatedWidth = availableHeight * (16 / 9);
+      const finalWidth =
+        calculatedWidth > availableWidth ? availableWidth : calculatedWidth;
+      const finalHeight = finalWidth * (9 / 16);
+
+      return {
+        playerHeight: finalHeight,
+        listMaxHeight: 384,
+        playerWith: finalWidth,
+      }; // 384px = max-h-96
+    }
+
+    // Lógica para Desktop
+    if (playerColumnRef.current) {
+      const columnWidth = playerColumnRef.current.offsetWidth;
+      const calculatedHeight = columnWidth * (9 / 16);
+      // No desktop, a lista tem a mesma altura do player
+      return {
+        playerHeight: calculatedHeight,
+        listMaxHeight: calculatedHeight,
+        width: columnWidth,
+      };
+    }
+
+    // Fallback para o carregamento inicial no desktop
+    return { playerHeight: 500, listMaxHeight: 500 };
+  }, [viewportWidth, playerColumnRef.current]);
 
   if (!activeVideo) {
     return (
@@ -19,9 +59,17 @@ export default function VideoPlayer({ collection }) {
   }
 
   return (
-    <div className="grid lg:grid-cols-3 gap-8">
-      {/* Coluna do Player com proporção correta */}
-      <div className="lg:col-span-2 w-full aspect-video">
+    <div
+      className="grid lg:grid-cols-3 gap-8 mx-auto"
+      style={isMobile ? { width: `${playerWith}px` } : {}}
+    >
+      {/* Coluna do Player */}
+      <div
+        ref={playerColumnRef}
+        className="lg:col-span-2 w-full flex items-center justify-center"
+        // A altura agora é calculada dinamicamente para todos os cenários
+        style={{ height: `${playerHeight}px`, width: `${playerWith}px` }}
+      >
         <iframe
           src={`https://www.youtube.com/embed/${activeVideo.videoId}?autoplay=1&rel=0&modestbranding=1`}
           title={activeVideo.title}
@@ -31,8 +79,13 @@ export default function VideoPlayer({ collection }) {
           className="w-full h-full rounded-xl shadow-2xl"
         ></iframe>
       </div>
+
       {/* Coluna da Lista de Vídeos */}
-      <div className="w-full max-h-96 lg:max-h-[500px] overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-thumb-gray-300">
+      <div
+        className="w-full overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
+        // A altura máxima da lista agora é sincronizada com a altura do player
+        style={{ maxHeight: `${listMaxHeight}px` }}
+      >
         {collection.videos.map((video) => (
           <VideoCard
             key={video.videoId}
