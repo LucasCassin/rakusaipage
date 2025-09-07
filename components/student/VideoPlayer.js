@@ -18,7 +18,8 @@ export default function VideoPlayer({ collection }) {
   const { playerHeight, listMaxHeight, playerWith } = useMemo(() => {
     // Lógica para mobile
     if (isMobile) {
-      if (viewportWidth === 0) return { playerHeight: 0, listMaxHeight: 384 }; // Evita cálculo com 0
+      if (viewportWidth === 0)
+        return { playerHeight: 0, listMaxHeight: 384, playerWith: 0 }; // Evita cálculo com 0
       const availableWidth = viewportWidth - 48; // Considera os paddings (px-4)
       // const calculatedHeight = availableWidth * (9 / 16);
       const availableHeight = viewportHeight;
@@ -42,13 +43,13 @@ export default function VideoPlayer({ collection }) {
       return {
         playerHeight: calculatedHeight,
         listMaxHeight: calculatedHeight,
-        width: columnWidth,
+        playerWith: columnWidth,
       };
     }
 
     // Fallback para o carregamento inicial no desktop
     return { playerHeight: 500, listMaxHeight: 500 };
-  }, [viewportWidth, playerColumnRef.current]);
+  }, [viewportWidth, viewportHeight, playerColumnRef.current]);
 
   if (!activeVideo) {
     return (

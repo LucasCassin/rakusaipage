@@ -67,6 +67,7 @@ export default function CollectionDetailPage({ collection, youtubeApiKey }) {
   const [showContent, setShowContent] = useState(false);
   const [processedCollection, setProcessedCollection] = useState(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Efeito para autenticação e permissões
   useEffect(() => {
@@ -78,27 +79,6 @@ export default function CollectionDetailPage({ collection, youtubeApiKey }) {
       setTimeout(() => router.push(settings.global.REDIRECTS.LOGIN), 3000);
       return;
     }
-
-    // const nivelOrder = {
-    //   iniciante: 0,
-    //   intermediario: 1,
-    //   avancado: 2,
-    //   admin: 3,
-    // };
-    // let userMaxNiveis = { taiko: -1, fue: -1 };
-    // settings.nivel.taiko.forEach((n) => {
-    //   if (user.features.includes(n.feature) && n.ord > userMaxNiveis.taiko)
-    //     userMaxNiveis.taiko = n.ord;
-    // });
-    // settings.nivel.fue.forEach((n) => {
-    //   if (user.features.includes(n.feature) && n.ord > userMaxNiveis.fue)
-    //     userMaxNiveis.fue = n.ord;
-    // });
-
-    // const canAccess = collection.niveis.some((nivelFeature) => {
-    //   const [_, mod, niv] = nivelFeature.split(":");
-    //   return userMaxNiveis[mod] >= nivelOrder[niv];
-    // });
 
     const canAccess = collection.niveis.some((requiredFeature) =>
       user.features.includes(requiredFeature),
@@ -169,11 +149,25 @@ export default function CollectionDetailPage({ collection, youtubeApiKey }) {
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
           {collection.title}
         </h1>
+
+        {/* MUDANÇA: Lógica de descrição expansível */}
         {collection.description && (
-          <div
-            className="prose mb-8"
-            dangerouslySetInnerHTML={{ __html: collection.description }}
-          />
+          <div className="mb-8">
+            <div
+              // A altura é controlada pela classe condicional
+              className={`prose prose-p:text-justify max-w-none overflow-hidden transition-all duration-500 ${
+                isDescriptionExpanded ? "max-h-[1000px]" : "max-h-0" // max-h-24 para estado "fechado"
+              }`}
+              dangerouslySetInnerHTML={{ __html: collection.description }}
+            />
+            {/* O botão só aparece se a descrição for longa o suficiente para ser cortada */}
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="text-rakusai-purple font-semibold hover:underline mt-2"
+            >
+              {isDescriptionExpanded ? "Ver menos" : "Ver mais..."}
+            </button>
+          </div>
         )}
 
         {isLoadingVideos ? (
