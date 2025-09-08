@@ -4,12 +4,7 @@ import ComunicadoModal from "../modals/ComunicadoModal";
 import ComunicadosSection from "./ComunicadosSection";
 import VideoAulasSection from "./VideoAulasSection";
 
-export default function StudentDashboard({
-  user,
-  pageData,
-  comunicados,
-  videoAulaCollections,
-}) {
+export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
   const [splashComunicados, setSplashComunicados] = useState([]);
   const [isSplashOpen, setIsSplashOpen] = useState(false);
@@ -82,12 +77,7 @@ export default function StudentDashboard({
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-12">
         <ComunicadosSection user={user} comunicados={comunicados} />
         <div id="video-aulas">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Vídeo Aulas</h2>
-          <VideoAulasSection
-            user={user}
-            collections={videoAulaCollections}
-            youtubeApiKey={process.env.NEXT_PUBLIC_YOUTUBE_API_KEY}
-          />
+          <VideoAulasSection />
         </div>
       </main>
     </div>

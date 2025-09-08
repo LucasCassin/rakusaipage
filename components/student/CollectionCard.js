@@ -8,10 +8,10 @@ export default function CollectionCard({ collection, defaultURL }) {
   const videoText = videoCount === 1 ? "vídeo" : "vídeos";
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col">
+    <div className="bg-white rounded-tl-[2rem] rounded-br-[2rem] rounded-tr-md rounded-bl-md shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col">
       {/* Container da Imagem */}
       <Link href={`/${defaultURL}/${collection.slug}`} className="block group">
-        <div className="relative w-full h-0 pb-[80%]">
+        <div className="relative w-full h-0 pb-[100%]">
           {collection.thumbnail ? (
             <Image
               src={collection.thumbnail.url}

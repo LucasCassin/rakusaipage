@@ -1,11 +1,11 @@
 import { createClient } from "contentful";
 import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
 
-// Inicializa o cliente Contentful
-const client = createClient({
-  space: process.env.CONTENTFUL_SPACE_ID,
-  accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
-});
+const getClient = () =>
+  createClient({
+    space: process.env.CONTENTFUL_SPACE_ID,
+    accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
+  });
 
 // --- HELPER PARSERS ---
 const parseAsset = (asset) => {
@@ -146,6 +146,7 @@ const SINGLE_ENTRY_CONFIG = {
  * Faz uma única chamada de API para otimização.
  */
 export async function fetchLandingPageData() {
+  const client = getClient();
   const pageData = {};
   try {
     const contentTypeIds = Object.keys(SINGLE_ENTRY_CONFIG);
@@ -173,6 +174,7 @@ export async function fetchLandingPageData() {
  * Busca todas as próximas apresentações e as ordena pela data mais recente.
  */
 export async function fetchUpcomingPresentations() {
+  const client = getClient();
   try {
     const today = new Date();
     // Zera o horário para comparar apenas a data
@@ -202,6 +204,7 @@ export async function fetchUpcomingPresentations() {
  * Busca todos os instrumentos e os ordena pelo campo 'ordem'.
  */
 export async function fetchInstrumentos() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "homeInstrumentos",
@@ -221,6 +224,7 @@ export async function fetchInstrumentos() {
  * Busca todos os horários de aula e os ordena pelo campo 'ordem'.
  */
 export async function fetchHorariosAula() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "horarioAula",
@@ -238,6 +242,7 @@ export async function fetchHorariosAula() {
  * Busca todos os tipos de evento e os ordena pelo campo 'ordem'.
  */
 export async function fetchTiposEvento() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "tipoEvento",
@@ -254,6 +259,7 @@ export async function fetchTiposEvento() {
  * Busca todos os comunicados e os ordena pela data de início mais recente.
  */
 export async function fetchComunicados() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "aulaComunicado",
@@ -270,6 +276,7 @@ export async function fetchComunicados() {
  * Busca todas as coleções de vídeo aulas.
  */
 export async function fetchVideoAulaCollections() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "videoAulaCollection",
@@ -287,6 +294,7 @@ export async function fetchVideoAulaCollections() {
 }
 
 export async function fetchVideoAulaCollectionBySlug(slug) {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "videoAulaCollection",
