@@ -50,8 +50,8 @@ export default function VideoAulasSection() {
             href="/videoaulas-taiko"
             title="Taiko"
             description="Acesse as aulas de taiko."
-            icon={<MusicalNoteIcon className="h-8 w-8 text-white" />}
-            colorClasses="bg-gradient-to-br from-rakusai-purple to-rakusai-pink"
+            icon={<FireIcon className="h-8 w-8 text-white" />}
+            colorClasses="bg-gradient-to-br from-rakusai-yellow-dark to-rakusai-pink"
           />
         )}
 
@@ -61,8 +61,8 @@ export default function VideoAulasSection() {
             href="/videoaulas-fue"
             title="Fue"
             description="Acesse as aulas de fue."
-            icon={<FireIcon className="h-8 w-8 text-white" />}
-            colorClasses="bg-gradient-to-br from-rakusai-yellow-dark to-rakusai-pink"
+            icon={<MusicalNoteIcon className="h-8 w-8 text-white" />}
+            colorClasses="bg-gradient-to-br from-rakusai-purple to-rakusai-pink"
           />
         )}
       </div>

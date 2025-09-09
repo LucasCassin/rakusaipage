@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
@@ -30,6 +30,7 @@ export default function CollectionDetailPage({
   // Efeito para autenticação e permissões
   useEffect(() => {
     if (isLoadingAuth || !collection) return;
+
     if (!user) {
       setError(texts.videoAulas.message.error.notAuthenticated);
       setShowContent(false);
@@ -37,12 +38,12 @@ export default function CollectionDetailPage({
       return;
     }
     const canAccess = collection.niveis.some((requiredFeature) =>
-      user.features.includes(requiredFeature),
+      user.features?.includes(requiredFeature),
     );
     if (!canAccess) {
       setError(texts.videoAulas.message.error.noPermission);
       setShowContent(false);
-      router.push(settings.global.REDIRECTS.FORBIDDEN);
+      router.push(backLink);
       return;
     }
     setShowContent(true);

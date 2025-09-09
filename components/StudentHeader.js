@@ -19,7 +19,8 @@ export default function StudentHeader() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
-  const [isHiddenOnScroll, setIsHiddenOnScroll] = useState(false);
+
+  const [headerOpacity, setHeaderOpacity] = useState(1);
 
   // --- LÓGICA DE PERMISSÃO E FILTRAGEM (DO SEU CÓDIGO ORIGINAL) ---
   const hasFeatureSet = (featureSet) => {
@@ -70,16 +71,19 @@ export default function StudentHeader() {
       router.pathname.startsWith("/videoaulas-taiko") ||
       router.pathname.startsWith("/videoaulas-fue");
 
-    // Se não for uma página de vídeo, não faz nada
+    // Se não for uma página de vídeo, o header fica sempre 100% visível
     if (!isVideoPage) {
-      setIsHiddenOnScroll(false);
+      setHeaderOpacity(1);
       return;
     }
 
     const handleScroll = () => {
-      // Se rolou mais de 50px, o header NÃO fica escondido.
-      // Se está no topo (menos de 50px), o header FICA escondido.
-      setIsHiddenOnScroll(window.scrollY > 50);
+      const FADE_RANGE = 100; // Distância de scroll para o fade out completo
+      const scrollY = window.scrollY;
+
+      // Calcula a opacidade de 1 (topo) a 0 (após rolar FADE_RANGE)
+      const opacity = Math.max(0, 1 - scrollY / FADE_RANGE);
+      setHeaderOpacity(opacity);
     };
 
     handleScroll(); // Verifica a posição inicial
@@ -110,7 +114,15 @@ export default function StudentHeader() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-all ${isHiddenOnScroll ? "-translate-y-full" : "translate-y-0"}`}
+      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-opacity duration-100 ${
+        headerOpacity < 0.1 ? "pointer-events-none" : "pointer-events-auto"
+      }`}
+      style={{
+        opacity:
+          isMenuOpen || isOthersDropdownOpen || isProfileMenuOpen
+            ? 1
+            : headerOpacity,
+      }}
     >
       <div className="container mx-auto px-4 md:px-6 max-w-5xl">
         <div className="flex justify-between items-center h-16">
@@ -129,7 +141,10 @@ export default function StudentHeader() {
             {/* Navegação Principal do Desktop */}
             <nav className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-1">
               {mainStudentNavs.map((item) => {
-                const isActive = router.pathname === item.href;
+                const isActive =
+                  item.href == "/"
+                    ? router.pathname === item.href
+                    : router.pathname.startsWith(item.href);
                 return (
                   <Link
                     key={item.href}

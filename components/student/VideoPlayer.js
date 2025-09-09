@@ -48,7 +48,7 @@ export default function VideoPlayer({ collection }) {
     }
 
     // Fallback para o carregamento inicial no desktop
-    return { playerHeight: 500, listMaxHeight: 500 };
+    return { playerHeight: 450, listMaxHeight: 450 };
   }, [viewportWidth, viewportHeight, playerColumnRef.current]);
 
   if (!activeVideo) {

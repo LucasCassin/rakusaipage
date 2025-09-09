@@ -113,7 +113,7 @@ export default function LoginForm() {
           await mutate(USER_ENDPOINT);
           setTimeout(() => {
             router.push(settings.auth.REDIRECT_AFTER_LOGIN);
-          }, 1000);
+          }, 50);
         },
         onFinally: () => {
           setState((prev) => ({ ...prev, isLoading: false }));
