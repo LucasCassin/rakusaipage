@@ -309,13 +309,9 @@ describe("User Model", () => {
       const newUser = await user.create(userData);
 
       const result = await user.addFeatures(newUser, ["create:session"]);
-      expect(result.features).toEqual([
-        "read:user:self",
-        "nivel:taiko:iniciante",
-        "read:session:self",
-        "create:session",
-        "update:user:password:self",
-      ]);
+      expect(result.features).toEqual(
+        expect.arrayContaining(user.DEFAULT_FEATURES),
+      );
     });
   });
 

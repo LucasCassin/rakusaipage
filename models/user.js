@@ -16,6 +16,12 @@ const DEFAULT_FEATURES = [
   "read:user:self",
   "update:user:password:self",
   "nivel:taiko:iniciante",
+  "create:comment",
+  "read:comment",
+  "update:self:comment",
+  "delete:self:comment",
+  "like:comment",
+  "unlike:comment",
 ];
 
 /**

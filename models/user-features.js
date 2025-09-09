@@ -30,6 +30,16 @@ const availableFeatures = new Set([
   "read:table",
   "update:table",
 
+  // COMMENTS
+  "create:comment",
+  "read:comment",
+  "update:self:comment",
+  "delete:self:comment",
+  "update:other:comment",
+  "delete:other:comment",
+  "like:comment",
+  "unlike:comment",
+
   //Taiko
 
   "nivel:taiko:iniciante",

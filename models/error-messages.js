@@ -135,6 +135,11 @@ const ERROR_MESSAGES = {
     action: "Tente editar o usuário por si mesmo.",
     statusCode: 403,
   },
+  COMMENT_NOT_FOUND: {
+    message: "Comentário não encontrado.",
+    action: "Verifique se este comentário existe e tente novamente.",
+    statusCode: 404,
+  },
 };
 
 export default ERROR_MESSAGES;
