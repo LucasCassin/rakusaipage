@@ -1,4 +1,5 @@
 import comment from "models/comment.js";
+import commentLike from "models/comment-like.js";
 import user from "models/user.js";
 import orchestrator from "tests/orchestrator.js";
 import { NotFoundError, ValidationError } from "errors/index.js";
@@ -21,51 +22,57 @@ describe("Comment Model", () => {
   });
 
   describe("create", () => {
-    it("should create a new top-level comment with valid data", async () => {
+    it("should create a new comment and return the enriched object", async () => {
       const commentData = {
         content: "Este é um comentário de teste.",
         video_id: "video123",
-        user_id: createdUser.id,
       };
-      const newComment = await comment.create(commentData);
+      const newComment = await comment.create(commentData, createdUser); // Passa o user para enriquecimento
+
       expect(newComment.content).toBe("Este é um comentário de teste.");
       expect(newComment.user_id).toBe(createdUser.id);
       expect(newComment.video_id).toBe("video123");
       expect(newComment.parent_id).toBeNull();
+      // Verifica se os dados foram enriquecidos
+      expect(newComment.username).toBe(createdUser.username);
+      expect(newComment.likes_count).toBe("0"); // Deve ser uma string do COUNT
     });
 
     it("should create a reply to another comment", async () => {
-      const parentComment = await comment.create({
-        content: "Parent",
-        video_id: "video123",
-        user_id: createdUser.id,
-      });
+      const parentComment = await comment.create(
+        {
+          content: "Parent",
+          video_id: "video123",
+        },
+        createdUser,
+      );
       const replyData = {
         content: "Esta é uma resposta.",
         video_id: "video123",
         parent_id: parentComment.id,
-        user_id: createdUser.id,
       };
-      const replyComment = await comment.create(replyData);
+      const replyComment = await comment.create(replyData, createdUser);
       expect(replyComment.content).toBe("Esta é uma resposta.");
       expect(replyComment.parent_id).toBe(parentComment.id);
     });
 
     it("should throw ValidationError if 'content' is missing", async () => {
-      const commentData = { video_id: "video123", user_id: createdUser.id };
-      await expect(comment.create(commentData)).rejects.toThrow(
+      const commentData = { video_id: "video123" };
+      await expect(comment.create(commentData, createdUser)).rejects.toThrow(
         ValidationError,
       );
     });
   });
 
   describe("findByVideoId", () => {
-    it("should return an array of comments for a given video_id", async () => {
-      await comment.create({
-        content: "Comentário para video456",
-        video_id: "video456",
-        user_id: createdUser.id,
-      });
+    it("should return an array of comments with enriched data", async () => {
+      await comment.create(
+        {
+          content: "Comentário para video456",
+          video_id: "video456",
+        },
+        createdUser,
+      );
       const comments = await comment.findByVideoId("video456");
       expect(Array.isArray(comments)).toBe(true);
       expect(comments.length).toBeGreaterThan(0);
@@ -80,18 +87,25 @@ describe("Comment Model", () => {
   });
 
   describe("update", () => {
-    it("should update the content of an existing comment", async () => {
-      const myComment = await comment.create({
-        content: "Conteúdo original",
-        video_id: "video789",
-        user_id: createdUser.id,
-      });
+    it("should update the content and return the enriched object", async () => {
+      const myComment = await comment.create(
+        {
+          content: "Conteúdo original",
+          video_id: "video789",
+        },
+        createdUser,
+      );
+      await commentLike.like({ comment_id: myComment.id }, createdUser); // Adiciona um like para teste
+
       const updatedData = {
         comment_id: myComment.id,
         content: "Conteúdo atualizado",
       };
       const updatedComment = await comment.update(updatedData);
+
       expect(updatedComment.content).toBe("Conteúdo atualizado");
+      expect(updatedComment.username).toBe(createdUser.username);
+      expect(updatedComment.likes_count).toBe("1");
     });
 
     it("should throw NotFoundError when trying to update a non-existent comment", async () => {
@@ -104,16 +118,16 @@ describe("Comment Model", () => {
   });
 
   describe("del", () => {
-    it("should soft delete a comment", async () => {
-      const myComment = await comment.create({
-        content: "Para ser apagado",
-        video_id: "videoABC",
-        user_id: createdUser.id,
-      });
+    it("should soft delete a comment and return its ID", async () => {
+      const myComment = await comment.create(
+        {
+          content: "Para ser apagado",
+          video_id: "videoABC",
+        },
+        createdUser,
+      );
       const result = await comment.del(myComment.id);
       expect(result.id).toBe(myComment.id);
-
-      // Tenta encontrar o comentário apagado e espera um erro
       await expect(comment.findOne(myComment.id)).rejects.toThrow(
         NotFoundError,
       );
@@ -128,15 +142,18 @@ describe("Comment Model", () => {
   });
 
   describe("findOne", () => {
-    it("should find and return a single comment by its ID", async () => {
-      const newComment = await comment.create({
-        content: "Comentário para encontrar",
-        video_id: "find-me",
-        user_id: createdUser.id,
-      });
+    it("should find and return a single enriched comment by its ID", async () => {
+      const newComment = await comment.create(
+        {
+          content: "Comentário para encontrar",
+          video_id: "find-me",
+        },
+        createdUser,
+      );
       const foundComment = await comment.findOne(newComment.id);
       expect(foundComment.id).toBe(newComment.id);
-      expect(foundComment.content).toBe("Comentário para encontrar");
+      expect(foundComment.username).toBe(createdUser.username);
+      expect(foundComment.likes_count).toBe("0");
     });
 
     it("should throw NotFoundError for a non-existent ID", async () => {

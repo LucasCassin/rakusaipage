@@ -7,11 +7,10 @@ import ERROR_MESSAGES from "models/error-messages.js";
  * Cria um novo comentário na base de dados.
  * A autorização já deve ter sido verificada na camada da API.
  */
-async function create(commentData) {
+async function create(commentData, user) {
   const validatedComment = validator(commentData, {
     content: "required",
     video_id: "required",
-    user_id: "required",
     parent_id: "optional",
   });
 
@@ -22,18 +21,22 @@ async function create(commentData) {
       VALUES
         ($1, $2, $3, $4)
       RETURNING
-        *
-    ;`,
+        id;
+    `,
     values: [
       validatedComment.content,
-      validatedComment.user_id,
+      user.id,
       validatedComment.video_id,
       validatedComment.parent_id,
     ],
   };
 
   const results = await database.query(query);
-  return results.rows[0];
+  const newCommentId = results.rows[0].id;
+
+  // Busca o comentário recém-criado para enriquecê-lo com dados adicionais
+  const newComment = await findOne(newCommentId);
+  return newComment;
 }
 
 /**
@@ -103,7 +106,7 @@ async function update(commentData) {
         updated_at = timezone('utc', now())
       WHERE
         id = $2 AND deleted_at IS NULL
-      RETURNING *;
+      RETURNING id;
     `,
     values: [validatedData.content, validatedData.comment_id],
   };
@@ -112,7 +115,10 @@ async function update(commentData) {
   if (results.rowCount === 0) {
     throw new NotFoundError(ERROR_MESSAGES.COMMENT_NOT_FOUND);
   }
-  return results.rows[0];
+
+  // Busca o comentário atualizado para retornar o objeto completo
+  const updatedComment = await findOne(results.rows[0].id);
+  return updatedComment;
 }
 
 /**
@@ -154,10 +160,23 @@ async function findOne(commentId) {
     { comment_id: commentId },
     { comment_id: "required" },
   );
+
   const query = {
-    text: "SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL;",
+    text: `
+      SELECT
+        c.*,
+        u.username,
+        (SELECT COUNT(DISTINCT user_id) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count
+      FROM
+        comments c
+      JOIN
+        users u ON c.user_id = u.id
+      WHERE
+        c.id = $1 AND c.deleted_at IS NULL;
+    `,
     values: [validatedId.comment_id],
   };
+
   const results = await database.query(query);
   if (results.rowCount === 0) {
     throw new NotFoundError(ERROR_MESSAGES.COMMENT_NOT_FOUND);
