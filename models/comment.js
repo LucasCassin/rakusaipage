@@ -139,7 +139,7 @@ async function del(commentId) {
       WHERE
         id = $1 AND deleted_at IS NULL
       RETURNING
-        id;
+        id, user_id;
     `,
     values: [validatedId.comment_id],
   };

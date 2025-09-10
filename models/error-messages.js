@@ -138,7 +138,14 @@ const ERROR_MESSAGES = {
   COMMENT_NOT_FOUND: {
     message: "Comentário não encontrado.",
     action: "Verifique se este comentário existe e tente novamente.",
-    statusCode: 404,
+  },
+  FORBIDDEN_COMMENT_UPDATE: {
+    message: `Usuário não pode executar esta operação.`,
+    action: `Verifique se o usuário está logado e possui a feature "update:self:comment" ou "update:other:comment".`,
+  },
+  FORBIDDEN_COMMENT_DELETE: {
+    message: `Usuário não pode executar esta operação.`,
+    action: `Verifique se o usuário está logado e possui a feature "delete:self:comment" ou "delete:other:comment".`,
   },
 };
 
