@@ -387,6 +387,7 @@ function filterOutput(user, feature, output) {
     // Retorna o ID do comentário como confirmação da ação
     filteredOutputValues = {
       comment_id: output.comment_id,
+      likes_count: output.likes_count,
     };
   }
 

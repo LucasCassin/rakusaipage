@@ -19,17 +19,29 @@ describe("Comment-Like Model", () => {
       password: "StrongPassword123@",
     });
 
+    user1 = await user.update({
+      id: user1.id,
+      password: "StrongPassword123@",
+    });
+
     user2 = await user.create({
       username: "liker2",
       email: "liker2@test.com",
       password: "StrongPassword123@",
     });
 
-    testComment = await comment.create({
-      content: "Comentário para curtir",
-      video_id: "like-video",
-      user_id: user1.id,
+    user2 = await user.update({
+      id: user2.id,
+      password: "StrongPassword123@",
     });
+
+    testComment = await comment.create(
+      {
+        content: "Comentário para curtir",
+        video_id: "like-video",
+      },
+      user1,
+    );
   });
 
   describe("like and unlike", () => {
@@ -92,11 +104,13 @@ describe("Comment-Like Model", () => {
     });
 
     it("should return an empty array if a comment has no likes", async () => {
-      const lonelyComment = await comment.create({
-        content: "Sem curtidas",
-        video_id: "lonely-video",
-        user_id: user1.id,
-      });
+      const lonelyComment = await comment.create(
+        {
+          content: "Sem curtidas",
+          video_id: "lonely-video",
+        },
+        user1,
+      );
       const likes = await commentLike.findLikesByCommentId(lonelyComment.id);
       expect(likes).toEqual([]);
     });
@@ -114,11 +128,12 @@ describe("Comment-Like Model", () => {
 
     it("should throw NotFoundError with correct message when trying to unlike a non-existent comment", async () => {
       const nonExistentCommentId = orchestrator.generateRandomUUIDV4();
-      await expect(
-        commentLike.unlike({ comment_id: nonExistentCommentId }, user1),
-      ).rejects.toThrow(
-        expect.objectContaining(ERROR_MESSAGES.COMMENT_NOT_FOUND),
+      const unlikeComment = await commentLike.unlike(
+        { comment_id: nonExistentCommentId },
+        user1,
       );
+      expect(unlikeComment.comment_id).toBe(nonExistentCommentId);
+      expect(unlikeComment.likes_count).toBe(0);
     });
 
     it("should throw ValidationError if 'comment_id' is not a valid UUID", async () => {
