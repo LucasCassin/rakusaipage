@@ -12,6 +12,13 @@ router.post(
   postHandler,
 );
 
+router.get(
+  authentication.checkIfUserPasswordExpired,
+  authorization.canRequest("read:user:other"),
+  getValidator,
+  getHandler,
+);
+
 export default router.handler(controller.errorsHandlers);
 
 /**
@@ -46,4 +53,35 @@ async function postHandler(req, res) {
     newUser,
   );
   res.status(201).json(filteredOutputData);
+}
+
+/**
+ * Validates the request query for finding users by feature.
+ */
+function getValidator(req, res, next) {
+  req.query = validator(req.query, {
+    feature: "required",
+  });
+  return next();
+}
+
+/**
+ * Handles fetching users by a specific feature.
+ */
+async function getHandler(req, res) {
+  const requestingUser = req.context.user;
+  const { feature } = req.query;
+
+  const foundUsers = await user.findUsersByFeature(feature);
+
+  // Filtra os dados de cada usuário para o output
+  const filteredUsers = foundUsers.map((foundUser) => {
+    return authorization.filterOutput(
+      requestingUser,
+      "read:user:other",
+      foundUser,
+    );
+  });
+
+  res.status(200).json(filteredUsers);
 }

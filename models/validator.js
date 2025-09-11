@@ -175,6 +175,20 @@ const schemas = {
         }),
     }),
 
+  feature: () =>
+    Joi.object({
+      feature: Joi.string()
+        .when("$required.feature", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        })
+        .valid(...availableFeatures)
+        .messages({
+          "any.only": '"{#value}" não é uma feature válida.',
+        }),
+    }),
+
   session_id: () =>
     Joi.object({
       session_id: Joi.string()
