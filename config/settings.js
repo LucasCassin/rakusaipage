@@ -17,6 +17,8 @@ export const settings = {
         USER: "/api/v1/user",
         MIGRATIONS: "/api/v1/migrations",
         STATUS: "/api/v1/status",
+        COMMENT: "/api/v1/comment",
+        COMMENT_LIKE: "/api/v1/comment-like",
       },
     },
     REDIRECTS: {

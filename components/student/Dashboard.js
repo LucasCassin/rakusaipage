@@ -3,6 +3,7 @@ import WelcomeHeader from "./WelcomeHeader";
 import ComunicadoModal from "../modals/ComunicadoModal";
 import ComunicadosSection from "./ComunicadosSection";
 import VideoAulasSection from "./VideoAulasSection";
+import CommentsSection from "components/comments/CommentsSection";
 
 export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
@@ -79,6 +80,8 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
         <div id="video-aulas">
           <VideoAulasSection />
         </div>
+
+        <CommentsSection videoId={"comentarios-pagina-inicial-student"} />
       </main>
     </div>
   );

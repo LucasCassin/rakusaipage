@@ -12,6 +12,20 @@ export const handleApiResponse = async ({
   errorConfig = {},
 }) => {
   try {
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const responseText = await response.text();
+      console.error("--- ERRO FATAL: RESPOSTA NÃO É JSON ---");
+      console.log("Status da Resposta:", response.status, response.statusText);
+      console.log("URL da Requisição:", response.url);
+      console.log("Conteúdo Recebido (HTML/Texto):", responseText); // <-- ISSO VAI MOSTRAR A PÁGINA HTML
+      console.error("-----------------------------------------");
+      setError?.(
+        "Ocorreu um erro inesperado no servidor. A resposta não era JSON.",
+      );
+      onFinally?.(); // Chama onFinally para parar o loading
+      return null; // Interrompe a execução aqui
+    }
     const data = await response.json();
 
     if (!response.ok) {
