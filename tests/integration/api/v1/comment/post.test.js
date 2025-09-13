@@ -2,9 +2,10 @@ import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import session from "models/session.js";
 import comment from "models/comment.js";
+import commentLike from "models/comment-like";
 
 describe("POST /api/v1/comment", () => {
-  let defaultUser;
+  let defaultUser, otherUser;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -19,6 +20,17 @@ describe("POST /api/v1/comment", () => {
 
     defaultUser = await user.update({
       id: defaultUser.id,
+      password: "StrongPassword123@",
+    });
+
+    otherUser = await user.create({
+      username: "otherPoster",
+      email: "otherposter@test.com",
+      password: "StrongPassword123@",
+    });
+
+    otherUser = await user.update({
+      id: otherUser.id,
       password: "StrongPassword123@",
     });
   });
@@ -45,6 +57,44 @@ describe("POST /api/v1/comment", () => {
       expect(resBody.likes_count).toBe("0");
       expect(resBody.parent_id).toBeNull();
       expect(resBody.liked_by_user).toBe(false);
+    });
+
+    it("should return the full, ordered list of comments when 'return_list' is true", async () => {
+      const videoId = "video-post-return-list";
+      // Setup: Cria um comentário de alto engajamento no mesmo vídeo
+      const topComment = await comment.create(
+        { content: "Top Comment", video_id: videoId },
+        otherUser,
+      );
+      await commentLike.like({ comment_id: topComment.id }, otherUser);
+
+      const newSession = await session.create(defaultUser);
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/comment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          content: "Newly created comment",
+          video_id: videoId,
+          return_list: true, // A chave do teste
+        }),
+      });
+
+      const resBody = await res.json();
+
+      expect(res.status).toBe(201);
+      expect(Array.isArray(resBody)).toBe(true);
+      expect(resBody).toHaveLength(2);
+
+      // Verifica a ordenação por engajamento (o 'Top Comment' tem 1 like, deve vir primeiro)
+      expect(resBody[0].content).toBe("Top Comment");
+      expect(resBody[1].content).toBe("Newly created comment");
+
+      // Verifica o 'liked_by_user' da perspectiva do 'defaultUser' (o requisitante)
+      expect(resBody[0].liked_by_user).toBe(false); // O 'Top Comment' foi curtido por 'otherUser'
+      expect(resBody[1].liked_by_user).toBe(false); // O novo comentário não tem curtidas
     });
 
     it("should create a reply to another comment", async () => {

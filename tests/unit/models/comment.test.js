@@ -49,6 +49,36 @@ describe("Comment Model", () => {
       expect(newComment.likes_count).toBe("0"); // Deve ser uma string do COUNT
     });
 
+    it("should return the full, ordered list of comments if 'return_list' is true", async () => {
+      const videoId = "video-create-return-list";
+      // Setup: um comentário existente com 2 likes para garantir que ele fique no topo
+      const topComment = await comment.create(
+        { content: "Top comment", video_id: videoId },
+        commenterUser,
+      );
+      await commentLike.like({ comment_id: topComment.id }, requesterUser);
+      await commentLike.like({ comment_id: topComment.id }, otherLikerUser);
+
+      const commentData = {
+        content: "Newly created comment",
+        video_id: videoId,
+        return_list: true, // A chave do teste
+      };
+
+      const result = await comment.create(commentData, requesterUser);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2);
+
+      // Verifica a ordenação por engajamento
+      expect(result[0].content).toBe("Top comment");
+      expect(result[1].content).toBe("Newly created comment");
+
+      // Verifica se o 'liked_by_user' está correto para o requesterUser na lista retornada
+      expect(result[0].liked_by_user).toBe(true); // O 'topComment' foi curtido pelo requester
+      expect(result[1].liked_by_user).toBe(false); // O novo comentário não foi curtido
+    });
+
     it("should return 'liked_by_user' as false for a brand new comment", async () => {
       const commentData = { content: "Novo sem likes", video_id: "video123" };
       const newComment = await comment.create(commentData, commenterUser);
@@ -169,6 +199,38 @@ describe("Comment Model", () => {
       expect(updatedComment.username).toBe(requesterUser.username);
       expect(updatedComment.likes_count).toBe("1");
       expect(updatedComment.liked_by_user).toBe(true);
+    });
+
+    it("should return the full, ordered list of comments if 'return_list' is true on update", async () => {
+      const videoId = "video-update-return-list";
+      const commentToUpdate = await comment.create(
+        { content: "To be updated", video_id: videoId },
+        commenterUser,
+      );
+      const otherComment = await comment.create(
+        { content: "Other comment", video_id: videoId },
+        commenterUser,
+      );
+      await commentLike.like({ comment_id: otherComment.id }, requesterUser); // Dá um like no outro para testar a ordem
+
+      const updateData = {
+        comment_id: commentToUpdate.id,
+        content: "Content has been updated",
+        return_list: true, // A chave do teste
+      };
+
+      const result = await comment.update(updateData, requesterUser);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2);
+
+      // Verifica a ordenação (o 'otherComment' tem 1 like, deve vir primeiro)
+      expect(result[0].content).toBe("Other comment");
+      expect(result[1].content).toBe("Content has been updated");
+
+      // Verifica se o 'liked_by_user' está correto na lista
+      expect(result[0].liked_by_user).toBe(true);
+      expect(result[1].liked_by_user).toBe(false);
     });
 
     it("should return 'liked_by_user' as true when updating a comment liked by the requester", async () => {

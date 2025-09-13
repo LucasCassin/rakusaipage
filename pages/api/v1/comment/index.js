@@ -52,18 +52,27 @@ function postValidator(req, res, next) {
     content: "required",
     video_id: "required",
     parent_id: "optional",
+    return_list: "optional",
   });
   next();
 }
 
 async function postHandler(req, res) {
   const newComment = await comment.create(req.body, req.context.user);
+  let filteredOutput = null;
 
-  const filteredOutput = authorization.filterOutput(
-    req.context.user,
-    "create:comment",
-    newComment,
-  );
+  if (req.body.return_list) {
+    filteredOutput = newComment.map((c) =>
+      authorization.filterOutput(req.context.user, "read:comment", c),
+    );
+  } else {
+    filteredOutput = authorization.filterOutput(
+      req.context.user,
+      "read:comment",
+      newComment,
+    );
+  }
+
   res.status(201).json(filteredOutput);
 }
 
@@ -76,20 +85,24 @@ async function patchCanRequestHandler(req, res, next) {
       requestingUser,
     );
 
-    const canUpdateSelf =
-      requestingUser.id === targetComment.user_id &&
-      authorization.can(requestingUser, "update:self:comment", targetComment);
-    const canUpdateOther =
-      requestingUser.id !== targetComment.user_id &&
-      authorization.can(requestingUser, "update:other:comment");
+    const isOwner = requestingUser.id === targetComment.user_id;
 
-    req.body.canUpdateSelf = canUpdateSelf;
-    req.body.canUpdateOther = canUpdateOther;
+    const canUpdate =
+      (isOwner &&
+        authorization.can(
+          requestingUser,
+          "update:self:comment",
+          targetComment,
+        )) ||
+      (!isOwner && authorization.can(requestingUser, "update:other:comment"));
 
-    if (canUpdateSelf || canUpdateOther) {
-      return next();
+    if (!canUpdate) {
+      throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_COMMENT_UPDATE);
     }
-    throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_COMMENT_UPDATE);
+
+    req.context.targetComment = targetComment;
+
+    next();
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }
@@ -99,28 +112,28 @@ function patchValidator(req, res, next) {
   req.body = validator(req.body, {
     comment_id: "required",
     content: "required",
+    return_list: "optional",
   });
   next();
 }
 
 async function patchHandler(req, res) {
   try {
-    const updatedComment = await comment.update(req.body, req.context.user);
-    let filteredOutput = null;
+    const result = await comment.update(req.body, req.context.user);
+    let filteredOutput;
 
-    if (req.body.canUpdateSelf) {
-      filteredOutput = authorization.filterOutput(
-        req.context.user,
-        "update:self:comment",
-        updatedComment,
+    if (req.body.return_list) {
+      filteredOutput = result.map((c) =>
+        authorization.filterOutput(req.context.user, "read:comment", c),
       );
-    } else if (req.body.canUpdateOther) {
+    } else {
       filteredOutput = authorization.filterOutput(
         req.context.user,
-        "update:other:comment",
-        updatedComment,
+        "read:comment",
+        result,
       );
     }
+
     res.status(200).json(filteredOutput);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
@@ -136,46 +149,48 @@ async function deleteCanRequestHandler(req, res, next) {
       requestingUser,
     );
 
-    const canDeleteSelf =
-      requestingUser.id === targetComment.user_id &&
-      authorization.can(requestingUser, "delete:self:comment", targetComment);
+    const isOwner = requestingUser.id === targetComment.user_id;
 
-    const canDeleteOther =
-      requestingUser.id !== targetComment.user_id &&
-      authorization.can(requestingUser, "delete:other:comment");
+    const canDelete =
+      (isOwner &&
+        authorization.can(
+          requestingUser,
+          "delete:self:comment",
+          targetComment,
+        )) ||
+      (!isOwner && authorization.can(requestingUser, "delete:other:comment"));
 
-    req.body.canDeleteSelf = canDeleteSelf;
-    req.body.canDeleteOther = canDeleteOther;
-
-    if (canDeleteSelf || canDeleteOther) {
-      return next();
+    if (!canDelete) {
+      throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_COMMENT_DELETE);
     }
-    throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_COMMENT_DELETE);
+
+    req.context.permissionFeature = isOwner
+      ? "delete:self:comment"
+      : "delete:other:comment";
+
+    next();
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }
 }
+
 function deleteValidator(req, res, next) {
   req.body = validator(req.body, { comment_id: "required" });
   next();
 }
+
 async function deleteHandler(req, res) {
   try {
     const deletedComment = await comment.del(req.body.comment_id);
-    let filteredOutput = null;
-    if (req.body.canDeleteSelf) {
-      filteredOutput = authorization.filterOutput(
-        req.context.user,
-        "delete:self:comment",
-        deletedComment,
-      );
-    } else if (req.body.canDeleteOther) {
-      filteredOutput = authorization.filterOutput(
-        req.context.user,
-        "delete:other:comment",
-        deletedComment,
-      );
-    }
+
+    // MUDANÇA: Lógica de filtro simplificada
+    const feature = req.context.permissionFeature;
+    const filteredOutput = authorization.filterOutput(
+      req.context.user,
+      feature,
+      deletedComment,
+    );
+
     res.status(200).json(filteredOutput);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);

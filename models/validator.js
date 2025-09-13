@@ -315,6 +315,15 @@ const schemas = {
           otherwise: Joi.optional(),
         }),
     }),
+
+  return_list: () =>
+    Joi.object({
+      return_list: Joi.boolean().when("$required.return_list", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

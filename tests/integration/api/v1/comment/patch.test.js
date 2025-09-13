@@ -6,7 +6,7 @@ import commentLike from "models/comment-like.js";
 
 describe("PATCH /api/v1/comment", () => {
   let ownerUser, adminUser, regularUser;
-  let commentToUpdate;
+  let commentToUpdate, otherCommentOnSameVideo;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -49,13 +49,15 @@ describe("PATCH /api/v1/comment", () => {
     // Adiciona a permissão de admin ao adminUser
     await user.addFeatures(adminUser, ["update:other:comment"]);
 
-    // Cria um comentário que será o alvo das atualizações
+    const videoId = "video-patch-1";
     commentToUpdate = await comment.create(
-      {
-        content: "Original content",
-        video_id: "video-patch-1",
-      },
+      { content: "Original content", video_id: videoId },
       ownerUser,
+    );
+
+    otherCommentOnSameVideo = await comment.create(
+      { content: "Another comment", video_id: videoId },
+      regularUser,
     );
   });
 
@@ -127,6 +129,44 @@ describe("PATCH /api/v1/comment", () => {
       expect(resBody.content).toBe("Updated while liked by other");
       expect(resBody.likes_count).toBe("1");
       expect(resBody.liked_by_user).toBe(false);
+    });
+
+    it("should return the full, ordered list of comments when 'return_list' is true", async () => {
+      // Setup: Limpa likes anteriores e adiciona um like ao 'otherComment' para testar a ordem.
+      await orchestrator.clearTable("comment_likes");
+      await commentLike.like(
+        { comment_id: otherCommentOnSameVideo.id },
+        adminUser,
+      );
+
+      const newSession = await session.create(ownerUser); // O 'ownerUser' vai editar seu próprio comentário
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/comment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          comment_id: commentToUpdate.id,
+          content: "Updated and requesting list",
+          return_list: true,
+        }),
+      });
+
+      const resBody = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(resBody)).toBe(true);
+      expect(resBody).toHaveLength(2);
+
+      // Verifica a ordenação por engajamento (o outro comentário tem 1 like, deve vir primeiro)
+      expect(resBody[0].content).toBe("Another comment");
+      expect(resBody[1].content).toBe("Updated and requesting list");
+
+      // Verifica o 'liked_by_user' da perspectiva do 'ownerUser'
+      expect(resBody[0].liked_by_user).toBe(false); // Curtido pelo admin, não pelo owner
+      expect(resBody[1].liked_by_user).toBe(false); // Sem curtidas
     });
 
     it("should NOT allow a user to update self user's comment without 'update:self:comment' feature", async () => {
