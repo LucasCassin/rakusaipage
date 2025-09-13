@@ -161,11 +161,11 @@ async function update(commentData, requestingUser) {
  * Realiza um "soft delete" de um comentário.
  * A autorização (se o utilizador é o dono ou admin) deve ser feita na API.
  */
-async function del(commentId) {
-  const validatedId = validator(
-    { comment_id: commentId },
-    { comment_id: "required" },
-  );
+async function del(commentData, requestingUser) {
+  const validatedData = validator(commentData, {
+    comment_id: "required",
+    return_list: "optional",
+  });
 
   const query = {
     text: `
@@ -174,17 +174,22 @@ async function del(commentId) {
         deleted_at = timezone('utc', now())
       WHERE
         id = $1 AND deleted_at IS NULL
-      RETURNING
-        id, user_id;
+      RETURNING *;
     `,
-    values: [validatedId.comment_id],
+    values: [validatedData.comment_id],
   };
 
   const results = await database.query(query);
   if (results.rowCount === 0) {
     throw new NotFoundError(ERROR_MESSAGES.COMMENT_NOT_FOUND);
   }
-  return results.rows[0];
+  if (validatedData.return_list) {
+    const videoId = results.rows[0].video_id;
+    const updatedCommentList = await findByVideoId(videoId, requestingUser);
+    return updatedCommentList;
+  } else {
+    return results.rows[0];
+  }
 }
 
 /**

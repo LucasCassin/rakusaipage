@@ -3,6 +3,7 @@ import user from "models/user.js";
 import session from "models/session.js";
 import comment from "models/comment.js";
 import ERROR_MESSAGES from "models/error-messages.js";
+import commentLike from "models/comment-like";
 
 describe("DELETE /api/v1/comment", () => {
   let ownerUser, adminUser, regularUser;
@@ -130,7 +131,9 @@ describe("DELETE /api/v1/comment", () => {
           "Content-Type": "application/json",
           cookie: `session_id=${newSession.token}`,
         },
-        body: JSON.stringify({ comment_id: commentToDelete.id }),
+        body: JSON.stringify({
+          comment_id: commentToDelete.id,
+        }),
       });
 
       const resBody = await res.json();
@@ -142,6 +145,57 @@ describe("DELETE /api/v1/comment", () => {
       ).rejects.toThrow(
         expect.objectContaining(ERROR_MESSAGES.COMMENT_NOT_FOUND),
       );
+    });
+
+    it("should return the remaining list of comments, correctly ordered, when 'return_list' is true", async () => {
+      const videoId = "video-del-list-order-test";
+      // Setup: Cria 3 comentários para este teste
+      const commentToDelete = await comment.create(
+        { content: "Delete me!", video_id: videoId },
+        ownerUser,
+      );
+      const lowEngagementComment = await comment.create(
+        { content: "I have no likes", video_id: videoId },
+        regularUser,
+      );
+      const highEngagementComment = await comment.create(
+        { content: "I have one like", video_id: videoId },
+        regularUser,
+      );
+
+      // MUDANÇA: Adiciona um like para definir a ordem
+      await commentLike.like(
+        { comment_id: highEngagementComment.id },
+        adminUser,
+      );
+
+      const newSession = await session.create(ownerUser); // 'ownerUser' deleta o seu próprio comentário
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/comment`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          comment_id: commentToDelete.id,
+          return_list: true,
+        }),
+      });
+
+      const resBody = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(resBody)).toBe(true);
+      expect(resBody).toHaveLength(2);
+
+      // MUDANÇA: Verifica a ordenação por engajamento
+      expect(resBody[0].id).toBe(highEngagementComment.id);
+      expect(resBody[1].id).toBe(lowEngagementComment.id);
+
+      // Verifica se os dados da lista retornada estão enriquecidos corretamente
+      expect(resBody[0].likes_count).toBe("1");
+      expect(resBody[0].liked_by_user).toBe(false); // O like foi do 'adminUser', não do 'ownerUser' (requisitante)
     });
   });
 

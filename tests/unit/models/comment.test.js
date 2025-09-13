@@ -281,16 +281,60 @@ describe("Comment Model", () => {
         },
         requesterUser,
       );
-      const result = await comment.del(myComment.id);
+      const result = await comment.del(
+        { comment_id: myComment.id },
+        requesterUser,
+      );
       expect(result.id).toBe(myComment.id);
       await expect(
         comment.findOne(myComment.id, requesterUser),
       ).rejects.toThrow(NotFoundError);
     });
 
+    it("should return the correctly ordered list of remaining comments when 'return_list' is true", async () => {
+      const videoId = "video-del-return-list-order";
+      // Setup: Cria 3 comentários
+      const commentToDelete = await comment.create(
+        { content: "To be deleted", video_id: videoId },
+        commenterUser,
+      );
+      const lowEngagementComment = await comment.create(
+        { content: "Low engagement", video_id: videoId },
+        commenterUser,
+      );
+      const highEngagementComment = await comment.create(
+        { content: "High engagement", video_id: videoId },
+        commenterUser,
+      );
+
+      // MUDANÇA: Adiciona um like ao comentário de "alta" prioridade
+      await commentLike.like(
+        { comment_id: highEngagementComment.id },
+        otherLikerUser,
+      );
+
+      // Deleta um deles, pedindo a lista de volta
+      const result = await comment.del(
+        {
+          comment_id: commentToDelete.id,
+          return_list: true,
+        },
+        requesterUser,
+      );
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2);
+
+      // MUDANÇA: Verifica a ordenação por engajamento
+      expect(result[0].id).toBe(highEngagementComment.id);
+      expect(result[1].id).toBe(lowEngagementComment.id);
+    });
+
     it("should throw NotFoundError when trying to delete a non-existent comment", async () => {
       const nonExistentId = orchestrator.generateRandomUUIDV4();
-      await expect(comment.del(nonExistentId)).rejects.toThrow(
+      await expect(
+        comment.del({ comment_id: nonExistentId }, requesterUser),
+      ).rejects.toThrow(
         expect.objectContaining(ERROR_MESSAGES.COMMENT_NOT_FOUND),
       );
     });

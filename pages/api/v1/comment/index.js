@@ -164,10 +164,6 @@ async function deleteCanRequestHandler(req, res, next) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_COMMENT_DELETE);
     }
 
-    req.context.permissionFeature = isOwner
-      ? "delete:self:comment"
-      : "delete:other:comment";
-
     next();
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
@@ -175,21 +171,29 @@ async function deleteCanRequestHandler(req, res, next) {
 }
 
 function deleteValidator(req, res, next) {
-  req.body = validator(req.body, { comment_id: "required" });
+  req.body = validator(req.body, {
+    comment_id: "required",
+    return_list: "optional",
+  });
   next();
 }
 
 async function deleteHandler(req, res) {
   try {
-    const deletedComment = await comment.del(req.body.comment_id);
+    const deletedComment = await comment.del(req.body, req.context.user);
+    let filteredOutput;
 
-    // MUDANÇA: Lógica de filtro simplificada
-    const feature = req.context.permissionFeature;
-    const filteredOutput = authorization.filterOutput(
-      req.context.user,
-      feature,
-      deletedComment,
-    );
+    if (req.body.return_list) {
+      filteredOutput = deletedComment.map((c) =>
+        authorization.filterOutput(req.context.user, "read:comment", c),
+      );
+    } else {
+      filteredOutput = authorization.filterOutput(
+        req.context.user,
+        "read:comment",
+        deletedComment,
+      );
+    }
 
     res.status(200).json(filteredOutput);
   } catch (error) {
