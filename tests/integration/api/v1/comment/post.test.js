@@ -44,6 +44,7 @@ describe("POST /api/v1/comment", () => {
       expect(resBody.username).toBe(defaultUser.username);
       expect(resBody.likes_count).toBe("0");
       expect(resBody.parent_id).toBeNull();
+      expect(resBody.liked_by_user).toBe(false);
     });
 
     it("should create a reply to another comment", async () => {
@@ -70,7 +71,6 @@ describe("POST /api/v1/comment", () => {
       });
 
       const resBody = await res.json();
-      console.log(resBody);
       expect(res.status).toBe(201);
       expect(resBody.content).toBe("This is a reply.");
       expect(resBody.parent_id).toBe(parentComment.id);

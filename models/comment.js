@@ -8,11 +8,15 @@ import ERROR_MESSAGES from "models/error-messages.js";
  * A autorização já deve ter sido verificada na camada da API.
  */
 async function create(commentData, user) {
-  const validatedComment = validator(commentData, {
-    content: "required",
-    video_id: "required",
-    parent_id: "optional",
-  });
+  const validatedComment = validator(
+    { ...commentData, user_id: user.id },
+    {
+      content: "required",
+      video_id: "required",
+      parent_id: "optional",
+      user_id: "required",
+    },
+  );
 
   const query = {
     text: `
@@ -35,17 +39,19 @@ async function create(commentData, user) {
   const newCommentId = results.rows[0].id;
 
   // Busca o comentário recém-criado para enriquecê-lo com dados adicionais
-  const newComment = await findOne(newCommentId);
+  const newComment = await findOne(newCommentId, user);
   return newComment;
 }
 
 /**
  * Busca todos os comentários (e as suas respostas) para um determinado video_id.
+ * @param {string} videoId - O ID do vídeo.
+ * @param {object} [requestingUser] - O usuário que está fazendo a requisição (opcional).
  */
-async function findByVideoId(videoId) {
+async function findByVideoId(videoId, requestingUser) {
   const validatedData = validator(
-    { video_id: videoId },
-    { video_id: "required" },
+    { video_id: videoId, user_id: requestingUser.id },
+    { video_id: "required", user_id: "required" },
   );
 
   const query = {
@@ -55,13 +61,14 @@ async function findByVideoId(videoId) {
           c.*,
           u.username,
           (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
+          EXISTS (SELECT 1 FROM comment_likes cl_check WHERE cl_check.comment_id = c.id AND cl_check.user_id = $1) as liked_by_user,
           1 AS depth
         FROM
           comments c
         JOIN
           users u ON c.user_id = u.id
         WHERE
-          c.video_id = $1 AND c.parent_id IS NULL AND c.deleted_at IS NULL
+          c.video_id = $2 AND c.parent_id IS NULL AND c.deleted_at IS NULL
         
         UNION ALL
         
@@ -69,6 +76,7 @@ async function findByVideoId(videoId) {
           c.*,
           u.username,
           (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
+          EXISTS (SELECT 1 FROM comment_likes cl_check WHERE cl_check.comment_id = c.id AND cl_check.user_id = $1) as liked_by_user,
           ct.depth + 1
         FROM
           comments c
@@ -81,7 +89,7 @@ async function findByVideoId(videoId) {
       )
       SELECT * FROM comment_thread ORDER BY created_at ASC;
     `,
-    values: [validatedData.video_id],
+    values: [validatedData.user_id, validatedData.video_id],
   };
 
   const results = await database.query(query);
@@ -90,13 +98,18 @@ async function findByVideoId(videoId) {
 
 /**
  * Atualiza o conteúdo de um comentário existente.
- * A autorização (se o utilizador é o dono ou admin) deve ser feita na API.
+ * @param {object} commentData - Dados do comentário.
+ * @param {object} requestingUser - O usuário que está fazendo a requisição.
  */
-async function update(commentData) {
-  const validatedData = validator(commentData, {
-    comment_id: "required",
-    content: "required",
-  });
+async function update(commentData, requestingUser) {
+  const validatedData = validator(
+    { ...commentData, user_id: requestingUser.id },
+    {
+      comment_id: "required",
+      content: "required",
+      user_id: "required",
+    },
+  );
 
   const query = {
     text: `
@@ -117,7 +130,7 @@ async function update(commentData) {
   }
 
   // Busca o comentário atualizado para retornar o objeto completo
-  const updatedComment = await findOne(results.rows[0].id);
+  const updatedComment = await findOne(results.rows[0].id, requestingUser);
   return updatedComment;
 }
 
@@ -153,12 +166,13 @@ async function del(commentId) {
 
 /**
  * Função auxiliar para encontrar um único comentário por ID.
- * Usada internamente e pela camada da API para verificações.
+ * @param {string} commentId - O ID do comentário a ser buscado.
+ * @param {object} [requestingUser] - O usuário que está fazendo a requisição (opcional).
  */
-async function findOne(commentId) {
+async function findOne(commentId, requestingUser) {
   const validatedId = validator(
-    { comment_id: commentId },
-    { comment_id: "required" },
+    { comment_id: commentId, user_id: requestingUser.id },
+    { comment_id: "required", user_id: "required" },
   );
 
   const query = {
@@ -166,15 +180,19 @@ async function findOne(commentId) {
       SELECT
         c.*,
         u.username,
-        (SELECT COUNT(DISTINCT user_id) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count
+        (SELECT COUNT(DISTINCT user_id) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
+        EXISTS (
+          SELECT 1 FROM comment_likes cl_check
+          WHERE cl_check.comment_id = c.id AND cl_check.user_id = $1
+        ) as liked_by_user
       FROM
         comments c
       JOIN
         users u ON c.user_id = u.id
       WHERE
-        c.id = $1 AND c.deleted_at IS NULL;
+        c.id = $2 AND c.deleted_at IS NULL;
     `,
-    values: [validatedId.comment_id],
+    values: [validatedId.user_id, validatedId.comment_id],
   };
 
   const results = await database.query(query);

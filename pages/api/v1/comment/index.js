@@ -36,7 +36,10 @@ function getValidator(req, res, next) {
 }
 
 async function getHandler(req, res) {
-  const comments = await comment.findByVideoId(req.query.video_id);
+  const comments = await comment.findByVideoId(
+    req.query.video_id,
+    req.context.user,
+  );
   const filteredOutput = comments.map((c) =>
     authorization.filterOutput(req.context.user, "read:comment", c),
   );
@@ -68,7 +71,10 @@ async function postHandler(req, res) {
 async function patchCanRequestHandler(req, res, next) {
   try {
     const requestingUser = req.context.user;
-    const targetComment = await comment.findOne(req.body.comment_id);
+    const targetComment = await comment.findOne(
+      req.body.comment_id,
+      requestingUser,
+    );
 
     const canUpdateSelf =
       requestingUser.id === targetComment.user_id &&
@@ -99,7 +105,7 @@ function patchValidator(req, res, next) {
 
 async function patchHandler(req, res) {
   try {
-    const updatedComment = await comment.update(req.body);
+    const updatedComment = await comment.update(req.body, req.context.user);
     let filteredOutput = null;
 
     if (req.body.canUpdateSelf) {
@@ -125,7 +131,10 @@ async function patchHandler(req, res) {
 async function deleteCanRequestHandler(req, res, next) {
   try {
     const requestingUser = req.context.user;
-    const targetComment = await comment.findOne(req.body.comment_id);
+    const targetComment = await comment.findOne(
+      req.body.comment_id,
+      requestingUser,
+    );
 
     const canDeleteSelf =
       requestingUser.id === targetComment.user_id &&

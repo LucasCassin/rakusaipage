@@ -65,9 +65,9 @@ describe("DELETE /api/v1/comment", () => {
       expect(resBody.id).toBe(commentToDelete.id);
 
       // Verifica se o comentário foi realmente apagado (soft delete)
-      await expect(comment.findOne(commentToDelete.id)).rejects.toThrow(
-        ERROR_MESSAGES.COMMENT_NOT_FOUND,
-      );
+      await expect(
+        comment.findOne(commentToDelete.id, ownerUser),
+      ).rejects.toThrow(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     });
 
     it("should NOT allow a a user without 'delete:self:comment' to delete their own comment", async () => {
@@ -137,7 +137,9 @@ describe("DELETE /api/v1/comment", () => {
       expect(res.status).toBe(200);
       expect(resBody.id).toBe(commentToDelete.id);
 
-      await expect(comment.findOne(commentToDelete.id)).rejects.toThrow(
+      await expect(
+        comment.findOne(commentToDelete.id, adminUser),
+      ).rejects.toThrow(
         expect.objectContaining(ERROR_MESSAGES.COMMENT_NOT_FOUND),
       );
     });

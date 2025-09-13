@@ -2,7 +2,7 @@ import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import session from "models/session.js";
 import comment from "models/comment.js";
-import { settings } from "config/settings.js";
+import commentLike from "models/comment-like.js";
 
 describe("PATCH /api/v1/comment", () => {
   let ownerUser, adminUser, regularUser;
@@ -77,6 +77,56 @@ describe("PATCH /api/v1/comment", () => {
       expect(res.status).toBe(200);
       expect(resBody.content).toBe("Updated by owner");
       expect(resBody.username).toBe(ownerUser.username); // Verifica o enriquecimento
+    });
+
+    it("should return 'liked_by_user: true' when updating a comment liked by the requester", async () => {
+      // O ownerUser será o requisitante
+      const newSession = await session.create(ownerUser);
+      await commentLike.like({ comment_id: commentToUpdate.id }, ownerUser);
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/comment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          comment_id: commentToUpdate.id,
+          content: "Updated while liked by me",
+        }),
+      });
+
+      const resBody = await res.json();
+      expect(res.status).toBe(200);
+      expect(resBody.content).toBe("Updated while liked by me");
+      expect(resBody.likes_count).toBe("1");
+      expect(resBody.liked_by_user).toBe(true);
+    });
+
+    it("should return 'liked_by_user: false' when updating a comment liked by another user", async () => {
+      // Limpa o like anterior e adiciona um novo do 'regularUser'
+      await orchestrator.clearTable("comment_likes");
+      await commentLike.like({ comment_id: commentToUpdate.id }, regularUser);
+
+      const newSession = await session.create(ownerUser); // ownerUser ainda é o requisitante
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/comment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          comment_id: commentToUpdate.id,
+          content: "Updated while liked by other",
+        }),
+      });
+
+      const resBody = await res.json();
+      expect(res.status).toBe(200);
+      expect(resBody.content).toBe("Updated while liked by other");
+      expect(resBody.likes_count).toBe("1");
+      expect(resBody.liked_by_user).toBe(false);
     });
 
     it("should NOT allow a user to update self user's comment without 'update:self:comment' feature", async () => {

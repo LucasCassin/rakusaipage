@@ -360,6 +360,7 @@ function filterOutput(user, feature, output) {
       updated_at: output.updated_at,
       username: output.username,
       likes_count: output.likes_count,
+      liked_by_user: output.liked_by_user,
     };
   }
 
@@ -376,6 +377,7 @@ function filterOutput(user, feature, output) {
         updated_at: output.updated_at,
         username: output.username,
         likes_count: output.likes_count,
+        liked_by_user: output.liked_by_user,
       };
     }
   }
@@ -388,6 +390,7 @@ function filterOutput(user, feature, output) {
     filteredOutputValues = {
       comment_id: output.comment_id,
       likes_count: output.likes_count,
+      liked_by_user: output.liked_by_user,
     };
   }
 
