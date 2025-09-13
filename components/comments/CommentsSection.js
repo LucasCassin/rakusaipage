@@ -12,6 +12,7 @@ const CommentsSection = ({ videoId }) => {
   const {
     comments,
     isLoading: isLoadingComments,
+    isSubmitting,
     error,
     addComment,
     toggleLike,
@@ -21,6 +22,8 @@ const CommentsSection = ({ videoId }) => {
     openReplyForm,
     openEditForm,
     closeActiveForm,
+    likingCommentId,
+    deletingCommentId,
   } = useComments({ videoId, user: currentUser, isLoadingAuth });
 
   const canCreate = currentUser?.features.includes("create:comment");
@@ -59,10 +62,13 @@ const CommentsSection = ({ videoId }) => {
           onSetReply={() => openReplyForm(comment.id)}
           onSetEdit={() => openEditForm(comment.id)}
           onCancel={closeActiveForm}
+          isSubmitting={isSubmitting}
+          likingCommentId={likingCommentId}
+          deletingCommentId={deletingCommentId}
         />
         {comment.children.length > 0 && (
           <div className="ml-8 pl-4 border-l-2">
-            {renderComments(comment.children)}
+            {renderComments(comment.children, true)}
           </div>
         )}
       </div>
@@ -104,7 +110,11 @@ const CommentsSection = ({ videoId }) => {
       {/* O formulário é renderizado se o usuário puder criar (pode ser visto mesmo que ele não possa ler os outros) */}
       {currentUser && canCreate && (
         <div className="mt-6">
-          <CommentForm onSubmit={addComment} />
+          <CommentForm
+            onSubmit={addComment}
+            // MUDANÇA: Passa 'true' apenas se o 'isSubmitting' for do formulário principal
+            isSubmitting={isSubmitting === "main"}
+          />
         </div>
       )}
     </div>

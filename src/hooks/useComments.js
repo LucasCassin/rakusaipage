@@ -9,11 +9,12 @@ export function useComments({ videoId, user, isLoadingAuth }) {
   // --- Estados do Hook ---
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // Para o carregamento inicial
-  const [isSubmitting, setIsSubmitting] = useState(false); // Para criar/editar comentários
+  const [isSubmitting, setIsSubmitting] = useState(null); // Para criar/editar comentários
   const [likingCommentId, setLikingCommentId] = useState(null); // Para o loading do botão de like
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [activeForm, setActiveForm] = useState({ id: null, mode: null }); // mode: 'edit' ou 'reply'
+  const [deletingCommentId, setDeletingCommentId] = useState(null); // MUDANÇA: Novo estado
 
   const clearMessages = () => {
     setError(null);
@@ -69,44 +70,42 @@ export function useComments({ videoId, user, isLoadingAuth }) {
 
   const addComment = useCallback(
     async (content, parent_id = null) => {
-      setIsSubmitting(true);
+      const submittingId = parent_id ? activeForm.id : "main";
+      setIsSubmitting(submittingId);
       clearMessages();
-
+      let opSuccess = false;
       try {
         const response = await fetch(settings.global.API.ENDPOINTS.COMMENT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content, video_id: videoId, parent_id }),
+          // CORREÇÃO: Enviando 'return_list: true' para o backend
+          body: JSON.stringify({
+            content,
+            video_id: videoId,
+            parent_id,
+            return_list: true,
+          }),
         });
-
-        const newComment = await handleApiResponse({
+        await handleApiResponse({
           response,
           router,
           setError,
-          onSuccess: (data) => {
+          onSuccess: (updatedList) => {
             setSuccess("Comentário adicionado com sucesso!");
-            setComments((prev) =>
-              [data, ...prev].sort(
-                (a, b) => new Date(b.created_at) - new Date(a.created_at),
-              ),
-            );
+            // CORREÇÃO: A resposta JÁ É a lista completa e ordenada. Apenas a usamos.
+            setComments(updatedList);
             closeActiveForm();
+            opSuccess = true;
           },
-          onFinally: () => {
-            setIsSubmitting(false);
-          },
+          onFinally: () => setIsSubmitting(null),
         });
-        return !!newComment;
       } catch (e) {
-        setError(
-          "Não foi possível adicionar o comentário. Verifique sua conexão.",
-        );
-        setIsSubmitting(false);
+        setIsSubmitting(null);
         console.error("Falha ao adicionar comentário:", e);
-        return false;
       }
+      return opSuccess;
     },
-    [videoId, router],
+    [videoId, router, activeForm.id, setComments, setSuccess, closeActiveForm],
   );
 
   const toggleLike = useCallback(
@@ -151,88 +150,82 @@ export function useComments({ videoId, user, isLoadingAuth }) {
         console.error("Falha ao curtir/descurtir:", e);
       }
     },
-    [router],
+    [router, setComments, setError],
   );
 
   // Funções de update e delete completas, seguindo o padrão
   const updateComment = useCallback(
     async (commentId, content) => {
-      setIsSubmitting(true);
+      setIsSubmitting(commentId);
       clearMessages();
-
+      let opSuccess = false;
       try {
-        const response = await fetch(
-          `${settings.global.API.ENDPOINTS.COMMENT}`,
-          {
-            // Supondo rota PATCH
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comment_id: commentId, content }),
-          },
-        );
-
-        const updatedComment = await handleApiResponse({
-          response,
-          router,
-          setError,
-          onSuccess: (data) => {
-            setSuccess("Comentário atualizado!");
-            setComments((prev) =>
-              prev.map((c) => (c.id === commentId ? data : c)),
-            );
-            closeActiveForm();
-          },
-          onFinally: () => setIsSubmitting(false),
+        const response = await fetch(settings.global.API.ENDPOINTS.COMMENT, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          // CORREÇÃO: Enviando 'return_list: true' para o backend
+          body: JSON.stringify({
+            comment_id: commentId,
+            content,
+            return_list: true,
+          }),
         });
-        return !!updatedComment;
-      } catch (e) {
-        setError(
-          "Não foi possível editar o comentário. Verifique sua conexão.",
-        );
-        console.log("Falha ao editar comentário:", e);
-        setIsSubmitting(false);
-        return false;
-      }
-    },
-    [router],
-  );
-
-  const deleteComment = useCallback(
-    async (commentId) => {
-      // A UI pode mostrar um modal de confirmação antes de chamar esta função
-      setIsSubmitting(true);
-      clearMessages();
-
-      try {
-        const response = await fetch(
-          `${settings.global.API.ENDPOINTS.COMMENT}`,
-          {
-            // Supondo rota DELETE
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comment_id: commentId }),
-          },
-        );
-
         await handleApiResponse({
           response,
           router,
           setError,
-          onSuccess: () => {
-            setSuccess("Comentário excluído!");
-            setComments((prev) => prev.filter((c) => c.id !== commentId));
+          onSuccess: (updatedList) => {
+            setSuccess("Comentário atualizado!");
+            // CORREÇÃO: A resposta JÁ É a lista completa e ordenada.
+            setComments(updatedList);
+            closeActiveForm();
+            opSuccess = true;
           },
-          onFinally: () => setIsSubmitting(false),
+          onFinally: () => setIsSubmitting(null),
+        });
+      } catch (e) {
+        setIsSubmitting(null);
+        console.error("Falha ao atualizar comentário:", e);
+      }
+      return opSuccess;
+    },
+    [router, setComments, setSuccess, closeActiveForm],
+  );
+
+  const deleteComment = useCallback(
+    async (commentId) => {
+      clearMessages();
+      setDeletingCommentId(commentId);
+      try {
+        const response = await fetch(settings.global.API.ENDPOINTS.COMMENT, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            comment_id: commentId,
+            return_list: true, // Adiciona a flag para receber a lista de volta
+          }),
+        });
+        await handleApiResponse({
+          response,
+          router,
+          setError,
+          onSuccess: (updatedList) => {
+            setSuccess("Comentário excluído!");
+            setComments(updatedList);
+          },
+          onFinally: () => {
+            setDeletingCommentId(null);
+          },
         });
       } catch (e) {
         setError(
           "Não foi possível excluir o comentário. Verifique sua conexão.",
         );
         console.log("Falha ao excluir comentário:", e);
-        setIsSubmitting(false);
+        setDeletingCommentId(null);
       }
     },
-    [router],
+    [router, setComments, setSuccess],
   );
 
   return {
@@ -244,6 +237,7 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     error,
     success,
     activeForm,
+    deletingCommentId,
     // Ações
     fetchComments,
     addComment,

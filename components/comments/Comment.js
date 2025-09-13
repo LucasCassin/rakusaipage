@@ -3,6 +3,7 @@ import UserAvatar from "components/ui/UserAvatar";
 import CommentForm from "components/forms/CommentForm";
 import { FiMessageSquare, FiEdit2, FiTrash2 } from "react-icons/fi"; // Ícones de Ação
 import LikeButton from "components/ui/LikeButton";
+import Spinner from "components/ui/Spinner";
 
 const Comment = ({
   comment,
@@ -11,15 +12,28 @@ const Comment = ({
   onUpdate,
   onDelete,
   onReply,
-  isReply = false,
+  // isReply = false,
   activeForm,
   onSetReply,
   onSetEdit,
   onCancel,
+  isSubmitting,
+  likingCommentId,
+  deletingCommentId,
 }) => {
   const isEditing = activeForm.id === comment.id && activeForm.mode === "edit";
   const isReplying =
     activeForm.id === comment.id && activeForm.mode === "reply";
+
+  const isThisFormSubmitting = isSubmitting === comment.id;
+  const isThisCommentBeingLiked = likingCommentId === comment.id;
+
+  const isAffectedByDeletion =
+    deletingCommentId === comment.id ||
+    (deletingCommentId !== null && deletingCommentId === comment.parent_id);
+
+  const isDisabled =
+    isThisFormSubmitting || isThisCommentBeingLiked || isAffectedByDeletion;
 
   const isOwner = currentUser?.id === comment.user_id;
   const canEdit =
@@ -30,7 +44,7 @@ const Comment = ({
     (!isOwner && currentUser?.features.includes("delete:other:comment"));
   const canLike = currentUser?.features.includes("like:comment");
   const canUnlike = currentUser?.features.includes("unlike:comment");
-  const canReply = currentUser?.features.includes("create:comment") && !isReply; // Só pode responder se não for uma resposta
+  const canReply = currentUser?.features.includes("create:comment"); // Só pode responder se não for uma resposta
 
   const handleUpdate = async (content) => {
     return await onUpdate(comment.id, content);
@@ -42,7 +56,9 @@ const Comment = ({
   };
 
   return (
-    <div className="flex gap-3 my-4">
+    <div
+      className={`flex gap-3 my-4 transition-opacity duration-300 ${isDisabled ? "opacity-50 pointer-events-none" : ""}`}
+    >
       <UserAvatar username={comment.username} />
       <div className="flex-1">
         <div className="bg-gray-100 p-3 rounded-xl">
@@ -56,8 +72,8 @@ const Comment = ({
             <CommentForm
               initialContent={comment.content}
               onSubmit={handleUpdate}
-              buttonText="Salvar"
-              onCancel={onCancel} // Adiciona o botão de cancelar
+              onCancel={onCancel}
+              isSubmitting={isThisFormSubmitting} // Passa o estado de submissão específico deste formulário
             />
           ) : (
             <p className="text-gray-800 text-sm mt-1">{comment.content}</p>
@@ -70,13 +86,15 @@ const Comment = ({
               isLiked={comment.liked_by_user}
               likeCount={comment.likes_count}
               onClick={() => onLike(comment.id, comment.liked_by_user)}
-              disabled={comment.liked_by_user && !canUnlike}
+              isLoading={isThisCommentBeingLiked}
+              disabled={(comment.liked_by_user && !canUnlike) || isDisabled}
             />
           )}
           {canReply && (
             <button
               onClick={onSetReply}
-              className="p-1 rounded-md hover:bg-gray-100"
+              disabled={isDisabled}
+              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
               <FiMessageSquare />
             </button>
@@ -84,7 +102,8 @@ const Comment = ({
           {canEdit && (
             <button
               onClick={onSetEdit}
-              className="p-1 rounded-md hover:bg-gray-100"
+              disabled={isDisabled}
+              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
               <FiEdit2 />
             </button>
@@ -92,9 +111,14 @@ const Comment = ({
           {canDelete && (
             <button
               onClick={() => onDelete(comment.id)}
-              className="p-1 rounded-md hover:bg-gray-100"
+              disabled={isDisabled}
+              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
-              <FiTrash2 className="text-red-600" />
+              {isAffectedByDeletion ? (
+                <Spinner size="4" color="text-red-500" />
+              ) : (
+                <FiTrash2 className="text-red-600" />
+              )}
             </button>
           )}
         </div>
@@ -104,7 +128,8 @@ const Comment = ({
             <CommentForm
               onSubmit={handleReply}
               placeholder={`Respondendo a ${comment.username}...`}
-              onCancel={onCancel} // Adiciona o botão de cancelar
+              onCancel={onCancel}
+              isSubmitting={isThisFormSubmitting} // Passa o estado de submissão específico deste formulário
             />
           </div>
         )}
