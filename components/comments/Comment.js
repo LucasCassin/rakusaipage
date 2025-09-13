@@ -4,47 +4,32 @@ import CommentForm from "components/forms/CommentForm";
 import { FiMessageSquare, FiEdit2, FiTrash2 } from "react-icons/fi"; // Ícones de Ação
 import LikeButton from "components/ui/LikeButton";
 import Spinner from "components/ui/Spinner";
+import { useCommentState } from "src/hooks/useCommentState";
 
-const Comment = ({
-  comment,
-  currentUser,
-  onLike,
-  onUpdate,
-  onDelete,
-  onReply,
-  // isReply = false,
-  activeForm,
-  onSetReply,
-  onSetEdit,
-  onCancel,
-  isSubmitting,
-  likingCommentId,
-  deletingCommentId,
-}) => {
-  const isEditing = activeForm.id === comment.id && activeForm.mode === "edit";
-  const isReplying =
-    activeForm.id === comment.id && activeForm.mode === "reply";
-
-  const isThisFormSubmitting = isSubmitting === comment.id;
-  const isThisCommentBeingLiked = likingCommentId === comment.id;
-
-  const isAffectedByDeletion =
-    deletingCommentId === comment.id ||
-    (deletingCommentId !== null && deletingCommentId === comment.parent_id);
-
-  const isDisabled =
-    isThisFormSubmitting || isThisCommentBeingLiked || isAffectedByDeletion;
-
-  const isOwner = currentUser?.id === comment.user_id;
-  const canEdit =
-    (isOwner && currentUser?.features.includes("update:self:comment")) ||
-    (!isOwner && currentUser?.features.includes("update:other:comment"));
-  const canDelete =
-    (isOwner && currentUser?.features.includes("delete:self:comment")) ||
-    (!isOwner && currentUser?.features.includes("delete:other:comment"));
-  const canLike = currentUser?.features.includes("like:comment");
-  const canUnlike = currentUser?.features.includes("unlike:comment");
-  const canReply = currentUser?.features.includes("create:comment"); // Só pode responder se não for uma resposta
+const Comment = (props) => {
+  const {
+    comment,
+    onLike,
+    onUpdate,
+    onDelete,
+    onReply,
+    onSetReply,
+    onSetEdit,
+    onCancel,
+  } = props;
+  const {
+    isEditing,
+    isReplying,
+    isThisFormSubmitting,
+    isThisCommentBeingLiked,
+    isAffectedByDeletion,
+    isDisabled,
+    canEdit,
+    canDelete,
+    canLike,
+    canUnlike,
+    canReply,
+  } = useCommentState(props);
 
   const handleUpdate = async (content) => {
     return await onUpdate(comment.id, content);

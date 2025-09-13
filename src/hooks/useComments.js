@@ -66,9 +66,9 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     fetchComments();
   }, [fetchComments]);
 
-  const openReplyForm = (commentId) => {
+  const openReplyForm = (commentId, visibleCount) => {
     setActiveForm({ id: commentId, mode: "reply" });
-    setOpenThread({ parentId: commentId, visibleCount: 3 });
+    setOpenThread({ parentId: commentId, visibleCount: visibleCount || 3 });
   };
 
   const openEditForm = (commentId) =>
@@ -235,7 +235,7 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     [router, setComments, setSuccess],
   );
 
-  const toggleReplies = useCallback((parentId, totalReplies) => {
+  const toggleReplies = useCallback((parentId) => {
     setOpenThread((prev) => {
       // Se já estiver aberto, fecha. Senão, abre e mostra os 3 primeiros.
       if (prev.parentId === parentId) {

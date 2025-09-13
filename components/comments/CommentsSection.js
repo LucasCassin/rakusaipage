@@ -4,30 +4,21 @@ import Comment from "./Comment";
 import CommentForm from "../forms/CommentForm";
 import { useAuth } from "src/contexts/AuthContext";
 import LoadingSpinner from "components/ui/LoadingSpinner";
-import Button from "components/ui/Button";
+import ReplyThread from "./ReplyThread";
 
 const CommentsSection = ({ videoId }) => {
   const { user: currentUser, isLoading: isLoadingAuth } = useAuth();
 
+  const hookResult = useComments({ videoId, user: currentUser, isLoadingAuth });
   const {
     comments,
     isLoading: isLoadingComments,
-    isSubmitting,
     error,
     addComment,
-    toggleLike,
-    updateComment,
-    deleteComment,
-    activeForm,
     openReplyForm,
     openEditForm,
     closeActiveForm,
-    likingCommentId,
-    deletingCommentId,
-    openThread,
-    toggleReplies,
-    showMoreReplies,
-  } = useComments({ videoId, user: currentUser, isLoadingAuth });
+  } = hookResult;
 
   const canCreate = currentUser?.features.includes("create:comment");
   const canRead = currentUser?.features.includes("read:comment");
@@ -50,75 +41,15 @@ const CommentsSection = ({ videoId }) => {
     return result;
   }, [comments]);
 
-  const renderComments = (commentList, isReplyLevel = false) => {
-    return commentList.map((comment) => (
-      <div key={comment.id}>
-        <Comment
-          comment={comment}
-          currentUser={currentUser}
-          isReply={isReplyLevel}
-          onLike={toggleLike}
-          onUpdate={updateComment}
-          onDelete={deleteComment}
-          onReply={addComment}
-          activeForm={activeForm}
-          onSetReply={() => openReplyForm(comment.id)}
-          onSetEdit={() => openEditForm(comment.id)}
-          onCancel={closeActiveForm}
-          isSubmitting={isSubmitting}
-          likingCommentId={likingCommentId}
-          deletingCommentId={deletingCommentId}
-        />
-        {comment.children && comment.children.length > 0 && !isReplyLevel && (
-          <div className="ml-[1.25rem] pl-[2rem] border-l-2">
-            {openThread.parentId === comment.id ? (
-              <>
-                {/* Renderiza as respostas visíveis */}
-                {renderComments(
-                  comment.children.slice(0, openThread.visibleCount),
-                  true,
-                )}
-
-                {/* Lógica para o botão "Ver mais" */}
-                {comment.children.length > openThread.visibleCount && (
-                  <Button
-                    variant="link"
-                    onClick={showMoreReplies}
-                    className="text-sm mt-2 font-thin pl-2"
-                  >
-                    Ver mais {comment.children.length - openThread.visibleCount}{" "}
-                    respostas
-                  </Button>
-                )}
-              </>
-            ) : (
-              // Botão para expandir as respostas
-              <Button
-                variant="link"
-                onClick={() => toggleReplies(comment.id)}
-                className="text-sm font-thin pl-4"
-              >
-                Ver {comment.children.length}{" "}
-                {comment.children.length > 1 ? "respostas" : "resposta"}
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-    ));
-  };
-
   if (isLoadingAuth) {
     return <LoadingSpinner />;
   }
-
   if (!canRead && !canCreate) {
     return null;
   }
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
-      {/* MUDANÇA: O título e a lista agora são renderizados apenas se o usuário puder ler */}
       {canRead && (
         <>
           <h2 className="text-xl font-bold mb-4">
@@ -131,22 +62,66 @@ const CommentsSection = ({ videoId }) => {
           {!isLoadingComments && !error && (
             <div>
               {nestedComments.length > 0 ? (
-                renderComments(nestedComments)
+                // MUDANÇA: O map agora é muito mais simples
+                nestedComments.map((comment) => (
+                  <div key={comment.id}>
+                    <Comment
+                      comment={comment}
+                      currentUser={currentUser}
+                      onReply={hookResult.addComment}
+                      onLike={hookResult.toggleLike}
+                      onUpdate={hookResult.updateComment}
+                      onDelete={hookResult.deleteComment}
+                      onSetReply={() =>
+                        openReplyForm(
+                          comment.id,
+                          hookResult.openThread.visibleCount,
+                        )
+                      }
+                      onSetEdit={() => openEditForm(comment.id)}
+                      onCancel={closeActiveForm}
+                      activeForm={hookResult.activeForm}
+                      isSubmitting={hookResult.isSubmitting}
+                      likingCommentId={hookResult.likingCommentId}
+                      deletingCommentId={hookResult.deletingCommentId}
+                    />
+                    {comment.children && comment.children.length > 0 && (
+                      <div className="ml-[1.25rem] pl-[2rem] border-l-2">
+                        <ReplyThread
+                          parentComment={comment}
+                          currentUser={currentUser}
+                          onReply={hookResult.addComment}
+                          onLike={hookResult.toggleLike}
+                          onUpdate={hookResult.updateComment}
+                          onDelete={hookResult.deleteComment}
+                          onSetReply={openReplyForm}
+                          onSetEdit={openEditForm}
+                          onCancel={closeActiveForm}
+                          activeForm={hookResult.activeForm}
+                          isSubmitting={hookResult.isSubmitting}
+                          likingCommentId={hookResult.likingCommentId}
+                          deletingCommentId={hookResult.deletingCommentId}
+                          openThread={hookResult.openThread}
+                          toggleReplies={hookResult.toggleReplies}
+                          showMoreReplies={hookResult.showMoreReplies}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))
               ) : (
-                <p>Seja o primeiro a comentar!</p>
+                <p>Seja o(a) primeiro(a) a comentar!</p>
               )}
             </div>
           )}
         </>
       )}
 
-      {/* O formulário é renderizado se o usuário puder criar (pode ser visto mesmo que ele não possa ler os outros) */}
       {currentUser && canCreate && (
         <div className="mt-6">
           <CommentForm
             onSubmit={addComment}
-            // MUDANÇA: Passa 'true' apenas se o 'isSubmitting' for do formulário principal
-            isSubmitting={isSubmitting === "main"}
+            isSubmitting={hookResult.isSubmitting === "main"}
           />
         </div>
       )}
