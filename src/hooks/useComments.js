@@ -15,6 +15,10 @@ export function useComments({ videoId, user, isLoadingAuth }) {
   const [success, setSuccess] = useState(null);
   const [activeForm, setActiveForm] = useState({ id: null, mode: null }); // mode: 'edit' ou 'reply'
   const [deletingCommentId, setDeletingCommentId] = useState(null); // MUDANÇA: Novo estado
+  const [openThread, setOpenThread] = useState({
+    parentId: null,
+    visibleCount: 0,
+  });
 
   const clearMessages = () => {
     setError(null);
@@ -62,8 +66,11 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     fetchComments();
   }, [fetchComments]);
 
-  const openReplyForm = (commentId) =>
+  const openReplyForm = (commentId) => {
     setActiveForm({ id: commentId, mode: "reply" });
+    setOpenThread({ parentId: commentId, visibleCount: 3 });
+  };
+
   const openEditForm = (commentId) =>
     setActiveForm({ id: commentId, mode: "edit" });
   const closeActiveForm = () => setActiveForm({ id: null, mode: null });
@@ -228,6 +235,33 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     [router, setComments, setSuccess],
   );
 
+  const toggleReplies = useCallback((parentId, totalReplies) => {
+    setOpenThread((prev) => {
+      // Se já estiver aberto, fecha. Senão, abre e mostra os 3 primeiros.
+      if (prev.parentId === parentId) {
+        return { parentId: null, visibleCount: 0 };
+      } else {
+        return { parentId, visibleCount: 3 };
+      }
+    });
+  }, []);
+
+  const showMoreReplies = useCallback(() => {
+    setOpenThread((prev) => {
+      const { visibleCount } = prev;
+      let newVisibleCount;
+
+      // Lógica de paginação: +3, +5, +10, depois tudo
+      if (visibleCount === 3)
+        newVisibleCount = visibleCount + 5; // Total 8
+      else if (visibleCount === 8)
+        newVisibleCount = visibleCount + 10; // Total 18
+      else newVisibleCount = Infinity; // Mostra o resto
+
+      return { ...prev, visibleCount: newVisibleCount };
+    });
+  }, []);
+
   return {
     // Estados de dados e UI
     comments,
@@ -238,6 +272,7 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     success,
     activeForm,
     deletingCommentId,
+    openThread,
     // Ações
     fetchComments,
     addComment,
@@ -247,5 +282,7 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     openReplyForm,
     openEditForm,
     closeActiveForm,
+    toggleReplies,
+    showMoreReplies,
   };
 }

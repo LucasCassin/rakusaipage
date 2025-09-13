@@ -3,8 +3,8 @@ import { useComments } from "src/hooks/useComments";
 import Comment from "./Comment";
 import CommentForm from "../forms/CommentForm";
 import { useAuth } from "src/contexts/AuthContext";
-
 import LoadingSpinner from "components/ui/LoadingSpinner";
+import Button from "components/ui/Button";
 
 const CommentsSection = ({ videoId }) => {
   const { user: currentUser, isLoading: isLoadingAuth } = useAuth();
@@ -24,6 +24,9 @@ const CommentsSection = ({ videoId }) => {
     closeActiveForm,
     likingCommentId,
     deletingCommentId,
+    openThread,
+    toggleReplies,
+    showMoreReplies,
   } = useComments({ videoId, user: currentUser, isLoadingAuth });
 
   const canCreate = currentUser?.features.includes("create:comment");
@@ -66,9 +69,39 @@ const CommentsSection = ({ videoId }) => {
           likingCommentId={likingCommentId}
           deletingCommentId={deletingCommentId}
         />
-        {comment.children.length > 0 && (
-          <div className="ml-8 pl-4 border-l-2">
-            {renderComments(comment.children, true)}
+        {comment.children && comment.children.length > 0 && !isReplyLevel && (
+          <div className="ml-[1.25rem] pl-[2rem] border-l-2">
+            {openThread.parentId === comment.id ? (
+              <>
+                {/* Renderiza as respostas visíveis */}
+                {renderComments(
+                  comment.children.slice(0, openThread.visibleCount),
+                  true,
+                )}
+
+                {/* Lógica para o botão "Ver mais" */}
+                {comment.children.length > openThread.visibleCount && (
+                  <Button
+                    variant="link"
+                    onClick={showMoreReplies}
+                    className="text-sm mt-2 font-thin pl-2"
+                  >
+                    Ver mais {comment.children.length - openThread.visibleCount}{" "}
+                    respostas
+                  </Button>
+                )}
+              </>
+            ) : (
+              // Botão para expandir as respostas
+              <Button
+                variant="link"
+                onClick={() => toggleReplies(comment.id)}
+                className="text-sm font-thin pl-4"
+              >
+                Ver {comment.children.length}{" "}
+                {comment.children.length > 1 ? "respostas" : "resposta"}
+              </Button>
+            )}
           </div>
         )}
       </div>
