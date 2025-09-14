@@ -66,6 +66,10 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     fetchComments();
   }, [fetchComments]);
 
+  const closeOpenThread = useCallback(() => {
+    setOpenThread({ parentId: null, visibleCount: 0 });
+  }, []);
+
   const openReplyForm = (commentId, visibleCount) => {
     setActiveForm({ id: commentId, mode: "reply" });
     setOpenThread({ parentId: commentId, visibleCount: visibleCount || 3 });
@@ -284,5 +288,6 @@ export function useComments({ videoId, user, isLoadingAuth }) {
     closeActiveForm,
     toggleReplies,
     showMoreReplies,
+    closeOpenThread,
   };
 }

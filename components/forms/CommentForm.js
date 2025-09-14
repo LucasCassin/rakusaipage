@@ -9,6 +9,7 @@ const CommentForm = ({
   placeholder = "Adicione um comentário...",
   onCancel,
   isSubmitting,
+  onFocus,
   content: controlledContent,
   onContentChange: onControlledContentChange,
 }) => {
@@ -54,6 +55,7 @@ const CommentForm = ({
           minRows={1}
           maxRows={5}
           disabled={isSubmitting}
+          onFocus={onFocus}
         />
         <div className="flex items-center gap-1 pr-2">
           {isSubmitting ? (

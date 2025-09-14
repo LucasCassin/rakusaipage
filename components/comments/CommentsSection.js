@@ -19,6 +19,7 @@ const CommentsSection = ({ videoId }) => {
     openReplyForm,
     openEditForm,
     closeActiveForm,
+    closeOpenThread,
   } = hookResult;
 
   const [mainFormContent, setMainFormContent] = useState("");
@@ -126,16 +127,20 @@ const CommentsSection = ({ videoId }) => {
         </>
       )}
 
-      {currentUser && canCreate && activeForm.id === null && (
-        <div className="mt-6">
-          <CommentForm
-            content={mainFormContent}
-            onContentChange={setMainFormContent}
-            onSubmit={handleAddComment}
-            isSubmitting={hookResult.isSubmitting === "main"}
-          />
-        </div>
-      )}
+      {currentUser &&
+        canCreate &&
+        activeForm.id === null &&
+        !isLoadingComments && (
+          <div className="mt-6">
+            <CommentForm
+              content={mainFormContent}
+              onContentChange={setMainFormContent}
+              onSubmit={handleAddComment}
+              isSubmitting={hookResult.isSubmitting === "main"}
+              onFocus={closeOpenThread}
+            />
+          </div>
+        )}
     </div>
   );
 };
