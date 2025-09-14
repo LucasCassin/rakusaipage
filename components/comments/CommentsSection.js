@@ -5,6 +5,7 @@ import CommentForm from "../forms/CommentForm";
 import { useAuth } from "src/contexts/AuthContext";
 import LoadingSpinner from "components/ui/LoadingSpinner";
 import ReplyThread from "./ReplyThread";
+import CommentsSkeleton from "./CommentsSkeleton";
 
 const CommentsSection = ({ videoId }) => {
   const { user: currentUser, isLoading: isLoadingAuth } = useAuth();
@@ -51,6 +52,10 @@ const CommentsSection = ({ videoId }) => {
     return result;
   }, [comments]);
 
+  const topLevelCommentCount = useMemo(() => {
+    return (comments || []).filter((comment) => !comment.parent_id).length;
+  }, [comments]);
+
   if (isLoadingAuth) {
     return <LoadingSpinner />;
   }
@@ -59,14 +64,14 @@ const CommentsSection = ({ videoId }) => {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
+    <div className="w-full mx-auto p-4">
       {canRead && (
         <>
           <h2 className="text-xl font-bold mb-4">
-            Comentários ({comments?.length || 0})
+            Comentários ({topLevelCommentCount})
           </h2>
 
-          {isLoadingComments && <LoadingSpinner />}
+          {isLoadingComments && <CommentsSkeleton />}
           {error && <p className="text-red-500">{error}</p>}
 
           {!isLoadingComments && !error && (
