@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useComments } from "src/hooks/useComments";
 import Comment from "./Comment";
 import CommentForm from "../forms/CommentForm";
@@ -15,15 +15,24 @@ const CommentsSection = ({ videoId }) => {
     isLoading: isLoadingComments,
     error,
     addComment,
+    activeForm,
     openReplyForm,
     openEditForm,
     closeActiveForm,
   } = hookResult;
 
+  const [mainFormContent, setMainFormContent] = useState("");
   const canCreate = currentUser?.features.includes("create:comment");
   const canRead = currentUser?.features.includes("read:comment");
 
-  // Lógica para aninhar os comentários (respostas)
+  const handleAddComment = async (content) => {
+    const success = await addComment(content);
+    if (success) {
+      setMainFormContent("");
+    }
+    return success;
+  };
+
   const nestedComments = useMemo(() => {
     const commentMap = {};
     comments.forEach(
@@ -117,10 +126,12 @@ const CommentsSection = ({ videoId }) => {
         </>
       )}
 
-      {currentUser && canCreate && (
+      {currentUser && canCreate && activeForm.id === null && (
         <div className="mt-6">
           <CommentForm
-            onSubmit={addComment}
+            content={mainFormContent}
+            onContentChange={setMainFormContent}
+            onSubmit={handleAddComment}
             isSubmitting={hookResult.isSubmitting === "main"}
           />
         </div>
