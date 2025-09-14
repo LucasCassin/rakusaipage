@@ -76,7 +76,10 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
       <WelcomeHeader user={user} welcomeData={welcomeData} />
 
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-12">
-        <ComunicadosSection user={user} comunicados={comunicados} />
+        <ComunicadosSection
+          user={user}
+          visibleComunicados={visibleComunicados}
+        />
         <div id="video-aulas">
           <VideoAulasSection />
         </div>
