@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "src/contexts/AuthContext.js";
@@ -7,9 +7,48 @@ import { texts } from "src/utils/texts.js";
 import { processYouTubeLink } from "src/utils/videoAulaUtils.js";
 
 import VideoPlayer from "components/student/VideoPlayer";
+import CommentsSection from "components/comments/CommentsSection";
+import { useComments } from "src/hooks/useComments.js";
+import UserAvatar from "components/ui/UserAvatar";
+import { FiX, FiMessageSquare } from "react-icons/fi";
+
 import Loading from "components/Loading";
 import Alert from "components/ui/Alert";
 import { useMessage } from "src/hooks/useMessage.js";
+
+const CommentPreview = ({ comment, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+    >
+      {comment ? (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-bold text-sm">Comentários</p>
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <FiMessageSquare />
+              <span>Ver todos</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <UserAvatar username={comment.username} />
+            <div>
+              <p className="text-xs font-bold">{comment.username}</p>
+              <p className="text-sm text-gray-700 line-clamp-2">
+                {comment.content}
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="text-sm text-gray-500 text-center">
+          Seja o(a) primeiro(a) a comentar!
+        </div>
+      )}
+    </button>
+  );
+};
 
 export default function CollectionDetailPage({
   collection,
@@ -17,7 +56,6 @@ export default function CollectionDetailPage({
   pageConfig,
 }) {
   const { backLink, backText } = pageConfig;
-
   const router = useRouter();
   const { user, isLoading: isLoadingAuth } = useAuth();
   const { error, setError } = useMessage();
@@ -27,10 +65,21 @@ export default function CollectionDetailPage({
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
-  // Efeito para autenticação e permissões
+  const [activeVideo, setActiveVideo] = useState(null);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+
+  const { comments: videoComments } = useComments({
+    videoId: activeVideo?.videoId,
+    user: user,
+    isLoadingAuth: isLoadingAuth,
+  });
+
+  const topComment = useMemo(() => {
+    return videoComments?.length > 0 ? videoComments[0] : null;
+  }, [videoComments]);
+
   useEffect(() => {
     if (isLoadingAuth || !collection) return;
-
     if (!user) {
       setError(texts.videoAulas.message.error.notAuthenticated);
       setShowContent(false);
@@ -49,7 +98,6 @@ export default function CollectionDetailPage({
     setShowContent(true);
   }, [user, isLoadingAuth, router, setError, collection]);
 
-  // Efeito para processar os vídeos
   useEffect(() => {
     const processCollection = async () => {
       if (!collection || !showContent || !youtubeApiKey) {
@@ -61,14 +109,30 @@ export default function CollectionDetailPage({
         processYouTubeLink(link, youtubeApiKey),
       );
       const videosArrays = await Promise.all(videoPromises);
+      const processedVideos = videosArrays.flat().filter(Boolean);
+
       setProcessedCollection({
         ...collection,
-        videos: videosArrays.flat().filter(Boolean),
+        videos: processedVideos,
       });
+      if (processedVideos.length > 0 && !activeVideo) {
+        setActiveVideo(processedVideos[0]);
+      }
       setIsLoadingVideos(false);
     };
     processCollection();
-  }, [collection, youtubeApiKey, showContent]);
+  }, [collection, youtubeApiKey, showContent, activeVideo]);
+
+  useEffect(() => {
+    if (isCommentsOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isCommentsOpen]);
 
   if (isLoadingAuth || !showContent) {
     return (
@@ -95,11 +159,9 @@ export default function CollectionDetailPage({
         >
           &larr; {backText}
         </Link>
-        <h1 className={`text-4xl font-bold text-gray-900 `}>
-          {collection.title}
-        </h1>
+        <h1 className="text-4xl font-bold text-gray-900">{collection.title}</h1>
         {collection.description && (
-          <div className={`mb-8`}>
+          <div className="mb-8">
             <div
               className={`prose prose-p:text-justify max-w-none overflow-hidden transition-all duration-500 ${
                 isDescriptionExpanded ? "max-h-[1000px]" : "max-h-0"
@@ -114,14 +176,54 @@ export default function CollectionDetailPage({
             </button>
           </div>
         )}
+
         {isLoadingVideos ? (
           <Loading message="Carregando vídeos da coleção..." />
         ) : (
           processedCollection && (
-            <VideoPlayer collection={processedCollection} />
+            <VideoPlayer
+              collection={processedCollection}
+              activeVideo={activeVideo}
+              onVideoSelect={setActiveVideo}
+              mobileCommentPreview={
+                <CommentPreview
+                  comment={topComment}
+                  onClick={() => setIsCommentsOpen(true)}
+                />
+              }
+            />
           )
         )}
+
+        {activeVideo && (
+          <div className="mt-8">
+            <div className="hidden lg:block">
+              <CommentsSection videoId={activeVideo.videoId} />
+            </div>
+          </div>
+        )}
       </main>
+
+      {isCommentsOpen && activeVideo && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col lg:hidden">
+          {/* Botão de fechar flutuante */}
+          <button
+            onClick={() => setIsCommentsOpen(false)}
+            className="fixed top-[10.5px] right-4 z-[60] p-2 bg-gray-800/50 text-white rounded-full"
+            aria-label="Fechar comentários"
+          >
+            <FiX size={20} />
+          </button>
+
+          {/* Container que força CommentsSection a ocupar toda a altura */}
+          <div className="w-full h-full flex flex-col">
+            <CommentsSection
+              videoId={activeVideo.videoId}
+              isFullScreen={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

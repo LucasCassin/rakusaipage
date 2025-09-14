@@ -7,7 +7,7 @@ import LoadingSpinner from "components/ui/LoadingSpinner";
 import ReplyThread from "./ReplyThread";
 import CommentsSkeleton from "./CommentsSkeleton";
 
-const CommentsSection = ({ videoId }) => {
+const CommentsSection = ({ videoId, isFullScreen = false }) => {
   const { user: currentUser, isLoading: isLoadingAuth } = useAuth();
 
   const hookResult = useComments({ videoId, user: currentUser, isLoadingAuth });
@@ -162,7 +162,13 @@ const CommentsSection = ({ videoId }) => {
 
   return (
     // Container principal que define a altura máxima e o layout flexível
-    <div className="w-full h-full max-h-[85vh] flex flex-col bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+    <div
+      className={`w-full h-full flex flex-col bg-white ${
+        !isFullScreen
+          ? "max-h-[85vh] border border-gray-200 rounded-lg shadow-md overflow-hidden"
+          : ""
+      }`}
+    >
       {/* 1. Cabeçalho Fixo (Título) */}
       <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white z-10">
         <h2 className="text-xl font-bold">
