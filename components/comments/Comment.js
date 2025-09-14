@@ -42,11 +42,11 @@ const Comment = (props) => {
 
   return (
     <div
-      className={`flex gap-3 my-4 transition-opacity duration-300 ${isDisabled ? "opacity-50 pointer-events-none" : ""}`}
+      className={`flex gap-3 mt-4 mb-2 transition-opacity duration-300 ${isDisabled ? "opacity-50 pointer-events-none" : ""}`}
     >
       <UserAvatar username={comment.username} />
       <div className="flex-1">
-        <div className="bg-gray-100 p-3 rounded-xl">
+        <div className="px-2 pb-2 pt-1 rounded-xl">
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm">{comment.username}</span>
             <span className="text-xs text-gray-500">

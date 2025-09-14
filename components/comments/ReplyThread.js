@@ -59,7 +59,7 @@ const ReplyThread = ({
           <Button
             variant="link"
             onClick={showMoreReplies}
-            className="text-sm mt-2 font-thin pl-2"
+            className="text-sm mt-2 font-thin pl-2 pt-0 pb-flex gap-3 my-4"
             disabled={isParentBeingDeleted}
           >
             Ver mais {parentComment.children.length - openThread.visibleCount}{" "}
@@ -75,7 +75,7 @@ const ReplyThread = ({
     <Button
       variant="link"
       onClick={() => toggleReplies(parentComment.id)}
-      className="text-sm font-thin pl-4"
+      className="text-sm font-thin pl-4 pt-0 pb-0"
       disabled={isParentBeingDeleted}
     >
       Ver {parentComment.children.length}{" "}
