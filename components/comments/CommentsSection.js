@@ -177,7 +177,7 @@ const CommentsSection = ({ videoId }) => {
 
       {/* 2. Área de Conteúdo Rolável */}
       {canRead && (
-        <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500">
+        <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent hover:scrollbar-thumb-gray-500">
           {CommentList}
         </div>
       )}
