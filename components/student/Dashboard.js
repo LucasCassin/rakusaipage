@@ -80,8 +80,10 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
         <div id="video-aulas">
           <VideoAulasSection />
         </div>
-
-        <CommentsSection videoId={"comentarios-pagina-inicial-student"} />
+        <div id="forum">
+          <h2 className="text-3xl font-bold text-gray-800 mb-5">Fórum</h2>
+          <CommentsSection videoId={"comentarios-pagina-inicial-student"} />
+        </div>
       </main>
     </div>
   );
