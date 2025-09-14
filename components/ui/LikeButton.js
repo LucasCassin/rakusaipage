@@ -2,7 +2,14 @@ import React, { useState, useEffect } from "react";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import Spinner from "components/ui/Spinner";
 
-const LikeButton = ({ isLiked, likeCount, onClick, disabled, isLoading }) => {
+const LikeButton = ({
+  isLiked,
+  likeCount,
+  onClick,
+  disabled,
+  isLoading,
+  className,
+}) => {
   const [isAnimating, setIsAnimating] = useState(false);
 
   // useEffect "escuta" por mudanças na prop isLiked
@@ -19,8 +26,7 @@ const LikeButton = ({ isLiked, likeCount, onClick, disabled, isLoading }) => {
     <button
       onClick={onClick}
       disabled={disabled || isLoading}
-      className="flex items-center justify-center gap-1.5 p-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      style={{ minWidth: "45px" }}
+      className={`flex items-center justify-center gap-1.5 p-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${className || ""}`}
       aria-label="Curtir"
     >
       {isLoading ? (
@@ -32,7 +38,7 @@ const LikeButton = ({ isLiked, likeCount, onClick, disabled, isLoading }) => {
           >
             {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
           </span>
-          <span>{likeCount}</span>
+          <span className="font-thin text-xs">{likeCount}</span>
         </>
       )}
     </button>

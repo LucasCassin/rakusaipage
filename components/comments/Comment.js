@@ -73,22 +73,29 @@ const Comment = (props) => {
               onClick={() => onLike(comment.id, comment.liked_by_user)}
               isLoading={isThisCommentBeingLiked}
               disabled={(comment.liked_by_user && !canUnlike) || isDisabled}
+              className="w-10"
             />
           )}
           {canReply && (
             <button
               onClick={onSetReply}
               disabled={isDisabled}
-              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
+              className="w-10 flex items-center justify-center gap-1.5 p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
               <FiMessageSquare />
+              {/* Exibe o contador apenas se houver 1 ou mais respostas */}
+              {comment.children && comment.children.length > 0 && (
+                <span className="font-thin text-xs">
+                  {comment.children.length}
+                </span>
+              )}
             </button>
           )}
           {canEdit && (
             <button
               onClick={onSetEdit}
               disabled={isDisabled}
-              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
+              className="w-10 flex justify-center p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
               <FiEdit2 />
             </button>
@@ -97,7 +104,7 @@ const Comment = (props) => {
             <button
               onClick={() => onDelete(comment.id)}
               disabled={isDisabled}
-              className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
+              className="w-10 flex justify-center p-1 rounded-md hover:bg-gray-100 disabled:opacity-50"
             >
               {isAffectedByDeletion ? (
                 <Spinner size="4" color="text-red-500" />
