@@ -84,7 +84,7 @@ describe("GET /api/v1/users", () => {
 
     it("should return a list (1) of users matching the specified feature", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=nivel:fue:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:fue:nao:mostrar`,
         {
           method: "GET",
           headers: {
@@ -105,7 +105,7 @@ describe("GET /api/v1/users", () => {
     it("should return a list (2) of users matching the specified feature", async () => {
       await user.addFeatures(targetUserWithFeature2, ["nivel:fue:nao:mostrar"]);
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=nivel:fue:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:fue:nao:mostrar`,
         {
           method: "GET",
           headers: {
@@ -128,9 +128,41 @@ describe("GET /api/v1/users", () => {
       ]);
     });
 
+    it("should return a list (2) of users matching a list of features", async () => {
+      await user.addFeatures(targetUserWithFeature2, ["nivel:fue:nao:mostrar"]);
+      await user.addFeatures(targetUserWithFeature, [
+        "nivel:taiko:nao:mostrar",
+      ]);
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:fue:nao:mostrar&features=nivel:taiko:nao:mostrar`,
+        {
+          method: "GET",
+          headers: {
+            cookie: `session_id=${adminSession.token}`,
+          },
+        },
+      );
+
+      const resBody = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(resBody)).toBe(true);
+      expect(resBody).toHaveLength(2);
+      expect(resBody[1].username).toBe(targetUserWithFeature.username);
+      expect(resBody[1].id).toBe(targetUserWithFeature.id);
+      expect(resBody[0].username).toBe(targetUserWithFeature2.username);
+      expect(resBody[0].id).toBe(targetUserWithFeature2.id);
+      await user.removeFeatures(targetUserWithFeature2, [
+        "nivel:fue:nao:mostrar",
+      ]);
+      await user.removeFeatures(targetUserWithFeature, [
+        "nivel:taiko:nao:mostrar",
+      ]);
+    });
+
     it("should return filtered user data, hiding sensitive information", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=nivel:fue:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:fue:nao:mostrar`,
         {
           method: "GET",
           headers: {
@@ -148,7 +180,7 @@ describe("GET /api/v1/users", () => {
 
     it("should return an empty array if no users have the specified feature", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=nivel:taiko:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:taiko:nao:mostrar`,
         {
           method: "GET",
           headers: {
@@ -171,7 +203,7 @@ describe("GET /api/v1/users", () => {
     it("should return 403 ForbiddenError if user does not have 'read:user:other' feature", async () => {
       const regularSession = await session.create(regularUser);
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=update:user:other`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=update:user:other`,
         {
           method: "GET",
           headers: {
@@ -190,7 +222,7 @@ describe("GET /api/v1/users", () => {
       const expiredSession = await session.create(adminUser);
 
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=update:user:other`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=update:user:other`,
         {
           method: "GET",
           headers: {
@@ -216,13 +248,13 @@ describe("GET /api/v1/users", () => {
       expect(res.status).toBe(400);
       const resBody = await res.json();
       expect(resBody.name).toBe("ValidationError");
-      expect(resBody.message).toBe('"feature" é um campo obrigatório.');
+      expect(resBody.message).toBe('"features" é um campo obrigatório.');
     });
 
     it("should return 400 ValidationError if 'feature' is not a valid feature", async () => {
       const adminSession = await session.create(adminUser);
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=invalid:feature:name`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=invalid:feature:name`,
         {
           method: "GET",
           headers: {
@@ -244,7 +276,7 @@ describe("GET /api/v1/users", () => {
   describe("Anonymous User", () => {
     it("should return 403 ForbiddenError for unauthorized access", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?feature=update:user:other`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=update:user:other`,
         {
           method: "GET",
         },

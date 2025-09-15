@@ -59,9 +59,28 @@ async function postHandler(req, res) {
  * Validates the request query for finding users by feature.
  */
 function getValidator(req, res, next) {
-  req.query = validator(req.query, {
-    feature: "required",
-  });
+  let features = req.query.features || null;
+
+  if (features === null) {
+    validator({}, { features: "required" });
+  }
+
+  let featuresArray = [];
+
+  if (features) {
+    if (Array.isArray(features)) {
+      featuresArray = features;
+    } else {
+      featuresArray = [features];
+    }
+  }
+
+  req.query = validator(
+    { features: featuresArray },
+    {
+      features: "required",
+    },
+  );
   return next();
 }
 
@@ -70,9 +89,9 @@ function getValidator(req, res, next) {
  */
 async function getHandler(req, res) {
   const requestingUser = req.context.user;
-  const { feature } = req.query;
+  const { features } = req.query;
 
-  const foundUsers = await user.findUsersByFeature(feature);
+  const foundUsers = await user.findUsersByFeatures(features);
 
   // Filtra os dados de cada usuário para o output
   const filteredUsers = foundUsers.map((foundUser) => {

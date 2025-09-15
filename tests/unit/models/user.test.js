@@ -456,7 +456,7 @@ describe("User Model", () => {
     });
   });
 
-  describe("findUsersByFeature", () => {
+  describe("findUsersByFeatures", () => {
     let adminUser1, adminUser2, regularUser;
 
     beforeAll(async () => {
@@ -495,12 +495,33 @@ describe("User Model", () => {
       });
 
       // Adiciona a feature 'read:user:other' aos usuários admin
-      await user.addFeatures(adminUser1, ["nivel:fue:nao:mostrar"]);
-      await user.addFeatures(adminUser2, ["nivel:fue:nao:mostrar"]);
+      await user.addFeatures(adminUser1, [
+        "nivel:fue:nao:mostrar",
+        "read:table",
+      ]);
+      await user.addFeatures(adminUser2, [
+        "nivel:fue:nao:mostrar",
+        "update:table",
+      ]);
     });
 
     it("should return a list of users that have the specified feature", async () => {
-      const results = await user.findUsersByFeature("nivel:fue:nao:mostrar");
+      const results = await user.findUsersByFeatures(["nivel:fue:nao:mostrar"]);
+
+      expect(results).toHaveLength(2);
+
+      // Verifica se os IDs dos usuários corretos estão na lista, independentemente da ordem
+      const foundUserIds = results.map((u) => u.id);
+      expect(foundUserIds).toContain(adminUser1.id);
+      expect(foundUserIds).toContain(adminUser2.id);
+      expect(foundUserIds).not.toContain(regularUser.id);
+    });
+
+    it("should return a list of users that have the features", async () => {
+      const results = await user.findUsersByFeatures([
+        "read:table",
+        "update:table",
+      ]);
 
       expect(results).toHaveLength(2);
 
@@ -512,7 +533,9 @@ describe("User Model", () => {
     });
 
     it("should return an empty array if no users have the specified feature", async () => {
-      const results = await user.findUsersByFeature("nivel:taiko:nao:mostrar");
+      const results = await user.findUsersByFeatures([
+        "nivel:taiko:nao:mostrar",
+      ]);
       expect(results).toEqual([]);
     });
 
@@ -520,30 +543,30 @@ describe("User Model", () => {
       // Adiciona uma feature única a apenas um usuário
       await user.addFeatures(adminUser1, ["read:table"]);
 
-      const results = await user.findUsersByFeature("read:table");
+      const results = await user.findUsersByFeatures(["read:table"]);
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe(adminUser1.id);
     });
 
-    it("should throw ValidationError if the 'feature' parameter is missing", async () => {
-      await expect(user.findUsersByFeature()).rejects.toThrow(ValidationError);
-      await expect(user.findUsersByFeature()).rejects.toThrow(
+    it("should throw ValidationError if the 'features' parameter is missing", async () => {
+      await expect(user.findUsersByFeatures()).rejects.toThrow(ValidationError);
+      await expect(user.findUsersByFeatures()).rejects.toThrow(
         expect.objectContaining({
-          message: '"feature" é um campo obrigatório.',
+          message: '"features" é um campo obrigatório.',
         }),
       );
     });
 
     it("should throw ValidationError if the feature is not in the list of valid features", async () => {
-      const invalidFeature = "feature:que:nao:existe";
+      const invalidFeature = ["feature:que:nao:existe", "read:table"];
 
-      await expect(user.findUsersByFeature(invalidFeature)).rejects.toThrow(
+      await expect(user.findUsersByFeatures(invalidFeature)).rejects.toThrow(
         ValidationError,
       );
-      await expect(user.findUsersByFeature(invalidFeature)).rejects.toThrow(
+      await expect(user.findUsersByFeatures(invalidFeature)).rejects.toThrow(
         expect.objectContaining({
           name: "ValidationError",
-          message: `"${invalidFeature}" não é uma feature válida.`,
+          message: `"${invalidFeature[0]}" não é uma feature válida.`,
         }),
       );
     });

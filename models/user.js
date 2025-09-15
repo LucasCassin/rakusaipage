@@ -429,19 +429,23 @@ async function expireUserPassword(userObject) {
  * @param {string} feature - The feature to search for.
  * @returns {Array} - Returns a list of users with the feature.
  */
-async function findUsersByFeature(feature) {
-  const validatedData = validator({ feature }, { feature: "required" });
+async function findUsersByFeatures(features) {
+  const validatedData = validator({ features }, { features: "required" });
+
+  if (validatedData.features.length === 0) {
+    return [];
+  }
 
   const query = {
     text: `
-      SELECT
-        *
-      FROM
-        users
-      WHERE
-        features::text[] @> ARRAY[$1]::text[]
+    SELECT
+      *
+    FROM
+      users
+    WHERE
+      features::text[] && $1::text[]
     ;`,
-    values: [validatedData.feature],
+    values: [validatedData.features],
   };
 
   const results = await database.query(query);
@@ -457,7 +461,7 @@ const user = {
   removeFeatures,
   expireUserPassword,
   updateFeatures,
-  findUsersByFeature,
+  findUsersByFeatures,
   DEFAULT_FEATURES,
 };
 
