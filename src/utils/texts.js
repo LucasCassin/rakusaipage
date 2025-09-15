@@ -572,4 +572,16 @@ export const texts = {
       },
     },
   },
+  findUser: {
+    title: "Buscar Usuários por Features",
+    description:
+      "Encontre usuários com base em suas permissões e níveis de acesso.",
+    message: {
+      error: {
+        notAuthenticated: "Você não está autenticado. Por favor, faça login.",
+        noPermission: "Você não tem permissão para acessar esta página.",
+        noResults: "Nenhum resultado encontrado",
+      },
+    },
+  },
 };

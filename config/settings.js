@@ -338,14 +338,6 @@ export const settings = {
           FEATURES: [["read:user:self"], ["read:user:other"]],
           icon: "UserIcon",
         },
-      ],
-      [
-        {
-          name: "Criar usuário",
-          href: "/register",
-          FEATURES: [["create:user"]],
-          icon: "UserPlusIcon",
-        },
         {
           name: "Editar Perfil",
           href: "/profile/edit",
@@ -364,6 +356,20 @@ export const settings = {
             ["read:user:other", "update:user:other"],
           ],
           icon: "KeyIcon",
+        },
+      ],
+      [
+        {
+          name: "Criar usuário",
+          href: "/register",
+          FEATURES: [["create:user"]],
+          icon: "UserPlusIcon",
+        },
+        {
+          name: "Buscar Usuários",
+          href: "/find-users",
+          FEATURES: [["read:user:other"]],
+          icon: "MagnifyingGlassIcon", // Exemplo de ícone
         },
       ],
       [
@@ -462,4 +468,61 @@ export const settings = {
       FEATURE_NIVEL_FUE_PROFESSOR,
     ],
   },
+
+  findusersbyfeatures: [
+    {
+      name: "Usuários Cadastrados",
+      features: ["create:session"],
+    },
+    {
+      name: "Alunos de Taiko",
+      features: [
+        FEATURE_NIVEL_TAIKO_INICIANTE,
+        FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+        FEATURE_NIVEL_TAIKO_AVANCADO,
+        FEATURE_NIVEL_TAIKO_PROFESSOR,
+      ],
+    },
+    {
+      name: "Alunos de Fue",
+      features: [
+        FEATURE_NIVEL_FUE_INICIANTE,
+        FEATURE_NIVEL_FUE_INTERMEDIARIO,
+        FEATURE_NIVEL_FUE_AVANCADO,
+        FEATURE_NIVEL_FUE_PROFESSOR,
+      ],
+    },
+    {
+      name: "Alunos Avançados de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_AVANCADO],
+    },
+    {
+      name: "Alunos Avançados de Fue",
+      features: [FEATURE_NIVEL_FUE_AVANCADO],
+    },
+    {
+      name: "Alunos Iniciante de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_INICIANTE],
+    },
+    {
+      name: "Alunos Iniciante de Fue",
+      features: [FEATURE_NIVEL_FUE_INICIANTE],
+    },
+    {
+      name: "Alunos Intermediário de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_INTERMEDIARIO],
+    },
+    {
+      name: "Alunos Intermediário de Fue",
+      features: [FEATURE_NIVEL_FUE_INTERMEDIARIO],
+    },
+    {
+      name: "Professores de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_PROFESSOR],
+    },
+    {
+      name: "Professores de Fue",
+      features: [FEATURE_NIVEL_FUE_PROFESSOR],
+    },
+  ],
 };
