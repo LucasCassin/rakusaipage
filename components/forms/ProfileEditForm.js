@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import availableFeatures from "models/user-features";
 import ToggleFeaturesList from "components/ui/ToggleFeaturesList";
+import Button from "components/ui/Button";
 
 export default function ProfileEditForm({
   onSubmit,
@@ -117,14 +118,16 @@ export default function ProfileEditForm({
       )}
 
       <div>
-        <button
+        <Button
           type="submit"
           disabled={disabled}
           onClick={onSubmit}
-          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="primary"
+          className="w-full"
+          // className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {textButton}
-        </button>
+        </Button>
       </div>
     </div>
   );

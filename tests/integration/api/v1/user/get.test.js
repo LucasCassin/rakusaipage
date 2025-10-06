@@ -13,6 +13,10 @@ beforeAll(async () => {
     email: "testuser@example.com",
     password: "Senha@123",
   });
+  testUser = await user.update({
+    id: testUser.id,
+    password: "Senha@123",
+  });
   testSession = await session.create(testUser);
 });
 
@@ -32,12 +36,7 @@ describe("GET /api/v1/user", () => {
         id: testUser.id,
         username: testUser.username,
         email: "t******r@example.com",
-        features: [
-          "create:session",
-          "read:session:self",
-          "read:user:self",
-          "update:user:self",
-        ],
+        features: user.DEFAULT_FEATURES,
         password_expires_at: testUser.password_expires_at.toISOString(),
         created_at: testUser.created_at.toISOString(),
         updated_at: testUser.updated_at.toISOString(),
@@ -150,12 +149,7 @@ describe("GET /api/v1/user", () => {
         id: expiredUser.id,
         username: expiredUser.username,
         email: "e**************l@example.com",
-        features: [
-          "create:session",
-          "read:session:self",
-          "read:user:self",
-          "update:user:self",
-        ],
+        features: user.DEFAULT_FEATURES,
         password_expires_at: expiredUser.password_expires_at.toISOString(),
         created_at: expiredUser.created_at.toISOString(),
         updated_at: expiredUser.updated_at.toISOString(),

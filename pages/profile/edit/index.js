@@ -397,6 +397,8 @@ export default function EditProfile() {
   ]);
 
   // ===== Component Renderers =====
+  const layoutMaxWidth = state.canUpdateOthers ? "max-w-xl" : "max-w-md";
+
   const UserSearchField = useMemo(() => {
     if (state.updateMode !== "other" || !state.showContent) {
       return null;
@@ -527,6 +529,7 @@ export default function EditProfile() {
     <PageLayout
       title={state.displayTitle || texts.profileEdit.title}
       description="Edite seu perfil"
+      maxWidth={layoutMaxWidth}
     >
       <div className="text-center">
         <h2 className="mt-6 text-3xl font-extrabold text-gray-900">

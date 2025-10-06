@@ -11,7 +11,6 @@ async function query(queryObject) {
       cause: err,
       message: "Erro na conexão com o Banco ou na Query",
     });
-    console.error(ServiceErrorObject);
     throw ServiceErrorObject;
   } finally {
     await client?.end();
@@ -46,5 +45,5 @@ function getSSLValues() {
     };
   }
 
-  return process.env.NODE_ENV === "production" ? true : false;
+  return process.env.POSTGRES_SSL === "true";
 }

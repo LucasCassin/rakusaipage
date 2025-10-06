@@ -443,4 +443,83 @@ describe("Validator Model", () => {
       );
     });
   });
+
+  describe("Key 'content' (for comments)", () => {
+    it("should correctly validate valid 'content'", () => {
+      const object = { content: "Este é um comentário válido." };
+      const keys = { content: "required" };
+      const result = validator(object, keys);
+      expect(result).toEqual(object);
+    });
+
+    it("should throw ValidationError for empty 'content'", () => {
+      const object = { content: " " }; // Conteúdo vazio
+      const keys = { content: "required" };
+      expect(() => validator(object, keys)).toThrow(ValidationError);
+      expect(() => validator(object, keys)).toThrow(
+        '"content" não pode estar em branco.',
+      );
+    });
+
+    it("should throw ValidationError for 'content' exceeding max length", () => {
+      const object = { content: "a".repeat(2001) }; // Conteúdo muito longo
+      const keys = { content: "required" };
+      expect(() => validator(object, keys)).toThrow(ValidationError);
+      expect(() => validator(object, keys)).toThrow(
+        '"content" deve conter no máximo 2000 caracteres.',
+      );
+    });
+  });
+
+  describe("Key 'video_id'", () => {
+    it("should correctly validate a valid 'video_id'", () => {
+      const object = { video_id: "dQw4w9WgXcQ" };
+      const keys = { video_id: "required" };
+      const result = validator(object, keys);
+      expect(result).toEqual(object);
+    });
+
+    it("should throw ValidationError for an empty 'video_id'", () => {
+      const object = { video_id: "" };
+      const keys = { video_id: "required" };
+      expect(() => validator(object, keys)).toThrow(ValidationError);
+    });
+  });
+
+  describe("Key 'parent_id'", () => {
+    it("should correctly validate a valid 'parent_id' (UUID)", () => {
+      const object = { parent_id: "550e8400-e29b-41d4-a716-446655440000" };
+      const keys = { parent_id: "optional" };
+      const result = validator(object, keys);
+      expect(result).toEqual(object);
+    });
+
+    it("should allow 'parent_id' to be null", () => {
+      const object = { parent_id: null };
+      const keys = { parent_id: "optional" };
+      const result = validator(object, keys);
+      expect(result).toEqual(object);
+    });
+
+    it("should throw ValidationError for an invalid 'parent_id'", () => {
+      const object = { parent_id: "invalid-uuid" };
+      const keys = { parent_id: "optional" };
+      expect(() => validator(object, keys)).toThrow(ValidationError);
+    });
+  });
+
+  describe("Key 'comment_id'", () => {
+    it("should correctly validate a valid 'comment_id'", () => {
+      const object = { comment_id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d" };
+      const keys = { comment_id: "required" };
+      const result = validator(object, keys);
+      expect(result).toEqual(object);
+    });
+
+    it("should throw ValidationError for an invalid 'comment_id'", () => {
+      const object = { comment_id: "not-a-uuid" };
+      const keys = { comment_id: "required" };
+      expect(() => validator(object, keys)).toThrow(ValidationError);
+    });
+  });
 });

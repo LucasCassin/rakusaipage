@@ -251,6 +251,65 @@ const schemas = {
           otherwise: Joi.optional().allow(null),
         }),
     }),
+
+  content: () =>
+    Joi.object({
+      content: Joi.string()
+        .trim()
+        .min(1)
+        .max(2000) // Limite de 2000 caracteres para um comentário
+        .when("$required.content", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  video_id: () =>
+    Joi.object({
+      video_id: Joi.string()
+        .trim()
+        .min(1)
+        .max(255) // Um tamanho seguro para IDs de vídeo ou 'mural'
+        .when("$required.video_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  parent_id: () =>
+    Joi.object({
+      parent_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.parent_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
+
+  comment_id: () =>
+    Joi.object({
+      comment_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.comment_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  return_list: () =>
+    Joi.object({
+      return_list: Joi.boolean().when("$required.return_list", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

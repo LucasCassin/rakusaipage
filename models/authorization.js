@@ -25,6 +25,9 @@ function can(user, feature, resource) {
     case "update:user:self":
       return resource?.id && user.id === resource.id;
 
+    case "update:user:password:self":
+      return resource?.id && user.id === resource.id;
+
     case "read:user:self":
       return resource?.id && user.id === resource.id;
 
@@ -32,6 +35,12 @@ function can(user, feature, resource) {
       return resource?.id && user.id === resource.id;
 
     case "read:session:self":
+      return resource?.user_id && user.id === resource.user_id;
+
+    case "update:self:comment":
+      return resource?.user_id && user.id === resource.user_id;
+
+    case "delete:self:comment":
       return resource?.user_id && user.id === resource.user_id;
   }
 
@@ -95,8 +104,13 @@ function filterInput(user, feature, input, target) {
   if (feature === "update:user:self" && can(user, feature, target)) {
     filteredInputValues = {
       email: input.email,
-      password: input.password,
       username: input.username,
+    };
+  }
+
+  if (feature === "update:user:password:self" && can(user, feature, target)) {
+    filteredInputValues = {
+      password: input.password,
     };
   }
 
@@ -136,6 +150,58 @@ function filterInput(user, feature, input, target) {
   if (feature === "read:session:other" && can(user, feature)) {
     filteredInputValues = {
       session_id: input.session_id,
+    };
+  }
+
+  if (feature === "create:comment" && can(user, feature)) {
+    filteredInputValues = {
+      content: input.content,
+      video_id: input.video_id,
+      parent_id: input.parent_id,
+    };
+  }
+
+  if (feature === "read:comment" && can(user, feature)) {
+    filteredInputValues = {
+      video_id: input.video_id,
+    };
+  }
+
+  if (feature === "update:self:comment" && can(user, feature, target)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
+      content: input.content,
+    };
+  }
+
+  if (feature === "update:other:comment" && can(user, feature)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
+      content: input.content,
+    };
+  }
+
+  if (feature === "delete:self:comment" && can(user, feature, target)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
+    };
+  }
+
+  if (feature === "delete:other:comment" && can(user, feature)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
+    };
+  }
+
+  if (feature === "like:comment" && can(user, feature)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
+    };
+  }
+
+  if (feature === "unlike:comment" && can(user, feature)) {
+    filteredInputValues = {
+      comment_id: input.comment_id,
     };
   }
   // Force the clean up of "undefined" values
@@ -195,7 +261,10 @@ function filterOutput(user, feature, output) {
     };
   }
 
-  if (feature === "update:user:self") {
+  if (
+    feature === "update:user:self" ||
+    feature === "update:user:password:self"
+  ) {
     if (user.id && output.id && user.id === output.id) {
       filteredOutputValues = {
         id: output.id,
@@ -274,6 +343,70 @@ function filterOutput(user, feature, output) {
     };
   }
 
+  if (
+    (feature === "create:comment" ||
+      feature === "read:comment" ||
+      feature === "update:other:comment") &&
+    can(user, feature)
+  ) {
+    // Retorna os dados públicos de um comentário, incluindo a contagem de likes
+    filteredOutputValues = {
+      id: output.id,
+      content: output.content,
+      user_id: output.user_id,
+      video_id: output.video_id,
+      parent_id: output.parent_id,
+      created_at: output.created_at,
+      updated_at: output.updated_at,
+      username: output.username,
+      likes_count: output.likes_count,
+      liked_by_user: output.liked_by_user,
+    };
+  }
+
+  if (feature === "update:self:comment") {
+    if (user.id && output.user_id && user.id === output.user_id) {
+      // Retorna os dados públicos de um comentário, incluindo a contagem de likes
+      filteredOutputValues = {
+        id: output.id,
+        content: output.content,
+        user_id: output.user_id,
+        video_id: output.video_id,
+        parent_id: output.parent_id,
+        created_at: output.created_at,
+        updated_at: output.updated_at,
+        username: output.username,
+        likes_count: output.likes_count,
+        liked_by_user: output.liked_by_user,
+      };
+    }
+  }
+
+  if (
+    (feature === "like:comment" || feature === "unlike:comment") &&
+    can(user, feature)
+  ) {
+    // Retorna o ID do comentário como confirmação da ação
+    filteredOutputValues = {
+      comment_id: output.comment_id,
+      likes_count: output.likes_count,
+      liked_by_user: output.liked_by_user,
+    };
+  }
+
+  if (feature === "delete:other:comment" && can(user, feature)) {
+    filteredOutputValues = {
+      id: output.id,
+    };
+  }
+
+  if (feature === "delete:self:comment") {
+    if (user.id && output.user_id && user.id === output.user_id) {
+      filteredOutputValues = {
+        id: output.id,
+      };
+    }
+  }
   // Force the clean up of "undefined" values
   return cleanObject(filteredOutputValues);
 }

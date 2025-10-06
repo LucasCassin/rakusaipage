@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 import { USER_ENDPOINT, useAuth } from "src/contexts/AuthContext";
+import { useView } from "src/contexts/ViewContext";
 import { settings } from "config/settings.js";
 import { handleApiResponse } from "src/utils/handleApiResponse.js";
 import { texts } from "src/utils/texts.js";
@@ -13,6 +14,7 @@ import { useMessage } from "src/hooks/useMessage.js";
 export default function Logout() {
   const router = useRouter();
   const { user, isLoading: isLoadingUser } = useAuth();
+  const { switchToPublic } = useView();
   const { error, setError } = useMessage();
   const [state, setState] = useState({
     showContent: true,
@@ -58,6 +60,7 @@ export default function Logout() {
           },
         },
         onSuccess: async () => {
+          switchToPublic();
           setState((prev) => ({ ...prev, showContent: false }));
           await mutate(USER_ENDPOINT);
           const previousPage =

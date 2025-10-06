@@ -11,7 +11,7 @@ const SwitchMode = React.memo(
     textOther,
   }) => {
     return (
-      <div className="flex w-full gap-4">
+      <div className="flex w-full gap-4 flex-col sm:flex-row">
         {canUpdateSelf && (
           <Button
             type="button"

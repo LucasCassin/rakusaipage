@@ -1,22 +1,75 @@
 import user from "models/user";
+import session from "models/session";
 import orchestrator from "tests/orchestrator.js";
 import { version as uuidVersion } from "uuid";
-
+let testUser;
+let newSession;
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
+  testUser = await user.create({
+    username: "testuser",
+    email: "testuser@example.com",
+    password: "Senha@123",
+  });
+  testUser = await user.update({
+    id: testUser.id,
+    password: "Senha@123",
+  });
 });
 
 describe("POST /api/v1/users Endpoint", () => {
   describe("Anonymous User", () => {
-    test("should create a new user successfully", async () => {
+    test("should return ForbiddenError for unauthorized access", async () => {
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           username: "testuser",
           email: "testuser@example.com",
+          password: "Senha@123",
+        }),
+      });
+
+      expect(res.status).toBe(403);
+      const resBody = await res.json();
+      expect(resBody).toEqual({
+        name: "ForbiddenError",
+        message: "Usuário não pode executar esta operação.",
+        action: 'Verifique se este usuário possui a feature "create:user".',
+        status_code: 403,
+      });
+    });
+  });
+
+  describe("Authenticated User", () => {
+    beforeEach(async () => {
+      await session.expireAllFromUser(testUser);
+      newSession = await session.create(testUser);
+      await user.addFeatures(testUser, ["create:user"]);
+    });
+    afterEach(async () => {
+      await user.updateFeatures(testUser, [
+        "create:session",
+        "read:session:self",
+        "read:user:self",
+        "update:user:self",
+        "nivel:taiko:iniciante",
+      ]);
+    });
+    test("Should create a new user and return it with default features", async () => {
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
+        body: JSON.stringify({
+          username: "testuser2",
+          email: "testuser2@example.com",
           password: "Senha@123",
         }),
       });
@@ -26,14 +79,9 @@ describe("POST /api/v1/users Endpoint", () => {
       expect(resBody).toEqual(
         expect.objectContaining({
           id: resBody.id,
-          username: "testuser",
-          email: "t******r@example.com",
-          features: [
-            "create:session",
-            "read:session:self",
-            "read:user:self",
-            "update:user:self",
-          ],
+          username: "testuser2",
+          email: "t*******2@example.com",
+          features: user.DEFAULT_FEATURES,
           password_expires_at: resBody.password_expires_at,
           created_at: resBody.created_at,
           updated_at: resBody.updated_at,
@@ -43,15 +91,20 @@ describe("POST /api/v1/users Endpoint", () => {
       expect(Date.parse(resBody.created_at)).not.toBeNaN();
       expect(Date.parse(resBody.updated_at)).not.toBeNaN();
       expect(Date.parse(resBody.password_expires_at)).not.toBeNaN();
-      expect(Date.parse(resBody.password_expires_at)).toBeGreaterThan(
-        Date.parse(resBody.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // expect(Date.parse(resBody.password_expires_at)).toBeGreaterThan(
+      //   Date.parse(resBody.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // );
+      expect(Date.parse(resBody.password_expires_at)).toBeLessThan(
+        Date.parse(resBody.created_at),
       );
     });
-
     test("should return ValidationError for missing required fields", async () => {
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({ username: "testuser" }),
       });
 
@@ -64,11 +117,13 @@ describe("POST /api/v1/users Endpoint", () => {
         status_code: 400,
       });
     });
-
     test("should return ValidationError for invalid email format", async () => {
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({
           username: "testuser",
           email: "invalid-email",
@@ -89,7 +144,10 @@ describe("POST /api/v1/users Endpoint", () => {
     test("should return ValidationError for a short password", async () => {
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({
           username: "testuser2",
           email: "testuser2@example.com",
@@ -110,7 +168,10 @@ describe("POST /api/v1/users Endpoint", () => {
     test("should return ValidationError for a weak password", async () => {
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({
           username: "testuser3",
           email: "testuser3@example.com",
@@ -139,7 +200,10 @@ describe("POST /api/v1/users Endpoint", () => {
 
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({
           username: userPayload.username,
           email: "otheremail@example.com",
@@ -167,7 +231,10 @@ describe("POST /api/v1/users Endpoint", () => {
 
       const res = await fetch(`${orchestrator.webserverUrl}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${newSession.token}`,
+        },
         body: JSON.stringify({
           username: "otheruniqueuser",
           email: userPayload.email,

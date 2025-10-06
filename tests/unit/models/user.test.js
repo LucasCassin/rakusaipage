@@ -29,12 +29,7 @@ describe("User Model", () => {
         username: "testuser1",
         email: "testuser@example.com",
         password: result.password,
-        features: [
-          "create:session",
-          "read:session:self",
-          "read:user:self",
-          "update:user:self",
-        ],
+        features: user.DEFAULT_FEATURES,
         password_expires_at: result.password_expires_at,
         created_at: result.created_at,
         updated_at: result.updated_at,
@@ -43,8 +38,11 @@ describe("User Model", () => {
       expect(Date.parse(result.created_at)).not.toBeNaN();
       expect(Date.parse(result.updated_at)).not.toBeNaN();
       expect(Date.parse(result.password_expires_at)).not.toBeNaN();
-      expect(Date.parse(result.password_expires_at)).toBeGreaterThan(
-        Date.parse(result.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // expect(Date.parse(result.password_expires_at)).toBeGreaterThan(
+      //   Date.parse(result.updated_at) + 89 * 24 * 60 * 60 * 1000,
+      // );
+      expect(Date.parse(result.password_expires_at)).toBeLessThan(
+        Date.parse(result.updated_at),
       );
       expect(result.password).not.toBe("Senha@123");
 
@@ -138,7 +136,7 @@ describe("User Model", () => {
     it("should return an anonymous user with default permissions", () => {
       const result = user.createAnonymous();
       expect(result).toEqual({
-        features: ["create:user", "create:session"],
+        features: [/*"create:user", */ "create:session"],
       });
     });
   });
@@ -311,12 +309,9 @@ describe("User Model", () => {
       const newUser = await user.create(userData);
 
       const result = await user.addFeatures(newUser, ["create:session"]);
-      expect(result.features).toEqual([
-        "read:user:self",
-        "read:session:self",
-        "update:user:self",
-        "create:session",
-      ]);
+      expect(result.features).toEqual(
+        expect.arrayContaining(user.DEFAULT_FEATURES),
+      );
     });
   });
 
@@ -456,6 +451,122 @@ describe("User Model", () => {
         expect.objectContaining({
           name: "NotFoundError",
           message: "Usuário não encontrado.",
+        }),
+      );
+    });
+  });
+
+  describe("findUsersByFeatures", () => {
+    let adminUser1, adminUser2, regularUser;
+
+    beforeAll(async () => {
+      // Setup: Criar usuários com diferentes features para os testes
+      regularUser = await user.create({
+        username: "regularUserForSearch",
+        email: "regular-search@example.com",
+        password: "Senha@123",
+      });
+
+      regularUser = await user.update({
+        id: regularUser.id,
+        password: "Senha@123",
+      });
+
+      adminUser1 = await user.create({
+        username: "adminUser1",
+        email: "admin1@example.com",
+        password: "Senha@123",
+      });
+
+      adminUser1 = await user.update({
+        id: adminUser1.id,
+        password: "Senha@123",
+      });
+
+      adminUser2 = await user.create({
+        username: "adminUser2",
+        email: "admin2@example.com",
+        password: "Senha@123",
+      });
+
+      adminUser2 = await user.update({
+        id: adminUser2.id,
+        password: "Senha@123",
+      });
+
+      // Adiciona a feature 'read:user:other' aos usuários admin
+      await user.addFeatures(adminUser1, [
+        "nivel:fue:nao:mostrar",
+        "read:table",
+      ]);
+      await user.addFeatures(adminUser2, [
+        "nivel:fue:nao:mostrar",
+        "update:table",
+      ]);
+    });
+
+    it("should return a list of users that have the specified feature", async () => {
+      const results = await user.findUsersByFeatures(["nivel:fue:nao:mostrar"]);
+
+      expect(results).toHaveLength(2);
+
+      // Verifica se os IDs dos usuários corretos estão na lista, independentemente da ordem
+      const foundUserIds = results.map((u) => u.id);
+      expect(foundUserIds).toContain(adminUser1.id);
+      expect(foundUserIds).toContain(adminUser2.id);
+      expect(foundUserIds).not.toContain(regularUser.id);
+    });
+
+    it("should return a list of users that have the features", async () => {
+      const results = await user.findUsersByFeatures([
+        "read:table",
+        "update:table",
+      ]);
+
+      expect(results).toHaveLength(2);
+
+      // Verifica se os IDs dos usuários corretos estão na lista, independentemente da ordem
+      const foundUserIds = results.map((u) => u.id);
+      expect(foundUserIds).toContain(adminUser1.id);
+      expect(foundUserIds).toContain(adminUser2.id);
+      expect(foundUserIds).not.toContain(regularUser.id);
+    });
+
+    it("should return an empty array if no users have the specified feature", async () => {
+      const results = await user.findUsersByFeatures([
+        "nivel:taiko:nao:mostrar",
+      ]);
+      expect(results).toEqual([]);
+    });
+
+    it("should return only one user if only one has the feature", async () => {
+      // Adiciona uma feature única a apenas um usuário
+      await user.addFeatures(adminUser1, ["read:table"]);
+
+      const results = await user.findUsersByFeatures(["read:table"]);
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe(adminUser1.id);
+    });
+
+    it("should throw ValidationError if the 'features' parameter is missing", async () => {
+      await expect(user.findUsersByFeatures()).rejects.toThrow(ValidationError);
+      await expect(user.findUsersByFeatures()).rejects.toThrow(
+        expect.objectContaining({
+          message: '"features" é um campo obrigatório.',
+        }),
+      );
+    });
+
+    it("should throw ValidationError if the feature is not in the list of valid features", async () => {
+      const invalidFeature = ["feature:que:nao:existe", "read:table"];
+
+      await expect(user.findUsersByFeatures(invalidFeature)).rejects.toThrow(
+        ValidationError,
+      );
+      await expect(user.findUsersByFeatures(invalidFeature)).rejects.toThrow(
+        expect.objectContaining({
+          name: "ValidationError",
+          message: `"${invalidFeature[0]}" não é uma feature válida.`,
         }),
       );
     });

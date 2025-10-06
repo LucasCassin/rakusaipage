@@ -1,3 +1,12 @@
+const FEATURE_NIVEL_TAIKO_INICIANTE = "nivel:taiko:iniciante";
+const FEATURE_NIVEL_TAIKO_INTERMEDIARIO = "nivel:taiko:intermediario";
+const FEATURE_NIVEL_TAIKO_AVANCADO = "nivel:taiko:avancado";
+const FEATURE_NIVEL_TAIKO_PROFESSOR = "nivel:taiko:admin";
+const FEATURE_NIVEL_FUE_INICIANTE = "nivel:fue:iniciante";
+const FEATURE_NIVEL_FUE_INTERMEDIARIO = "nivel:fue:intermediario";
+const FEATURE_NIVEL_FUE_AVANCADO = "nivel:fue:avancado";
+const FEATURE_NIVEL_FUE_PROFESSOR = "nivel:fue:admin";
+
 export const settings = {
   // Configurações globais
   global: {
@@ -8,6 +17,8 @@ export const settings = {
         USER: "/api/v1/user",
         MIGRATIONS: "/api/v1/migrations",
         STATUS: "/api/v1/status",
+        COMMENT: "/api/v1/comment",
+        COMMENT_LIKE: "/api/v1/comment-like",
       },
     },
     REDIRECTS: {
@@ -33,8 +44,10 @@ export const settings = {
 
   // Configurações de registro
   register: {
-    REQUIRE_TERMS: true,
-    REDIRECT_AFTER_REGISTER: "/login",
+    REQUIRE_TERMS: false,
+    REDIRECT_AFTER_REGISTER: "/register",
+    FEATURE_CREATE_USER: "create:user",
+    FORBIDDEN_REDIRECT: "/403",
   },
 
   // Configurações de perfil
@@ -62,7 +75,7 @@ export const settings = {
   updatePassword: {
     FORBIDDEN_REDIRECT: "/403",
     REDIRECT_AFTER_UPDATE: "/login",
-    FEATURE_UPDATE_SELF: "update:user:self",
+    FEATURE_UPDATE_SELF: "update:user:password:self",
     FEATURE_UPDATE_OTHER: "update:user:other",
     FEATURE_READ_OTHER: "read:user:other",
   },
@@ -241,7 +254,7 @@ export const settings = {
     LOGIN_REDIRECT: "/",
     CREATE_USER_REDIRECT: "/",
     LOGOUT_REDIRECT: "/",
-    NAVS: [
+    PUBLIC_NAVS: [
       {
         name: "Home",
         href: "/#home",
@@ -280,6 +293,32 @@ export const settings = {
       //   FEATURES: [["read:table"], ["read:table", "update:table"]],
       // },
     ],
+    STUDENT_NAVS: [
+      {
+        name: "Mural",
+        href: "/",
+      },
+      {
+        name: "Videoaulas Taiko",
+        href: "/videoaulas-taiko",
+        FEATURES: [
+          ["nivel:taiko:admin"],
+          ["nivel:taiko:iniciante"],
+          ["nivel:taiko:intermediario"],
+          ["nivel:taiko:avancado"],
+        ],
+      },
+      {
+        name: "Videoaulas Fue",
+        href: "/videoaulas-fue",
+        FEATURES: [
+          ["nivel:fue:admin"],
+          ["nivel:fue:iniciante"],
+          ["nivel:fue:intermediario"],
+          ["nivel:fue:avancado"],
+        ],
+      },
+    ],
     OTHER_NAVS: [
       // {
       //   name: "Status",
@@ -292,42 +331,198 @@ export const settings = {
       // },
     ],
     PROFILE_NAVS: [
-      // [
-      //   {
-      //     name: "Meu Perfil",
-      //     href: "/profile",
-      //     FEATURES: [["read:user:self"], ["read:user:other"]],
-      //     icon: "UserIcon",
-      //   },
-      // ],
-      // [
-      //   {
-      //     name: "Editar Perfil",
-      //     href: "/profile/edit",
-      //     FEATURES: [
-      //       ["update:user:self"],
-      //       ["update:user:features:self"],
-      //       ["read:user:other", "update:user:features:other"],
-      //     ],
-      //     icon: "PencilIcon",
-      //   },
-      //   {
-      //     name: "Alterar Senha",
-      //     href: "/profile/password",
-      //     FEATURES: [
-      //       ["update:user:self"],
-      //       ["read:user:other", "update:user:other"],
-      //     ],
-      //     icon: "KeyIcon",
-      //   },
-      // ],
-      // [
-      //   {
-      //     name: "Sair",
-      //     href: "/logout",
-      //     icon: "ArrowLeftOnRectangleIcon",
-      //   },
-      // ],
+      [
+        {
+          name: "Meu Perfil",
+          href: "/profile",
+          FEATURES: [["read:user:self"], ["read:user:other"]],
+          icon: "UserIcon",
+        },
+        {
+          name: "Editar Perfil",
+          href: "/profile/edit",
+          FEATURES: [
+            ["update:user:self"],
+            ["update:user:features:self"],
+            ["read:user:other", "update:user:features:other"],
+          ],
+          icon: "PencilIcon",
+        },
+        {
+          name: "Alterar Senha",
+          href: "/profile/password",
+          FEATURES: [
+            ["update:user:password:self"],
+            ["read:user:other", "update:user:other"],
+          ],
+          icon: "KeyIcon",
+        },
+      ],
+      [
+        {
+          name: "Criar usuário",
+          href: "/register",
+          FEATURES: [["create:user"]],
+          icon: "UserPlusIcon",
+        },
+        {
+          name: "Buscar Usuários",
+          href: "/find-users",
+          FEATURES: [["read:user:other"]],
+          icon: "MagnifyingGlassIcon", // Exemplo de ícone
+        },
+      ],
+      [
+        {
+          name: "Área Pública",
+          href: "/",
+          icon: "ArrowsRightLeftIcon",
+          ap: true,
+        },
+        {
+          name: "Sair",
+          href: "/logout",
+          icon: "ArrowLeftOnRectangleIcon",
+        },
+      ],
     ],
   },
+
+  // Configurações de nivel
+  nivel: {
+    taiko: [
+      {
+        ord: 0,
+        feature: FEATURE_NIVEL_TAIKO_INICIANTE,
+        label: "Iniciante",
+      },
+      {
+        ord: 1,
+        feature: FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+        label: "Intermediário",
+      },
+      {
+        ord: 2,
+        feature: FEATURE_NIVEL_TAIKO_AVANCADO,
+        label: "Avançado",
+      },
+      {
+        ord: 3,
+        feature: FEATURE_NIVEL_TAIKO_PROFESSOR,
+        label: "Professor",
+      },
+      {
+        ord: 999,
+        feature: "nivel:taiko:nao:mostrar",
+        label: "Não Mostrar",
+      },
+    ],
+    fue: [
+      {
+        ord: 0,
+        feature: FEATURE_NIVEL_FUE_INICIANTE,
+        label: "Iniciante",
+      },
+      {
+        ord: 1,
+        feature: FEATURE_NIVEL_FUE_INTERMEDIARIO,
+        label: "Intermediário",
+      },
+      {
+        ord: 2,
+        feature: FEATURE_NIVEL_FUE_AVANCADO,
+        label: "Avançado",
+      },
+      {
+        ord: 3,
+        feature: FEATURE_NIVEL_FUE_PROFESSOR,
+        label: "Professor",
+      },
+      {
+        ord: 999,
+        feature: "nivel:fue:nao:mostrar",
+        label: "Não Mostrar",
+      },
+    ],
+  },
+
+  videoAulas: {
+    FEATURE_TAIKO_INICIANTE: FEATURE_NIVEL_TAIKO_INICIANTE,
+    FEATURE_TAIKO_INTERMEDIARIO: FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+    FEATURE_TAIKO_AVANCADO: FEATURE_NIVEL_TAIKO_AVANCADO,
+    FEATURE_TAIKO_PROFESSOR: FEATURE_NIVEL_TAIKO_PROFESSOR,
+    FEATURE_FUE_INICIANTE: FEATURE_NIVEL_FUE_INICIANTE,
+    FEATURE_FUE_INTERMEDIARIO: FEATURE_NIVEL_FUE_INTERMEDIARIO,
+    FEATURE_FUE_AVANCADO: FEATURE_NIVEL_FUE_AVANCADO,
+    FEATURE_FUE_PROFESSOR: FEATURE_NIVEL_FUE_PROFESSOR,
+    FEATURES_TAIKO: [
+      FEATURE_NIVEL_TAIKO_INICIANTE,
+      FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+      FEATURE_NIVEL_TAIKO_AVANCADO,
+      FEATURE_NIVEL_TAIKO_PROFESSOR,
+    ],
+    FEATURES_FUE: [
+      FEATURE_NIVEL_FUE_INICIANTE,
+      FEATURE_NIVEL_FUE_INTERMEDIARIO,
+      FEATURE_NIVEL_FUE_AVANCADO,
+      FEATURE_NIVEL_FUE_PROFESSOR,
+    ],
+  },
+
+  findusersbyfeatures: [
+    {
+      name: "Usuários Cadastrados",
+      features: ["create:session"],
+    },
+    {
+      name: "Alunos de Taiko",
+      features: [
+        FEATURE_NIVEL_TAIKO_INICIANTE,
+        FEATURE_NIVEL_TAIKO_INTERMEDIARIO,
+        FEATURE_NIVEL_TAIKO_AVANCADO,
+        FEATURE_NIVEL_TAIKO_PROFESSOR,
+      ],
+    },
+    {
+      name: "Alunos de Fue",
+      features: [
+        FEATURE_NIVEL_FUE_INICIANTE,
+        FEATURE_NIVEL_FUE_INTERMEDIARIO,
+        FEATURE_NIVEL_FUE_AVANCADO,
+        FEATURE_NIVEL_FUE_PROFESSOR,
+      ],
+    },
+    {
+      name: "Alunos Avançados de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_AVANCADO],
+    },
+    {
+      name: "Alunos Avançados de Fue",
+      features: [FEATURE_NIVEL_FUE_AVANCADO],
+    },
+    {
+      name: "Alunos Iniciante de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_INICIANTE],
+    },
+    {
+      name: "Alunos Iniciante de Fue",
+      features: [FEATURE_NIVEL_FUE_INICIANTE],
+    },
+    {
+      name: "Alunos Intermediário de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_INTERMEDIARIO],
+    },
+    {
+      name: "Alunos Intermediário de Fue",
+      features: [FEATURE_NIVEL_FUE_INTERMEDIARIO],
+    },
+    {
+      name: "Professores de Taiko",
+      features: [FEATURE_NIVEL_TAIKO_PROFESSOR],
+    },
+    {
+      name: "Professores de Fue",
+      features: [FEATURE_NIVEL_FUE_PROFESSOR],
+    },
+  ],
 };

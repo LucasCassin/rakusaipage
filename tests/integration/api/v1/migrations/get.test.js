@@ -25,9 +25,13 @@ describe("GET /api/v1/migrations Endpoint", () => {
 
   describe("Authenticated User", () => {
     test("should retrieve pending migrations successfully", async () => {
-      const newUser = await user.create({
+      let newUser = await user.create({
         username: "testuser",
         email: "testuser@example.com",
+        password: "Senha@123",
+      });
+      newUser = await user.update({
+        id: newUser.id,
         password: "Senha@123",
       });
       const newSession = await session.create(newUser);
@@ -48,9 +52,13 @@ describe("GET /api/v1/migrations Endpoint", () => {
     });
 
     test("should return ForbiddenError if the user lacks the 'read:migration' feature", async () => {
-      const newUser = await user.create({
+      let newUser = await user.create({
         username: "testuser2",
         email: "testuser2@example.com",
+        password: "Senha@123",
+      });
+      newUser = await user.update({
+        id: newUser.id,
         password: "Senha@123",
       });
       const newSession = await session.create(newUser);

@@ -13,6 +13,10 @@ beforeAll(async () => {
     email: "testuser@example.com",
     password: "Senha@123",
   });
+  testUser = await user.update({
+    id: testUser.id,
+    password: "Senha@123",
+  });
 });
 
 describe("POST /api/v1/sessions", () => {

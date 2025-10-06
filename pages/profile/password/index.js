@@ -363,6 +363,8 @@ export default function UpdatePassword() {
   ]);
 
   // ===== Component Renderers =====
+  const layoutMaxWidth = state.canUpdateOthers ? "max-w-xl" : "max-w-md";
+
   const UserSearchField = useMemo(() => {
     if (state.updateMode !== "other" || !state.showContent) {
       return null;
@@ -473,6 +475,7 @@ export default function UpdatePassword() {
     <PageLayout
       title={state.displayTitle || texts.profilePassword.title}
       description="Altere sua senha"
+      maxWidth={layoutMaxWidth}
     >
       <div className="text-center">
         <h2 className="mt-6 text-3xl font-extrabold text-gray-900">

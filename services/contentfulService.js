@@ -1,11 +1,11 @@
 import { createClient } from "contentful";
 import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
 
-// Inicializa o cliente Contentful
-const client = createClient({
-  space: process.env.CONTENTFUL_SPACE_ID,
-  accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
-});
+const getClient = () =>
+  createClient({
+    space: process.env.CONTENTFUL_SPACE_ID,
+    accessToken: process.env.CONTENTFUL_ACCESS_TOKEN,
+  });
 
 // --- HELPER PARSERS ---
 const parseAsset = (asset) => {
@@ -98,6 +98,35 @@ const parseTipoEvento = (fields) => ({
   iconName: fields.iconName || "Sparkles",
 });
 
+const parseAlunoBoasVindas = (fields) => ({
+  title: fields.titulo || "Bem-vindo(a) de volta,",
+  subtitle: fields.subtitulo || "Vamos fazer barulho!",
+  backgroundImage: fields.imagemDeFundo
+    ? parseAsset(fields.imagemDeFundo)
+    : null,
+});
+
+const parseComunicado = (fields) => ({
+  title: fields.titulo || "",
+  description: parseRichText(fields.descricao),
+  subject: fields.assunto || "Geral",
+  features: fields.features || [],
+  startDate: fields.dataDeInicio,
+  endDate: fields.dataDeFim,
+  canDismissSplash: fields.travaTelaPodeFechar ?? true,
+  showSplash: fields.podeMostrarTravaTela ?? false,
+});
+
+const parseVideoAulaCollection = (fields) => ({
+  title: fields.titulo || null,
+  description: parseRichText(fields.descricao),
+  youtubeLinks: fields.youTubeLinks || [],
+  niveis: fields.niveis || [],
+  thumbnail: fields.image ? parseAsset(fields.image) : null,
+  slug: fields.slug || null,
+  type: fields.type || null,
+});
+
 // --- CONFIGURAÇÃO CENTRAL ---
 const SINGLE_ENTRY_CONFIG = {
   homeCarrossel: { parser: parseHomeCarrossel },
@@ -107,6 +136,7 @@ const SINGLE_ENTRY_CONFIG = {
   homeContrate: { parser: parseHomeContrate },
   homeHistoriaTaiko: { parser: parseHomeHistoriaTaiko },
   redesSociais: { parser: parseRedesSociais },
+  alunoBoasVindas: { parser: parseAlunoBoasVindas },
 };
 
 // --- FUNÇÕES DE BUSCA EXPORTADAS ---
@@ -116,6 +146,7 @@ const SINGLE_ENTRY_CONFIG = {
  * Faz uma única chamada de API para otimização.
  */
 export async function fetchLandingPageData() {
+  const client = getClient();
   const pageData = {};
   try {
     const contentTypeIds = Object.keys(SINGLE_ENTRY_CONFIG);
@@ -143,6 +174,7 @@ export async function fetchLandingPageData() {
  * Busca todas as próximas apresentações e as ordena pela data mais recente.
  */
 export async function fetchUpcomingPresentations() {
+  const client = getClient();
   try {
     const today = new Date();
     // Zera o horário para comparar apenas a data
@@ -172,6 +204,7 @@ export async function fetchUpcomingPresentations() {
  * Busca todos os instrumentos e os ordena pelo campo 'ordem'.
  */
 export async function fetchInstrumentos() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "homeInstrumentos",
@@ -191,6 +224,7 @@ export async function fetchInstrumentos() {
  * Busca todos os horários de aula e os ordena pelo campo 'ordem'.
  */
 export async function fetchHorariosAula() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "horarioAula",
@@ -208,6 +242,7 @@ export async function fetchHorariosAula() {
  * Busca todos os tipos de evento e os ordena pelo campo 'ordem'.
  */
 export async function fetchTiposEvento() {
+  const client = getClient();
   try {
     const entries = await client.getEntries({
       content_type: "tipoEvento",
@@ -217,5 +252,61 @@ export async function fetchTiposEvento() {
   } catch (error) {
     console.error("Erro ao buscar tipos de evento do Contentful:", error);
     return [];
+  }
+}
+
+/**
+ * Busca todos os comunicados e os ordena pela data de início mais recente.
+ */
+export async function fetchComunicados() {
+  const client = getClient();
+  try {
+    const entries = await client.getEntries({
+      content_type: "aulaComunicado",
+      order: "-fields.dataDeInicio", // O '-' ordena do mais novo para o mais antigo
+    });
+    return entries.items?.map((item) => parseComunicado(item.fields)) || [];
+  } catch (error) {
+    console.error("Erro ao buscar comunicados do Contentful:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca todas as coleções de vídeo aulas.
+ */
+export async function fetchVideoAulaCollections() {
+  const client = getClient();
+  try {
+    const entries = await client.getEntries({
+      content_type: "videoAulaCollection",
+    });
+    return (
+      entries.items?.map((item) => parseVideoAulaCollection(item.fields)) || []
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao buscar coleções de vídeo aulas do Contentful:",
+      error,
+    );
+    return [];
+  }
+}
+
+export async function fetchVideoAulaCollectionBySlug(slug) {
+  const client = getClient();
+  try {
+    const entries = await client.getEntries({
+      content_type: "videoAulaCollection",
+      "fields.slug": slug,
+      limit: 1,
+    });
+    if (entries.items && entries.items.length > 0) {
+      return parseVideoAulaCollection(entries.items[0].fields);
+    }
+    return null;
+  } catch (error) {
+    console.error(`Erro ao buscar coleção com slug ${slug}:`, error);
+    return null;
   }
 }

@@ -99,6 +99,11 @@ function patchCanRequestHandler(req, res, next) {
 
   if (
     authorization.can(requestingUser, "update:user:self", requestingUser) ||
+    authorization.can(
+      requestingUser,
+      "update:user:password:self",
+      requestingUser,
+    ) ||
     authorization.can(requestingUser, "update:user:other") ||
     authorization.can(
       requestingUser,
@@ -146,6 +151,7 @@ async function patchHandler(req, res) {
   if (isSelf) {
     let outputFeatures = null;
     let outputSelf = null;
+    let outputPassword = null;
     if (
       rawBodyData.features &&
       authorization.can(requestingUser, "update:user:features:self", targetUser)
@@ -160,7 +166,9 @@ async function patchHandler(req, res) {
     }
     if (
       authorization.can(requestingUser, "update:user:self", targetUser) &&
-      Object.keys(rawBodyData).some((key) => key !== "features")
+      Object.keys(rawBodyData).some(
+        (key) => key !== "features" && key !== "password",
+      )
     ) {
       outputSelf = await handleSelfUpdate(
         req,
@@ -170,8 +178,26 @@ async function patchHandler(req, res) {
         rawBodyData,
       );
     }
-    if (outputFeatures || outputSelf) {
-      return res.status(200).json({ ...outputFeatures, ...outputSelf });
+    if (
+      authorization.can(
+        requestingUser,
+        "update:user:password:self",
+        targetUser,
+      ) &&
+      Object.keys(rawBodyData).some((key) => key === "password")
+    ) {
+      outputPassword = await handleSelfPasswordUpdate(
+        req,
+        res,
+        requestingUser,
+        targetUser,
+        rawBodyData,
+      );
+    }
+    if (outputFeatures || outputSelf || outputPassword) {
+      return res
+        .status(200)
+        .json({ ...outputFeatures, ...outputSelf, ...outputPassword });
     } else {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_UPDATE_USER);
     }
@@ -247,6 +273,42 @@ async function handleSelfUpdate(
   const filteredOutputData = authorization.filterOutput(
     requestingUser,
     "update:user:self",
+    updatedUser,
+  );
+
+  return filteredOutputData;
+}
+
+async function handleSelfPasswordUpdate(
+  req,
+  res,
+  requestingUser,
+  targetUser,
+  rawBodyData,
+) {
+  const validatedBodyData = authorization.filterInput(
+    requestingUser,
+    "update:user:password:self",
+    rawBodyData,
+    targetUser,
+  );
+
+  if (Object.keys(validatedBodyData).length === 0) {
+    throw new ValidationError(ERROR_MESSAGES.NO_KEY_UPDATE_PASSWORD_SELF_USER);
+  }
+
+  if (!validatedBodyData.password) {
+    authentication.checkIfUserPasswordExpired(req, res, () => {});
+  }
+
+  const updatedUser = await user.update({
+    id: targetUser.id,
+    ...validatedBodyData,
+  });
+
+  const filteredOutputData = authorization.filterOutput(
+    requestingUser,
+    "update:user:password:self",
     updatedUser,
   );
 

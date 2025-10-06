@@ -62,17 +62,17 @@ export const texts = {
     },
     message: {
       success: {
-        registration:
-          "Cadastro realizado com sucesso! Redirecionando para o login...",
+        registration: "Cadastro realizado com sucesso!",
       },
       error: {
-        loggedIn: "Você não pode criar uma nova conta enquanto estiver logado.",
+        loggedIn: "Você não pode criar uma nova conta se não estiver logado.",
         termsRequired: "Você precisa aceitar os termos de uso para continuar.",
         connection:
           "Erro de conexão. Verifique sua internet e tente novamente.",
         passwordCriteria: "A senha deve atender todos os critérios abaixo",
         passwordSecurity:
           "A senha deve atender todos os critérios de segurança",
+        forbidden: "Você não tem permissão para acessar esta página.",
       },
     },
     terms: {
@@ -308,7 +308,7 @@ export const texts = {
     },
   },
   header: {
-    title: "Sistema",
+    title: "Rakusai Taiko",
     menu: {
       others: "Outros",
       viewProfile: "Ver perfil",
@@ -560,6 +560,28 @@ export const texts = {
       title: "Acesso não permitido",
       message: "Você não tem permissão para acessar o sistema neste momento",
       button: "Voltar para a página inicial",
+    },
+  },
+  videoAulas: {
+    title: "Vídeos Aula",
+    description: "Vídeos Aulas",
+    message: {
+      error: {
+        notAuthenticated: "Você não está autenticado. Por favor, faça login.",
+        noPermission: "Você não tem permissão para acessar esta página.",
+      },
+    },
+  },
+  findUser: {
+    title: "Buscar Usuários por Features",
+    description:
+      "Encontre usuários com base em suas permissões e níveis de acesso.",
+    message: {
+      error: {
+        notAuthenticated: "Você não está autenticado. Por favor, faça login.",
+        noPermission: "Você não tem permissão para acessar esta página.",
+        noResults: "Nenhum resultado encontrado",
+      },
     },
   },
 };

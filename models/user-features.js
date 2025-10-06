@@ -9,6 +9,7 @@ const availableFeatures = new Set([
   "read:user:self",
   "read:user:other",
   "update:user:self",
+  "update:user:password:self",
   "update:user:other",
   "update:user:features:self",
   "update:user:features:other",
@@ -28,6 +29,38 @@ const availableFeatures = new Set([
   // TABLES
   "read:table",
   "update:table",
+
+  // COMMENTS
+  "create:comment",
+  "read:comment",
+  "update:self:comment",
+  "delete:self:comment",
+  "update:other:comment",
+  "delete:other:comment",
+  "like:comment",
+  "unlike:comment",
+
+  //Taiko
+
+  "nivel:taiko:iniciante",
+  "nivel:taiko:intermediario",
+  "nivel:taiko:avancado",
+  "nivel:taiko:nao:mostrar",
+  // "nivel:taiko:default",
+  // "nivel:taiko:blocked",
+
+  //Fue
+  "nivel:fue:iniciante",
+  "nivel:fue:intermediario",
+  "nivel:fue:avancado",
+  "nivel:fue:nao:mostrar",
+  // "nivel:fue:default"
+  // "nivel:fue:default",
+  // "nivel:fue:blocked",
+
+  //Admin
+  "nivel:taiko:admin",
+  "nivel:fue:admin",
 ]);
 
 export default availableFeatures;

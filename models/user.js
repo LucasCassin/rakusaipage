@@ -10,6 +10,19 @@ import { NotFoundError, ValidationError } from "errors/index.js";
 import ERROR_MESSAGES from "models/error-messages.js";
 
 const DEFAULT_PASSWORD_EXPIRATION_IN_SECONDS = 60 * 60 * 24 * 90; // 90 day
+const DEFAULT_FEATURES = [
+  "create:session",
+  "read:session:self",
+  "read:user:self",
+  "update:user:password:self",
+  "nivel:taiko:iniciante",
+  "create:comment",
+  "read:comment",
+  "update:self:comment",
+  "delete:self:comment",
+  "like:comment",
+  "unlike:comment",
+];
 
 /**
  * Creates a new user in the database.
@@ -25,12 +38,7 @@ async function create(userData) {
   await validateUniqueUser(validatedUserData);
   await hashPasswordInObject(validatedUserData);
 
-  validatedUserData.features = [
-    "create:session",
-    "read:session:self",
-    "read:user:self",
-    "update:user:self",
-  ];
+  validatedUserData.features = DEFAULT_FEATURES;
 
   const query = {
     text: `
@@ -47,7 +55,7 @@ async function create(userData) {
       validatedUserData.email,
       validatedUserData.password,
       validatedUserData.features,
-      datePasswordExpiresAt(),
+      datePasswordExpiresAt("2019-09-21 00:00:00"),
     ],
   };
   const results = await database.query(query);
@@ -60,7 +68,7 @@ async function create(userData) {
  */
 function createAnonymous() {
   return {
-    features: ["create:user", "create:session"],
+    features: [/*"create:user",*/ "create:session"],
   };
 }
 
@@ -180,7 +188,6 @@ async function addFeatures(userObject, features) {
       features: "required",
     },
   );
-
   const query = {
     text: `
       UPDATE
@@ -417,6 +424,34 @@ async function expireUserPassword(userObject) {
   return results.rows[0];
 }
 
+/**
+ * Fetches all users that possess a specific feature.
+ * @param {string} feature - The feature to search for.
+ * @returns {Array} - Returns a list of users with the feature.
+ */
+async function findUsersByFeatures(features) {
+  const validatedData = validator({ features }, { features: "required" });
+
+  if (validatedData.features.length === 0) {
+    return [];
+  }
+
+  const query = {
+    text: `
+    SELECT
+      *
+    FROM
+      users
+    WHERE
+      features::text[] && $1::text[]
+    ;`,
+    values: [validatedData.features],
+  };
+
+  const results = await database.query(query);
+  return results.rows;
+}
+
 const user = {
   create,
   createAnonymous,
@@ -426,6 +461,8 @@ const user = {
   removeFeatures,
   expireUserPassword,
   updateFeatures,
+  findUsersByFeatures,
+  DEFAULT_FEATURES,
 };
 
 export default user;

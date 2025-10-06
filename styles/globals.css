@@ -3,8 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
+html,
+body {
   min-width: 330px;
+  width: 100%;
 }
 
 /* Seus outros estilos globais (keyframes, etc.) vêm depois */
@@ -36,4 +38,15 @@ html {
 /* Estilo da bolinha ativa */
 .swiper-pagination-bullet-active {
   background-color: #b000b0 !important; /* rakusai-purple */
+}
+
+/* Estilos para as setas do carrossel do modal de comunicados */
+.comunicado-swiper .swiper-button-next,
+.comunicado-swiper .swiper-button-prev {
+  color: #6b7280 !important; /* text-gray-500 */
+}
+
+.comunicado-swiper .swiper-button-next:hover,
+.comunicado-swiper .swiper-button-prev:hover {
+  color: #1f2937 !important; /* text-gray-800 */
 }
