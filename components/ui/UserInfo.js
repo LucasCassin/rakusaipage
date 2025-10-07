@@ -8,22 +8,11 @@ const UserInfo = ({
   texts,
   onEditClick,
   renderPasswordStatus,
-  showFeatures = true,
+  showFeatures = false,
+  showEditButton = false,
 }) => {
   return (
     <div className="bg-white shadow rounded-lg p-6 space-y-4">
-      <div className="flex w-full sm:justify-between sm:items-center flex-col sm:flex-row text-center">
-        <h3 className="text-lg font-medium text-gray-900">
-          {texts.userInfoTitle}
-        </h3>
-        <Button
-          onClick={onEditClick}
-          variant="primary"
-          className="inline-flex items-center px-2 py-1.5 text-sm font-semibold h-10 mt-2 sm:mt-0"
-        >
-          {texts.button.edit}
-        </Button>
-      </div>
       <div className="space-y-3">
         {fields.map((field, index) => (
           <UserInfoField
@@ -54,6 +43,17 @@ const UserInfo = ({
           </div>
         </div>
       )}
+      <div className="flex w-full">
+        {showEditButton && (
+          <Button
+            onClick={onEditClick}
+            variant="primary"
+            className="inline-flex items-center justify-center w-full px-2 py-1.5 text-sm font-semibold h-10"
+          >
+            {texts.button.edit}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

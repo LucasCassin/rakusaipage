@@ -32,6 +32,7 @@ export default function Profile() {
     canViewOthers: false,
     canViewSelf: false,
     manualModeChange: false,
+    canUpdateSelf: false,
   });
 
   const { error, setError, clearError } = useMessage();
@@ -81,6 +82,9 @@ export default function Profile() {
       canViewOther: user.features?.includes(
         settings.profile.FEATURE_READ_OTHER,
       ),
+      canUpdateSelf: user.features?.includes(
+        settings.updateUser.FEATURE_UPDATE_SELF,
+      ),
     };
     if (!permissions.canViewSelf && !permissions.canViewOther) {
       setState((prev) => ({
@@ -95,6 +99,7 @@ export default function Profile() {
       ...prev,
       canViewSelf: permissions.canViewSelf,
       canViewOthers: permissions.canViewOther,
+      canUpdateSelf: permissions.canUpdateSelf,
     }));
     if (state.manualModeChange) return;
     let userSearchUsername = "";
@@ -336,6 +341,8 @@ export default function Profile() {
             ? renderPasswordStatus(state.userData.password_expires_at)
             : null
         }
+        showEditButton={state.updateMode === "other" || state.canUpdateSelf}
+        showFeatures={state.updateMode === "other" || state.canUpdateSelf}
       />
     );
   }, [
