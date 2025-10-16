@@ -22,17 +22,20 @@ async function create(subscriptionData) {
   }
 
   const client = await database.getNewClient();
-
   try {
     await client.query("BEGIN");
 
+    const associatedPlan = await plan.findById(validatedData.plan_id);
+    if (!associatedPlan) {
+      // Lançar erro dentro do try/catch para acionar o rollback
+      throw new NotFoundError({
+        message: "Plano de pagamento não encontrado.",
+      });
+    }
+
     const subscriptionQuery = {
-      text: `
-        INSERT INTO user_subscriptions 
-          (user_id, plan_id, discount_value, payment_day, start_date)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *;
-      `,
+      text: `INSERT INTO user_subscriptions (user_id, plan_id, discount_value, payment_day, start_date)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
       values: [
         validatedData.user_id,
         validatedData.plan_id,
@@ -53,10 +56,9 @@ async function create(subscriptionData) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
-    client.release();
+    await client?.end();
   }
 }
-
 /**
  * Busca uma assinatura específica pelo seu ID.
  */
