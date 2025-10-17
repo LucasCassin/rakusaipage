@@ -294,6 +294,7 @@ const profiles = {
       "created_at",
       "updated_at",
       "plan_name",
+      "username",
     ],
   },
   "update:subscription": {

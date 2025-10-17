@@ -127,9 +127,47 @@ async function update(subscriptionId, updateData) {
   return results.rows[0];
 }
 
+/**
+ * Busca todas as assinaturas (função de admin).
+ */
+async function findAll() {
+  const query = {
+    text: `
+      SELECT sub.*, plan.name as plan_name, u.username 
+      FROM user_subscriptions sub
+      JOIN payment_plans plan ON sub.plan_id = plan.id
+      JOIN users u ON sub.user_id = u.id
+      ORDER BY sub.created_at DESC;
+    `,
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+/**
+ * Deleta uma assinatura.
+ */
+async function del(subscriptionId) {
+  const validatedId = validator(
+    { id: subscriptionId },
+    { id: "required|uuid" },
+  );
+  const query = {
+    text: `DELETE FROM user_subscriptions WHERE id = $1 RETURNING id;`,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  if (results.rowCount === 0) {
+    throw new NotFoundError({ message: "Assinatura não encontrada." });
+  }
+  return results.rows[0];
+}
+
 export default {
   create,
   findById,
   findByUserId,
   update,
+  findAll,
+  del,
 };
