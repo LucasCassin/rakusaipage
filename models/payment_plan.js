@@ -83,9 +83,25 @@ async function update(planId, updateData) {
   return results.rows[0];
 }
 
+/**
+ * Deleta um plano de pagamento.
+ * A DB vai impedir a deleção se houver assinaturas ativas.
+ * @param {string} planId - O UUID do plano a ser deletado.
+ */
+async function del(planId) {
+  const validatedId = validator({ id: planId }, { id: "required" });
+  const query = {
+    text: `DELETE FROM payment_plans WHERE id = $1 RETURNING id;`,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows[0];
+}
+
 export default {
   create,
   findAll,
   findById,
   update,
+  del, // Adicionar a nova função
 };

@@ -1,6 +1,8 @@
 import orchestrator from "tests/orchestrator.js";
 import plan from "models/payment_plan.js";
-import { ValidationError, NotFoundError } from "errors/index.js";
+import user from "models/user.js";
+import subscription from "models/subscription.js";
+import { ValidationError } from "errors/index.js";
 
 describe("Payment Plan Model", () => {
   beforeAll(async () => {
@@ -90,6 +92,45 @@ describe("Payment Plan Model", () => {
       await expect(
         plan.update(originalPlan.id, { period_value: -5 }),
       ).rejects.toThrow(ValidationError);
+    });
+  });
+
+  describe("del()", () => {
+    it("should delete a plan that is not in use", async () => {
+      const planToDelete = await plan.create({
+        name: "Plano Temporário",
+        full_value: 10,
+        period_unit: "day",
+        period_value: 1,
+      });
+
+      await plan.del(planToDelete.id);
+
+      const foundPlan = await plan.findById(planToDelete.id);
+      expect(foundPlan).toBeUndefined();
+    });
+
+    it("should throw an error when trying to delete a plan that is in use", async () => {
+      const testUser = await user.create({
+        username: "userWithSub",
+        email: "sub@test.com",
+        password: "StrongPassword123@",
+      });
+      const planInUse = await plan.create({
+        name: "Plano em Uso",
+        full_value: 10,
+        period_unit: "month",
+        period_value: 1,
+      });
+      await subscription.create({
+        user_id: testUser.id,
+        plan_id: planInUse.id,
+        payment_day: 1,
+        start_date: "2025-01-01",
+      });
+
+      // A deleção vai falhar por causa da Foreign Key constraint com ON DELETE RESTRICT
+      await expect(plan.del(planInUse.id)).rejects.toThrow();
     });
   });
 });
