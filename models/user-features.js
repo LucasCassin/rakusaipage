@@ -61,6 +61,30 @@ const availableFeatures = new Set([
   //Admin
   "nivel:taiko:admin",
   "nivel:fue:admin",
+
+  //Planos
+  "create:payment_plan",
+  "read:payment_plan",
+  "update:payment_plan",
+  "delete:payment_plan",
+
+  //Assinaturas
+  "create:subscription",
+  "read:subscription:self",
+  "read:subscription:other",
+  "update:subscription",
+  "delete:subscription",
+
+  //Pagamentos
+  "read:payment:self",
+  "read:payment:other",
+  "update:payment:indicate_paid",
+  "update:payment:confirm_paid",
+
+  //Feature para teste
+  "test:feature",
+  "test:feature:2",
+  "test:feature:3",
 ]);
 
 export default availableFeatures;

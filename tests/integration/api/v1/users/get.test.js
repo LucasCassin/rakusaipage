@@ -129,12 +129,10 @@ describe("GET /api/v1/users", () => {
     });
 
     it("should return a list (2) of users matching a list of features", async () => {
-      await user.addFeatures(targetUserWithFeature2, ["nivel:fue:nao:mostrar"]);
-      await user.addFeatures(targetUserWithFeature, [
-        "nivel:taiko:nao:mostrar",
-      ]);
+      await user.addFeatures(targetUserWithFeature2, ["test:feature:2"]);
+      await user.addFeatures(targetUserWithFeature, ["test:feature:3"]);
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:fue:nao:mostrar&features=nivel:taiko:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=test:feature:2&features=test:feature:3`,
         {
           method: "GET",
           headers: {
@@ -148,16 +146,12 @@ describe("GET /api/v1/users", () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(resBody)).toBe(true);
       expect(resBody).toHaveLength(2);
-      expect(resBody[1].username).toBe(targetUserWithFeature.username);
-      expect(resBody[1].id).toBe(targetUserWithFeature.id);
-      expect(resBody[0].username).toBe(targetUserWithFeature2.username);
-      expect(resBody[0].id).toBe(targetUserWithFeature2.id);
-      await user.removeFeatures(targetUserWithFeature2, [
-        "nivel:fue:nao:mostrar",
-      ]);
-      await user.removeFeatures(targetUserWithFeature, [
-        "nivel:taiko:nao:mostrar",
-      ]);
+      expect(resBody[0].username).toBe(targetUserWithFeature.username);
+      expect(resBody[0].id).toBe(targetUserWithFeature.id);
+      expect(resBody[1].username).toBe(targetUserWithFeature2.username);
+      expect(resBody[1].id).toBe(targetUserWithFeature2.id);
+      await user.removeFeatures(targetUserWithFeature2, ["test:feature:2"]);
+      await user.removeFeatures(targetUserWithFeature, ["test:feature:3"]);
     });
 
     it("should return filtered user data, hiding sensitive information", async () => {
@@ -180,7 +174,7 @@ describe("GET /api/v1/users", () => {
 
     it("should return an empty array if no users have the specified feature", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/users?features=nivel:taiko:nao:mostrar`,
+        `${orchestrator.webserverUrl}/api/v1/users?features=test:feature`,
         {
           method: "GET",
           headers: {
