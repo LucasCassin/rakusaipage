@@ -131,7 +131,10 @@ async function findByUserId(userId) {
   const validatedId = validator({ id: userId }, { id: "required|uuid" });
   const query = {
     text: `
-            SELECT p.*, plan.name as plan_name
+            SELECT 
+              p.*, 
+              plan.name as plan_name,
+              sub.user_id -- MUDANÇA: Adiciona o user_id ao resultado
             FROM payments p
             JOIN user_subscriptions sub ON p.subscription_id = sub.id
             JOIN payment_plans plan ON sub.plan_id = plan.id
@@ -146,12 +149,19 @@ async function findByUserId(userId) {
 }
 
 /**
- * Busca um pagamento específico pelo seu ID.
+ * Busca um pagamento específico pelo seu ID, incluindo o user_id.
  */
 async function findById(paymentId) {
   const validatedId = validator({ id: paymentId }, { id: "required|uuid" });
   const query = {
-    text: `SELECT * FROM payments WHERE id = $1;`,
+    text: `
+          SELECT 
+            p.*,
+            sub.user_id -- MUDANÇA: Adiciona o user_id ao resultado
+          FROM payments p
+          JOIN user_subscriptions sub ON p.subscription_id = sub.id
+          WHERE p.id = $1;
+        `,
     values: [validatedId.id],
   };
   const results = await database.query(query);
@@ -177,6 +187,28 @@ async function findAndSetOverdue() {
   return results.rows; // Retorna os pagamentos que foram atualizados
 }
 
+/**
+ * Busca todos os pagamentos no sistema (função de admin).
+ */
+async function findAll() {
+  const query = {
+    text: `
+            SELECT 
+              p.*, 
+              plan.name as plan_name, 
+              u.username,
+              sub.user_id -- MUDANÇA: Adiciona o user_id ao resultado
+            FROM payments p
+            JOIN user_subscriptions sub ON p.subscription_id = sub.id
+            JOIN payment_plans plan ON sub.plan_id = plan.id
+            JOIN users u ON sub.user_id = u.id
+            ORDER BY p.due_date DESC;
+        `,
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
 export default {
   create,
   createInitialPayment,
@@ -185,4 +217,5 @@ export default {
   findByUserId,
   findById,
   findAndSetOverdue,
+  findAll, // Adicionar a nova função
 };
