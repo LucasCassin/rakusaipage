@@ -8,6 +8,8 @@ export function useFinancialDashboard(user, canFetch) {
     pendingThisMonth: "...",
     awaitingConfirmation: "...",
   });
+  const [payments, setPayments] = useState([]);
+  const [activeTab, setActiveTab] = useState("awaiting_confirmation");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,6 +32,58 @@ export function useFinancialDashboard(user, canFetch) {
           pendingThisMonth: "R$ 250,00",
           awaitingConfirmation: 3,
         });
+        setPayments([
+          // Pagamento que o usuário avisou
+          {
+            id: "1",
+            username: "Lucas",
+            plan_name: "Plano Mensal",
+            due_date: "2025-10-05",
+            amount_due: "150.00",
+            status: "PENDING",
+            user_notified_payment: true,
+          },
+          // Pagamento pendente normal
+          {
+            id: "2",
+            username: "Alícia",
+            plan_name: "Plano Mensal",
+            due_date: "2025-10-10",
+            amount_due: "150.00",
+            status: "PENDING",
+            user_notified_payment: false,
+          },
+          // Pagamento que o usuário avisou
+          {
+            id: "3",
+            username: "Caio",
+            plan_name: "Plano Quinzenal",
+            due_date: "2025-10-15",
+            amount_due: "90.00",
+            status: "PENDING",
+            user_notified_payment: true,
+          },
+          // Pagamento já confirmado (para o histórico)
+          {
+            id: "4",
+            username: "Naka",
+            plan_name: "Plano Mensal",
+            due_date: "2025-09-05",
+            amount_due: "150.00",
+            status: "CONFIRMED",
+            user_notified_payment: true,
+          },
+          // Pagamento atrasado (OVERDUE)
+          {
+            id: "5",
+            username: "Kevin",
+            plan_name: "Plano Mensal",
+            due_date: "2025-09-10",
+            amount_due: "150.00",
+            status: "OVERDUE",
+            user_notified_payment: false,
+          },
+        ]);
         setIsLoading(false);
       }, 1500);
     };
@@ -37,5 +91,12 @@ export function useFinancialDashboard(user, canFetch) {
     fetchData();
   }, [user, canFetch]);
 
-  return { kpiData, isLoading, error };
+  return {
+    kpiData,
+    payments,
+    activeTab,
+    setActiveTab,
+    isLoading,
+    error,
+  };
 }

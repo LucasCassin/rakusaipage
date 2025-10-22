@@ -10,15 +10,20 @@ import InitialLoading from "components/InitialLoading";
 import KPICard from "components/ui/KPICard";
 import KPICardSkeleton from "components/ui/KPICardSkeleton";
 import { useFinancialDashboard } from "src/hooks/useFinancialDashboard";
-// MUDANÇA: Ícones mais representativos
+import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
+import PaymentListItem from "components/ui/PaymentListItem";
+import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
 import { FiUsers, FiDollarSign, FiClock, FiCheckSquare } from "react-icons/fi";
 
-// Definição de permissões por seção
+// MUDANÇA: Definição de permissões para cada seção
 const PERMISSIONS_KPI_SECTION = [
   "read:payment:other",
   "read:subscription:other",
 ];
-// ... futuras seções aqui
+const PERMISSIONS_PAYMENT_MANAGEMENT = [
+  "read:payment:other",
+  "update:payment:confirm_paid",
+];
 
 export default function FinancialDashboardPage() {
   const router = useRouter();
@@ -26,25 +31,29 @@ export default function FinancialDashboardPage() {
   const [showContent, setShowContent] = useState(false);
   const [authError, setAuthError] = useState(null);
 
+  // MUDANÇA: Lógica de permissões agora considera ambas as seções
   const userPermissions = useMemo(() => {
     const userFeatures = user?.features || [];
     const hasPermission = (requiredFeatures) =>
       requiredFeatures.some((feature) => userFeatures.includes(feature));
+
     const canViewKPIs = hasPermission(PERMISSIONS_KPI_SECTION);
-    // ... futuras seções aqui
+    const canViewPaymentManagement = hasPermission(
+      PERMISSIONS_PAYMENT_MANAGEMENT,
+    );
+
     return {
       canViewKPIs,
-      canAccessPage: canViewKPIs, // A página é acessível se pelo menos uma seção for visível
+      canViewPaymentManagement,
+      canAccessPage: canViewKPIs || canViewPaymentManagement, // Acesso liberado se puder ver pelo menos uma seção
     };
   }, [user]);
 
-  const {
-    kpiData,
-    isLoading: isLoadingKPIs,
-    error: kpiError,
-  } = useFinancialDashboard(user, userPermissions.canViewKPIs);
+  // MUDANÇA: Puxa todos os dados e setters necessários do hook
+  const { kpiData, payments, activeTab, setActiveTab, isLoading, error } =
+    useFinancialDashboard(user, userPermissions.canAccessPage);
 
-  // Efeito de guarda de autenticação e autorização
+  // Efeito de guarda (sem alterações)
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
@@ -62,6 +71,25 @@ export default function FinancialDashboardPage() {
     setShowContent(true);
   }, [user, isLoadingAuth, userPermissions.canAccessPage, router]);
 
+  // MUDANÇA: Cria uma lista filtrada com base na aba ativa
+  const filteredPayments = useMemo(() => {
+    if (!payments) return [];
+    switch (activeTab) {
+      case "awaiting_confirmation":
+        return payments.filter(
+          (p) => p.user_notified_payment && p.status === "PENDING",
+        );
+      case "pending_overdue":
+        return payments.filter(
+          (p) => p.status === "PENDING" || p.status === "OVERDUE",
+        );
+      case "history":
+        return payments; // Por enquanto, mostra todos
+      default:
+        return [];
+    }
+  }, [activeTab, payments]);
+
   if (isLoadingAuth || !showContent) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -78,7 +106,6 @@ export default function FinancialDashboardPage() {
     <PageLayout
       title="Dashboard Financeiro"
       description="Acompanhamento de pagamentos de alunos."
-      // MUDANÇA: Aumenta a largura máxima do contêiner da página
       maxWidth="max-w-7xl"
     >
       <div>
@@ -95,9 +122,9 @@ export default function FinancialDashboardPage() {
           <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
             Visão Geral
           </h3>
-          {kpiError && <Alert type="error">{kpiError}</Alert>}
+          {error && <Alert type="error">{error}</Alert>}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {isLoadingKPIs ? (
+            {isLoading ? (
               <>
                 <KPICardSkeleton />
                 <KPICardSkeleton />
@@ -106,7 +133,6 @@ export default function FinancialDashboardPage() {
               </>
             ) : (
               <>
-                {/* MUDANÇA: Adicionadas as props 'color' e novos ícones */}
                 <KPICard
                   title="Alunos Ativos"
                   value={kpiData.activeStudents}
@@ -137,7 +163,33 @@ export default function FinancialDashboardPage() {
         </div>
       )}
 
-      <div className="mt-12">{/* Placeholder para a próxima seção */}</div>
+      {/* MUDANÇA: Placeholder substituído pela seção de Gestão de Pagamentos */}
+      {userPermissions.canViewPaymentManagement && (
+        <div className="mt-12">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+            Gestão de Pagamentos
+          </h3>
+
+          <PaymentManagementTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+
+          <div className="mt-6 space-y-4">
+            {isLoading ? (
+              <PaymentListSkeleton />
+            ) : filteredPayments.length > 0 ? (
+              filteredPayments.map((payment) => (
+                <PaymentListItem key={payment.id} payment={payment} />
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-8">
+                Nenhum pagamento encontrado para esta categoria.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
