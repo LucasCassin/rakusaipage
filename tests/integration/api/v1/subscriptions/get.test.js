@@ -62,7 +62,7 @@ describe("GET /api/v1/subscriptions", () => {
   it("should allow an admin to get subscriptions for a specific user via query param", async () => {
     const newSession = await session.create(adminUser);
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/subscriptions?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/subscriptions?username=${userA.username}`,
       {
         headers: { cookie: `session_id=${newSession.token}` },
       },
@@ -76,7 +76,7 @@ describe("GET /api/v1/subscriptions", () => {
   it("should allow a user to get their own subscriptions via query param", async () => {
     const newSession = await session.create(userA);
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/subscriptions?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/subscriptions?username=${userA.username}`,
       {
         headers: { cookie: `session_id=${newSession.token}` },
       },
@@ -88,7 +88,7 @@ describe("GET /api/v1/subscriptions", () => {
   it("should return 403 when a user tries to get another user's subscriptions", async () => {
     const newSession = await session.create(userB); // User B logado
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/subscriptions?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/subscriptions?username=${userA.username}`,
       {
         // Tentando ver as de User A
         headers: { cookie: `session_id=${newSession.token}` },
@@ -102,7 +102,7 @@ describe("GET /api/v1/subscriptions", () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/subscriptions`,
       {
-        // Sem user_id
+        // Sem username
         headers: { cookie: `session_id=${newSession.token}` },
       },
     );

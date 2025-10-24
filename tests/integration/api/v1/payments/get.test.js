@@ -66,7 +66,7 @@ describe("GET /api/v1/payments", () => {
   it("should allow an admin to get payments for a specific user", async () => {
     const newSession = await session.create(adminUser);
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/payments?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/payments?username=${userA.username}`,
       {
         headers: { cookie: `session_id=${newSession.token}` },
       },
@@ -80,7 +80,7 @@ describe("GET /api/v1/payments", () => {
   it("should allow a user to get their own payments", async () => {
     const newSession = await session.create(userA);
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/payments?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/payments?username=${userA.username}`,
       {
         headers: { cookie: `session_id=${newSession.token}` },
       },
@@ -93,7 +93,7 @@ describe("GET /api/v1/payments", () => {
   it("should return 403 when a user tries to get another user's payments", async () => {
     const newSession = await session.create(userB);
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/payments?user_id=${userA.id}`,
+      `${orchestrator.webserverUrl}/api/v1/payments?username=${userA.username}`,
       {
         headers: { cookie: `session_id=${newSession.token}` },
       },

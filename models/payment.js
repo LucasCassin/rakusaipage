@@ -128,13 +128,13 @@ async function adminConfirmPaid(paymentId) {
  * Busca todos os pagamentos de um usuário.
  */
 async function findByUserId(userId) {
-  const validatedId = validator({ id: userId }, { id: "required|uuid" });
+  const validatedId = validator({ id: userId }, { id: "required" });
   const query = {
     text: `
             SELECT 
               p.*, 
               plan.name as plan_name,
-              sub.user_id -- MUDANÇA: Adiciona o user_id ao resultado
+              sub.user_id
             FROM payments p
             JOIN user_subscriptions sub ON p.subscription_id = sub.id
             JOIN payment_plans plan ON sub.plan_id = plan.id
@@ -142,6 +142,33 @@ async function findByUserId(userId) {
             ORDER BY p.due_date DESC;
         `,
     values: [validatedId.id],
+  };
+
+  const results = await database.query(query);
+  return results.rows;
+}
+
+/**
+ * Busca todos os pagamentos de um usuário.
+ */
+async function findByUsername(username) {
+  const validatedId = validator(
+    { username: username },
+    { username: "required" },
+  );
+  const query = {
+    text: `
+            SELECT 
+              p.*, 
+              plan.name as plan_name,
+              sub.user_id
+            FROM payments p
+            JOIN user_subscriptions sub ON p.subscription_id = sub.id
+            JOIN payment_plans plan ON sub.plan_id = plan.id
+            WHERE sub.user_id = (SELECT id FROM users WHERE UPPER(username) = UPPER($1) ORDER BY id ASC LIMIT 1)
+            ORDER BY p.due_date DESC;
+        `,
+    values: [validatedId.username],
   };
 
   const results = await database.query(query);
@@ -215,6 +242,7 @@ export default {
   userIndicatePaid,
   adminConfirmPaid,
   findByUserId,
+  findByUsername,
   findById,
   findAndSetOverdue,
   findAll, // Adicionar a nova função

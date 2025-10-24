@@ -48,11 +48,12 @@ async function postHandler(req, res) {
 async function getCanRequestHandler(req, res, next) {
   try {
     const requestingUser = req.context.user;
-    const targetUserId = req.query.user_id;
+    const targetUsername = req.query.username;
 
     // Se um user_id específico foi solicitado...
-    if (targetUserId) {
-      const isSelf = requestingUser.id === targetUserId;
+    if (targetUsername) {
+      const isSelf =
+        requestingUser.username.toUpperCase() === targetUsername.toUpperCase();
       const canReadOther = authorization.can(
         requestingUser,
         "read:subscription:other",
@@ -81,17 +82,18 @@ async function getCanRequestHandler(req, res, next) {
 
 async function getHandler(req, res) {
   try {
-    const { user_id } = req.query;
+    const { username } = req.query;
 
     let subscriptions;
-    if (user_id) {
-      subscriptions = await subscription.findByUserId(user_id);
+    if (username) {
+      subscriptions = await subscription.findByUsername(username);
     } else {
       subscriptions = await subscription.findAll();
     }
 
     const feature =
-      user_id && req.context.user.id === user_id
+      username &&
+      req.context.user.username.toUpperCase() === username.toUpperCase()
         ? "read:subscription:self"
         : "read:subscription:other";
     const filteredOutput = subscriptions.map((sub) =>

@@ -19,6 +19,9 @@ export const settings = {
         STATUS: "/api/v1/status",
         COMMENT: "/api/v1/comment",
         COMMENT_LIKE: "/api/v1/comment-like",
+        PAYMENTS: "/api/v1/payments",
+        SUBSCRIPTIONS: "/api/v1/subscriptions",
+        PAYMENTS_PLANS: "/api/v1/payment-plans",
       },
     },
     REDIRECTS: {

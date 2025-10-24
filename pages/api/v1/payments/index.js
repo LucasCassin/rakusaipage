@@ -15,10 +15,11 @@ export default router.handler(controller.errorsHandlers);
 
 async function getCanRequestHandler(req, res, next) {
   const requestingUser = req.context.user;
-  const targetUserId = req.query.user_id;
+  const targetUsername = req.query.username;
 
-  if (targetUserId) {
-    const isSelf = requestingUser.id === targetUserId;
+  if (targetUsername) {
+    const isSelf =
+      requestingUser.username.toUpperCase() === targetUsername.toUpperCase();
     if (isSelf) return next();
 
     if (authorization.can(requestingUser, "read:payment:other")) return next();
@@ -40,19 +41,20 @@ async function getCanRequestHandler(req, res, next) {
 
 async function getHandler(req, res) {
   try {
-    const { user_id } = req.query;
-
+    const { username } = req.query;
     let payments;
-    if (user_id) {
-      payments = await payment.findByUserId(user_id);
+    if (username) {
+      payments = await payment.findByUsername(username);
     } else {
       payments = await payment.findAll();
     }
 
     const feature =
-      user_id && req.context.user.id === user_id
+      username &&
+      req.context.user.username.toUpperCase() === username.toUpperCase()
         ? "read:payment:self"
         : "read:payment:other";
+    console.log(feature);
     const filteredOutput = payments.map((p) =>
       authorization.filterOutput(req.context.user, feature, p),
     );

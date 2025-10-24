@@ -91,6 +91,27 @@ async function findByUserId(userId) {
 }
 
 /**
+ * Busca todas as assinaturas de um usuário específico.
+ */
+async function findByUsername(username) {
+  const validatedId = validator(
+    { username: username },
+    { username: "required" },
+  );
+  const query = {
+    text: `
+      SELECT sub.*, plan.name as plan_name 
+      FROM user_subscriptions sub
+      JOIN payment_plans plan ON sub.plan_id = plan.id
+      WHERE sub.user_id = (SELECT DISTINCT id FROM users WHERE UPPER(username) = UPPER($1) ORDER BY id ASC LIMIT 1);
+    `,
+    values: [validatedId.username],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+/**
  * Atualiza os dados de uma assinatura (ex: desconto, status de ativação).
  */
 async function update(subscriptionId, updateData) {
@@ -167,6 +188,7 @@ export default {
   create,
   findById,
   findByUserId,
+  findByUsername,
   update,
   findAll,
   del,
