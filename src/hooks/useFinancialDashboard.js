@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/router";
+import { handleApiResponse } from "src/utils/handleApiResponse";
+import { settings } from "config/settings";
 
-// No futuro, este hook fará chamadas de API reais.
 export function useFinancialDashboard(user, canFetch) {
+  const router = useRouter();
   const [kpiData, setKpiData] = useState({
     activeStudents: "...",
     revenueThisMonth: "...",
@@ -13,83 +16,56 @@ export function useFinancialDashboard(user, canFetch) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Só busca se o usuário puder ver esta seção
-      if (!user || !canFetch) {
-        setIsLoading(false);
-        return;
+  // Helper interno para encapsular a lógica de fetch + handleApiResponse
+  const fetchAndHandle = async (url) => {
+    const response = await fetch(url);
+    return handleApiResponse({
+      response,
+      router,
+      setError,
+      onSuccess: (data) => data,
+    });
+  };
+
+  const fetchData = useCallback(async () => {
+    if (!user || !canFetch) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Busca KPIs e Pagamentos em paralelo
+      // NOTA: Assumindo o endpoint 'FINANCIALS_KPI' para os KPIs
+      const [kpiResult, paymentsResult] = await Promise.all([
+        fetchAndHandle(settings.global.API.ENDPOINTS.FINANCIALS_KPI),
+        fetchAndHandle(settings.global.API.ENDPOINTS.PAYMENTS),
+      ]);
+
+      // handleApiResponse retorna null em caso de erro
+      // Atualizamos os estados individualmente,
+      // assim se um falhar, o outro ainda pode ser exibido.
+      if (kpiResult !== null) {
+        setKpiData(kpiResult);
       }
 
-      setIsLoading(true);
-      setError(null);
+      if (paymentsResult !== null) {
+        setPayments(paymentsResult);
+      }
+    } catch (e) {
+      // Erro de conexão (ex: rede)
+      setError("Erro de conexão. Verifique sua internet e tente novamente.");
+      console.error("Erro ao buscar dados do dashboard:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, canFetch, router]);
 
-      // Simulação de uma chamada à API
-      setTimeout(() => {
-        setKpiData({
-          activeStudents: 20,
-          revenueThisMonth: "R$ 2.150,00",
-          pendingThisMonth: "R$ 250,00",
-          awaitingConfirmation: 3,
-        });
-        setPayments([
-          // Pagamento que o usuário avisou
-          {
-            id: "1",
-            username: "Lucas",
-            plan_name: "Plano Mensal",
-            due_date: "2025-10-05",
-            amount_due: "150.00",
-            status: "PENDING",
-            user_notified_payment: true,
-          },
-          // Pagamento pendente normal
-          {
-            id: "2",
-            username: "Alícia",
-            plan_name: "Plano Mensal",
-            due_date: "2025-10-10",
-            amount_due: "150.00",
-            status: "PENDING",
-            user_notified_payment: false,
-          },
-          // Pagamento que o usuário avisou
-          {
-            id: "3",
-            username: "Caio",
-            plan_name: "Plano Quinzenal",
-            due_date: "2025-10-15",
-            amount_due: "90.00",
-            status: "PENDING",
-            user_notified_payment: true,
-          },
-          // Pagamento já confirmado (para o histórico)
-          {
-            id: "4",
-            username: "Naka",
-            plan_name: "Plano Mensal",
-            due_date: "2025-09-05",
-            amount_due: "150.00",
-            status: "CONFIRMED",
-            user_notified_payment: true,
-          },
-          // Pagamento atrasado (OVERDUE)
-          {
-            id: "5",
-            username: "Kevin",
-            plan_name: "Plano Mensal",
-            due_date: "2025-09-10",
-            amount_due: "150.00",
-            status: "OVERDUE",
-            user_notified_payment: false,
-          },
-        ]);
-        setIsLoading(false);
-      }, 1500);
-    };
-
+  useEffect(() => {
     fetchData();
-  }, [user, canFetch]);
+  }, [fetchData]);
 
   return {
     kpiData,

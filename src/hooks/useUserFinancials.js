@@ -1,14 +1,26 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react"; // Removido useEffect não utilizado
 import { useRouter } from "next/router";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings";
 
 export function useUserFinancials() {
   const router = useRouter();
-  const [financialData, setFinancialData] = useState(null); // Inicia como nulo
+  const [financialData, setFinancialData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userFound, setUserFound] = useState(false);
+
+  // Helper interno para encapsular a lógica de fetch + handleApiResponse
+  const fetchAndHandle = async (url) => {
+    const response = await fetch(url);
+    // Passa o setError principal. Se qualquer chamada falhar, o erro será setado.
+    return handleApiResponse({
+      response,
+      router,
+      setError,
+      onSuccess: (data) => data, // Em caso de sucesso, apenas retorna os dados
+    });
+  };
 
   const fetchUserFinancials = useCallback(
     async (username) => {
@@ -20,63 +32,46 @@ export function useUserFinancials() {
       setIsLoading(true);
       setError(null);
       setUserFound(false);
+      setFinancialData(null); // Limpa dados anteriores
 
-      // Simulação de chamada à API
-      // No futuro, aqui teríamos chamadas reais como:
-      // GET /api/v1/users/[username]/subscriptions
-      // GET /api/v1/payments?user_username=[username]
-      setTimeout(() => {
-        // Simula um usuário encontrado
-        if (username.toLowerCase() !== "notfound") {
+      try {
+        // Busca assinaturas e pagamentos em paralelo
+        const [subscriptionData, paymentsData] = await Promise.all([
+          fetchAndHandle(
+            `${settings.global.API.ENDPOINTS.SUBSCRIPTIONS}?username=${username}`,
+          ),
+          fetchAndHandle(
+            `${settings.global.API.ENDPOINTS.PAYMENTS}?username=${username}`,
+          ),
+        ]);
+
+        // handleApiResponse retorna null em caso de erro
+        // Só continuamos se AMBAS as chamadas tiverem sucesso
+        if (subscriptionData !== null && paymentsData !== null) {
+          // A API de subscriptions retorna um array, pegamos o primeiro item
+          const subscription =
+            subscriptionData.length > 0 ? subscriptionData[0] : null;
+
           setFinancialData({
-            subscription: {
-              id: "sub1",
-              plan_name: "Plano Mensal Pro",
-              discount_value: "10.00",
-              payment_day: 10,
-              start_date: "2025-01-15",
-              is_active: true,
-            },
-            payments: [
-              {
-                id: "pay1",
-                due_date: "2025-10-10",
-                amount_due: "140.00",
-                status: "CONFIRMED",
-                user_notified_payment: true,
-                confirmed_at: "2025-10-08",
-                plan_name: "Plano Mensal Pro",
-              },
-              {
-                id: "pay2",
-                due_date: "2025-09-10",
-                amount_due: "140.00",
-                status: "PENDING",
-                user_notified_payment: true,
-                confirmed_at: null,
-                plan_name: "Plano Mensal Pro",
-              },
-              {
-                id: "pay3",
-                due_date: "2025-08-10",
-                amount_due: "140.00",
-                status: "OVERDUE",
-                user_notified_payment: false,
-                confirmed_at: null,
-                plan_name: "Plano Mensal Pro",
-              },
-            ],
+            subscription: subscription,
+            payments: paymentsData,
           });
           setUserFound(true);
         } else {
-          // Simula um usuário não encontrado
-          setError(`Usuário "${username}" não encontrado.`);
+          // Se "null", um erro já foi setado pelo handleApiResponse
           setUserFound(false);
+          setFinancialData(null);
         }
+      } catch (e) {
+        // Erro de conexão (ex: rede)
+        setError("Erro de conexão. Verifique sua internet e tente novamente.");
+        setUserFound(false);
+        console.error("Erro ao buscar dados financeiros do usuário:", e);
+      } finally {
         setIsLoading(false);
-      }, 1500);
+      }
     },
-    [router],
+    [router], // Adicionado router como dependência
   );
 
   const clearSearch = useCallback(() => {

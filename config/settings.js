@@ -21,7 +21,7 @@ export const settings = {
         COMMENT_LIKE: "/api/v1/comment-like",
         PAYMENTS: "/api/v1/payments",
         SUBSCRIPTIONS: "/api/v1/subscriptions",
-        PAYMENTS_PLANS: "/api/v1/payment-plans",
+        PAYMENT_PLANS: "/api/v1/payment-plans",
       },
     },
     REDIRECTS: {

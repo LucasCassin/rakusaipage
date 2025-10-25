@@ -14,10 +14,14 @@ import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
 import PaymentListItem from "components/ui/PaymentListItem";
 import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
 import SwitchMode from "components/forms/SwitchMode";
-import UserSearchForm from "components/forms/UserSearchForm"; // MUDANÇA: Usando o novo formulário de busca
+import UserSearchForm from "components/forms/UserSearchForm";
 import SubscriptionDetails from "components/ui/SubscriptionDetails";
 import PaymentHistoryList from "components/ui/PaymentHistoryList";
 import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
+import { usePaymentPlans } from "src/hooks/usePaymentPlans";
+import PlanListItem from "components/ui/PlanListItem";
+import PlanListSkeleton from "components/ui/PlanListSkeleton";
+import Button from "components/ui/Button";
 
 import { useFinancialDashboard } from "src/hooks/useFinancialDashboard";
 import { useUserFinancials } from "src/hooks/useUserFinancials";
@@ -39,6 +43,12 @@ const PERMISSIONS_USER_FINANCIALS_SELF = [
 const PERMISSIONS_USER_FINANCIALS_OTHER = [
   "read:subscription:other",
   "read:user:other",
+];
+const PERMISSIONS_PLAN_MANAGEMENT = [
+  "read:payment_plan",
+  "create:payment_plan",
+  "update:payment_plan",
+  "delete:payment_plan",
 ];
 
 export default function FinancialDashboardPage() {
@@ -63,14 +73,20 @@ export default function FinancialDashboardPage() {
     );
     const canViewSelf = hasPermission(PERMISSIONS_USER_FINANCIALS_SELF);
     const canViewOther = hasPermission(PERMISSIONS_USER_FINANCIALS_OTHER);
+    const canViewPlanManagement = hasPermission(PERMISSIONS_PLAN_MANAGEMENT);
 
     return {
       canViewKPIs,
       canViewPaymentManagement,
       canViewSelf,
       canViewOther,
+      canViewPlanManagement,
       canAccessPage:
-        canViewKPIs || canViewPaymentManagement || canViewSelf || canViewOther,
+        canViewKPIs ||
+        canViewPaymentManagement ||
+        canViewSelf ||
+        canViewOther ||
+        canViewPlanManagement,
     };
   }, [user]);
 
@@ -95,6 +111,12 @@ export default function FinancialDashboardPage() {
     clearSearch,
   } = useUserFinancials();
 
+  const {
+    plans,
+    isLoading: isLoadingPlans,
+    error: plansError,
+  } = usePaymentPlans(user, userPermissions.canViewPlanManagement);
+
   // Efeito de guarda e definição de modo inicial
   useEffect(() => {
     if (isLoadingAuth) return;
@@ -111,7 +133,6 @@ export default function FinancialDashboardPage() {
       return;
     }
 
-    // MUDANÇA: Se o usuário pode ver outros, o padrão é o modo 'other'. Senão, 'self'.
     // const initialMode = userPermissions.canViewOther ? "other" : "self";
     // console.log("set Mode linha 116");
     // setMode(initialMode);
@@ -277,7 +298,6 @@ export default function FinancialDashboardPage() {
         </div>
       )}
 
-      {/* --- MUDANÇA: Seção de Consulta Financeira totalmente implementada --- */}
       {(userPermissions.canViewSelf || userPermissions.canViewOther) && (
         <div className="mt-12">
           <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -328,6 +348,33 @@ export default function FinancialDashboardPage() {
                   Nenhum resultado encontrado para "{queryUsername}".
                 </p>
               )
+            )}
+          </div>
+        </div>
+      )}
+
+      {userPermissions.canViewPlanManagement && (
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Planos de Pagamento
+            </h3>
+            <Button variant="primary" size="small" disabled={true}>
+              + Criar Novo Plano
+            </Button>
+          </div>
+
+          {plansError && <Alert type="error">{plansError}</Alert>}
+
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
+            {isLoadingPlans ? (
+              <PlanListSkeleton />
+            ) : plans.length > 0 ? (
+              plans.map((plan) => <PlanListItem key={plan.id} plan={plan} />)
+            ) : (
+              <p className="text-center text-gray-500 p-8">
+                Nenhum plano de pagamento criado.
+              </p>
             )}
           </div>
         </div>
