@@ -1,33 +1,18 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
-import { texts } from "src/utils/texts.js";
-import useUrlManager from "src/hooks/useUrlManager";
 
 import PageLayout from "components/layouts/PageLayout";
-import Alert from "components/ui/Alert";
 import InitialLoading from "components/InitialLoading";
-import KPICard from "components/ui/KPICard";
-import KPICardSkeleton from "components/ui/KPICardSkeleton";
-import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
-import PaymentListItem from "components/ui/PaymentListItem";
-import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
-import SwitchMode from "components/forms/SwitchMode";
-import UserSearchForm from "components/forms/UserSearchForm";
-import SubscriptionDetails from "components/ui/SubscriptionDetails";
-import PaymentHistoryList from "components/ui/PaymentHistoryList";
-import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
-import { usePaymentPlans } from "src/hooks/usePaymentPlans";
-import PlanListItem from "components/ui/PlanListItem";
-import PlanListSkeleton from "components/ui/PlanListSkeleton";
-import Button from "components/ui/Button";
 
-import { useFinancialDashboard } from "src/hooks/useFinancialDashboard";
-import { useUserFinancials } from "src/hooks/useUserFinancials";
-import { FiUsers, FiDollarSign, FiClock, FiCheckSquare } from "react-icons/fi";
+// Importe os NOVOS componentes "inteligentes"
+import DashboardKPIs from "components/finance/DashboardKPIs";
+import PaymentManagement from "components/finance/PaymentManagement";
+import UserFinancials from "components/finance/UserFinancials";
+import PlanManagement from "components/finance/PlanManagement";
 
-// Definição de permissões por seção
+// Definições de permissões (permanecem iguais)
 const PERMISSIONS_KPI_SECTION = [
   "read:payment:other",
   "read:subscription:other",
@@ -55,14 +40,10 @@ export default function FinancialDashboardPage() {
   const { user, isLoading: isLoadingAuth } = useAuth();
   const [showContent, setShowContent] = useState(false);
   const [authError, setAuthError] = useState(null);
-  const [mode, setMode] = useState("self");
-  const [searchUsername, setSearchUsername] = useState("");
-
-  const { updateUrl, getParamValue } = useUrlManager();
-  const queryUsername = getParamValue("username");
   const router = useRouter();
 
   const userPermissions = useMemo(() => {
+    // ... (lógica de userPermissions permanece a mesma)
     const userFeatures = user?.features || [];
     const hasPermission = (requiredFeatures) =>
       requiredFeatures.some((feature) => userFeatures.includes(feature));
@@ -90,34 +71,7 @@ export default function FinancialDashboardPage() {
     };
   }, [user]);
 
-  const {
-    kpiData,
-    payments,
-    activeTab,
-    setActiveTab,
-    isLoading: isLoadingDashboard,
-    error: dashboardError,
-  } = useFinancialDashboard(
-    user,
-    userPermissions.canViewKPIs || userPermissions.canViewPaymentManagement,
-  );
-
-  const {
-    financialData,
-    isLoading: isLoadingUserFinancials,
-    error: userFinancialsError,
-    userFound,
-    fetchUserFinancials,
-    clearSearch,
-  } = useUserFinancials();
-
-  const {
-    plans,
-    isLoading: isLoadingPlans,
-    error: plansError,
-  } = usePaymentPlans(user, userPermissions.canViewPlanManagement);
-
-  // Efeito de guarda e definição de modo inicial
+  // Efeito de guarda (permanece igual)
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
@@ -132,78 +86,12 @@ export default function FinancialDashboardPage() {
       setTimeout(() => router.push(settings.global.REDIRECTS.HOME), 2000);
       return;
     }
-
-    // const initialMode = userPermissions.canViewOther ? "other" : "self";
-    // console.log("set Mode linha 116");
-    // setMode(initialMode);
     setShowContent(true);
-  }, [
-    user,
-    isLoadingAuth,
-    userPermissions.canAccessPage,
-    userPermissions.canViewOther,
-    router,
-  ]);
+  }, [user, isLoadingAuth, userPermissions.canAccessPage, router]);
 
-  // Efeito para buscar dados com base na URL ou no modo
-  useEffect(() => {
-    if (!showContent) return;
-    if (mode === "self" && user) {
-      fetchUserFinancials(user.username);
-      if (queryUsername) updateUrl("username", ""); // Limpa a URL se o usuário mudar para 'self'
-    } else if (mode === "other" && queryUsername) {
-      setSearchUsername(queryUsername);
-      fetchUserFinancials(queryUsername);
-    } else {
-      clearSearch();
-    }
-  }, [
-    mode,
-    queryUsername,
-    showContent,
-    user,
-    // fetchUserFinancials,
-    // clearSearch,
-    // updateUrl,
-  ]);
+  // filteredPayments (REMOVIDO - agora vive em PaymentManagement)
 
-  const handleModeChange = useCallback(
-    (newMode) => {
-      console.log(newMode);
-
-      clearSearch();
-      setSearchUsername("");
-      updateUrl("username", "");
-      console.log("set mode linha 156");
-      setMode(newMode);
-      console.log(mode);
-    },
-    [clearSearch, updateUrl],
-  );
-
-  const handleSearch = (usernameToSearch) => {
-    setSearchUsername(usernameToSearch); // Atualiza o estado local para o input
-    updateUrl("username", usernameToSearch); // Atualiza a URL, que dispara o useEffect
-  };
-
-  const filteredPayments = useMemo(() => {
-    if (!payments) return [];
-    switch (activeTab) {
-      case "awaiting_confirmation":
-        return payments.filter(
-          (p) => p.user_notified_payment && p.status === "PENDING",
-        );
-      case "pending_overdue":
-        return payments.filter(
-          (p) => p.status === "PENDING" || p.status === "OVERDUE",
-        );
-      case "history":
-        return payments;
-      default:
-        return [];
-    }
-  }, [activeTab, payments]);
-
+  // Renderização do InitialLoading (permanece igual)
   if (isLoadingAuth || !showContent) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -218,6 +106,7 @@ export default function FinancialDashboardPage() {
       description="Acompanhamento de pagamentos"
       maxWidth="max-w-7xl"
     >
+      {/* Título (permanece igual) */}
       <div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Dashboard Financeiro
@@ -227,157 +116,38 @@ export default function FinancialDashboardPage() {
         </p>
       </div>
 
+      {/* Seção KPIs (MODIFICADA) */}
       {userPermissions.canViewKPIs && (
-        <div className="mt-8">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Visão Geral
-          </h3>
-          {dashboardError && <Alert type="error">{dashboardError}</Alert>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {isLoadingDashboard ? (
-              <>
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-              </>
-            ) : (
-              <>
-                <KPICard
-                  title="Alunos Ativos"
-                  value={kpiData.activeStudents}
-                  icon={FiUsers}
-                  color="blue"
-                />
-                <KPICard
-                  title="Receita do Mês"
-                  value={kpiData.revenueThisMonth}
-                  icon={FiDollarSign}
-                  color="green"
-                />
-                <KPICard
-                  title="Pendente no Mês"
-                  value={kpiData.pendingThisMonth}
-                  icon={FiClock}
-                  color="yellow"
-                />
-                <KPICard
-                  title="Aguardando Confirmação"
-                  value={kpiData.awaitingConfirmation}
-                  icon={FiCheckSquare}
-                  color="purple"
-                />
-              </>
-            )}
-          </div>
-        </div>
+        <DashboardKPIs user={user} canFetch={userPermissions.canViewKPIs} />
       )}
 
+      {/* Seção Gestão de Pagamentos (MODIFICADA) */}
       {userPermissions.canViewPaymentManagement && (
+        <PaymentManagement
+          user={user}
+          canFetch={userPermissions.canViewPaymentManagement}
+        />
+      )}
+
+      {/* Seção Consulta Financeira (permanece igual) */}
+      {userPermissions.canViewOther && (
         <div className="mt-12">
           <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Gestão de Pagamentos
+            Consulta Financeira de Alunos
           </h3>
-          <PaymentManagementTabs
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+          <UserFinancials
+            mode="other"
+            permissions={{ canViewOther: userPermissions.canViewOther }}
           />
-          <div className="mt-6 space-y-4">
-            {isLoadingDashboard ? (
-              <PaymentListSkeleton />
-            ) : filteredPayments.length > 0 ? (
-              filteredPayments.map((payment) => (
-                <PaymentListItem key={payment.id} payment={payment} />
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-8">
-                Nenhum pagamento encontrado para esta categoria.
-              </p>
-            )}
-          </div>
         </div>
       )}
 
-      {(userPermissions.canViewSelf || userPermissions.canViewOther) && (
-        <div className="mt-12">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Consulta Financeira
-          </h3>
-
-          {userPermissions.canViewSelf && userPermissions.canViewOther && (
-            <div className="mb-6 flex justify-center">
-              <SwitchMode
-                canUpdateSelf={userPermissions.canViewSelf}
-                updateMode={mode}
-                handleUpdateModeChange={handleModeChange}
-                textSelf="Meus Dados"
-                textOther="Dados dos Alunos"
-                disabled={isLoadingUserFinancials}
-              />
-            </div>
-          )}
-
-          {mode === "other" && (
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-              <UserSearchForm
-                onSearch={handleSearch}
-                isLoading={isLoadingUserFinancials}
-                username={searchUsername}
-                setUsername={setSearchUsername}
-              />
-            </div>
-          )}
-
-          <div className="mt-4">
-            {isLoadingUserFinancials ? (
-              <UserFinancialsSkeleton />
-            ) : userFinancialsError ? (
-              <Alert type="error">{userFinancialsError}</Alert>
-            ) : userFound ? (
-              <div className="space-y-6">
-                <SubscriptionDetails
-                  subscription={financialData.subscription}
-                />
-                <PaymentHistoryList payments={financialData.payments} />
-              </div>
-            ) : (
-              mode === "other" &&
-              queryUsername &&
-              !isLoadingUserFinancials && (
-                <p className="text-center text-gray-500 py-8">
-                  Nenhum resultado encontrado para "{queryUsername}".
-                </p>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
+      {/* Seção Planos de Pagamento (MODIFICADA) */}
       {userPermissions.canViewPlanManagement && (
-        <div className="mt-12">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Planos de Pagamento
-            </h3>
-            <Button variant="primary" size="small" disabled={true}>
-              + Criar Novo Plano
-            </Button>
-          </div>
-
-          {plansError && <Alert type="error">{plansError}</Alert>}
-
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
-            {isLoadingPlans ? (
-              <PlanListSkeleton />
-            ) : plans.length > 0 ? (
-              plans.map((plan) => <PlanListItem key={plan.id} plan={plan} />)
-            ) : (
-              <p className="text-center text-gray-500 p-8">
-                Nenhum plano de pagamento criado.
-              </p>
-            )}
-          </div>
-        </div>
+        <PlanManagement
+          user={user}
+          canFetch={userPermissions.canViewPlanManagement}
+        />
       )}
     </PageLayout>
   );
