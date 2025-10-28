@@ -22,6 +22,7 @@ export const settings = {
         PAYMENTS: "/api/v1/payments",
         SUBSCRIPTIONS: "/api/v1/subscriptions",
         PAYMENT_PLANS: "/api/v1/payment-plans",
+        FINANCIALS_KPI: "/api/v1/financials_kpi",
       },
     },
     REDIRECTS: {

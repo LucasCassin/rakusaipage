@@ -5,6 +5,24 @@ import KPICardSkeleton from "components/ui/KPICardSkeleton";
 import Alert from "components/ui/Alert";
 import { FiUsers, FiDollarSign, FiClock, FiCheckSquare } from "react-icons/fi";
 
+// Helper para formatar moeda
+const formatCurrency = (value) => {
+  if (typeof value !== "number") {
+    // Retorna "..." se os dados ainda não chegaram (para evitar R$ 0,00)
+    return isNaN(parseFloat(value))
+      ? "..."
+      : new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(value);
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+};
+
 export default function DashboardKPIs({ user, canFetch }) {
   const { kpiData, isLoading, error } = useFinancialKPIs(user, canFetch);
 
@@ -32,13 +50,13 @@ export default function DashboardKPIs({ user, canFetch }) {
             />
             <KPICard
               title="Receita do Mês"
-              value={kpiData.revenueThisMonth}
+              value={formatCurrency(kpiData.revenueThisMonth)}
               icon={FiDollarSign}
               color="green"
             />
             <KPICard
               title="Pendente no Mês"
-              value={kpiData.pendingThisMonth}
+              value={formatCurrency(kpiData.pendingThisMonth)}
               icon={FiClock}
               color="yellow"
             />
