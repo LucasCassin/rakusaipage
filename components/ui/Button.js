@@ -31,6 +31,9 @@ const Button = React.memo(
       themed: "",
       // MUDANÇA: Removido 'shadow-none' e 'transform-none' pois já são o padrão.
       link: "text-rakusai-purple hover:underline bg-transparent",
+
+      // --- LINHA ADICIONADA ---
+      danger: "bg-red-600 text-white hover:bg-red-700",
     };
 
     return (

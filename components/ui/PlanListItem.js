@@ -2,7 +2,8 @@ import React from "react";
 import Button from "./Button";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
-const PlanListItem = ({ plan }) => {
+// Recebe as novas props 'onEditClick' e 'onDeleteClick'
+const PlanListItem = ({ plan, onEditClick, onDeleteClick }) => {
   const formattedValue = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -14,7 +15,14 @@ const PlanListItem = ({ plan }) => {
         unit
       ];
     }
-    return `${value} ${unit}s`;
+    // Pequena correção: "meses" em vez de "months"
+    const unitMap = {
+      day: "dias",
+      week: "semanas",
+      month: "meses",
+      year: "anos",
+    };
+    return `${value} ${unitMap[unit] || unit}`;
   };
 
   return (
@@ -34,11 +42,12 @@ const PlanListItem = ({ plan }) => {
             {getPeriod(plan.period_unit, plan.period_value)}
           </p>
         </div>
+        {/* --- Botões Atualizados --- */}
         <div className="flex gap-2">
           <Button
             size="small"
             variant="secondary"
-            disabled={true}
+            onClick={onEditClick} // <-- Ação adicionada
             aria-label="Editar"
           >
             <FiEdit2 />
@@ -46,7 +55,7 @@ const PlanListItem = ({ plan }) => {
           <Button
             size="small"
             variant="secondary"
-            disabled={true}
+            onClick={onDeleteClick} // <-- Ação adicionada
             aria-label="Deletar"
           >
             <FiTrash2 />
