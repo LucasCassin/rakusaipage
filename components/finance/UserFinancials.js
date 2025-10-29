@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "src/contexts/AuthContext.js";
 import useUrlManager from "src/hooks/useUrlManager";
 import { useUserFinancials } from "src/hooks/useUserFinancials";
@@ -10,16 +10,10 @@ import SubscriptionDetails from "components/ui/SubscriptionDetails";
 import PaymentHistoryList from "components/ui/PaymentHistoryList";
 import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
 
-/**
- * Componente para exibir dados financeiros de um usuário.
- * Pode operar em modo "self" (buscando dados do usuário logado)
- * ou "other" (exibindo um formulário de busca para admins).
- */
 export default function UserFinancials({ mode, permissions }) {
   const { user } = useAuth();
   const { updateUrl, getParamValue } = useUrlManager();
   const queryUsername = getParamValue("username");
-
   const { kpiTrigger } = useFinancialsDashboard();
 
   const [searchUsername, setSearchUsername] = useState(queryUsername || "");
@@ -33,21 +27,23 @@ export default function UserFinancials({ mode, permissions }) {
     clearSearch,
   } = useUserFinancials();
 
-  // Efeito principal que dispara a busca de dados
+  // Efeito 1: Sincroniza a URL com o estado do input.
+  // (Para bookmarks, botão "Voltar", etc.)
   useEffect(() => {
-    // Se for 'self', busca os dados do usuário logado
+    // Se a URL mudar, atualiza o campo de input
+    if (queryUsername !== searchUsername) {
+      setSearchUsername(queryUsername || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryUsername]);
+
+  // Efeito 2: Busca os dados QUANDO a URL ou o gatilho mudarem.
+  useEffect(() => {
     if (mode === "self" && user && permissions.canViewSelf) {
       fetchUserFinancials(user.username);
-    }
-    // Se for 'other' e tiver um username na URL, busca esse usuário
-    else if (mode === "other" && queryUsername) {
-      if (searchUsername !== queryUsername) {
-        setSearchUsername(queryUsername);
-      }
+    } else if (mode === "other" && queryUsername) {
       fetchUserFinancials(queryUsername);
-    }
-    // Se for 'other' mas sem query, limpa
-    else if (mode === "other" && !queryUsername) {
+    } else if (mode === "other" && !queryUsername) {
       clearSearch();
     }
   }, [
@@ -55,29 +51,34 @@ export default function UserFinancials({ mode, permissions }) {
     queryUsername,
     user,
     permissions,
+    kpiTrigger,
     fetchUserFinancials,
     clearSearch,
-    searchUsername,
-    kpiTrigger,
   ]);
 
-  // Handler para o onSearch do formulário
+  // Handler para o onSearch (clique no botão ou Enter)
   const handleSearch = (usernameToSearch) => {
-    updateUrl("username", usernameToSearch); // Atualiza a URL, que dispara o useEffect
+    // ESTA é a única função que deve atualizar a URL
+    updateUrl("username", usernameToSearch);
   };
 
-  // Handler para o onChange do input (nova exigência)
+  // Handler para o onChange (digitação no input)
   const handleUsernameChange = (newUsername) => {
+    // 1. Apenas atualiza o estado local do input
     setSearchUsername(newUsername);
-    // Se o usuário está digitando, limpa os resultados
-    // e o parâmetro da URL para um novo "estado de busca"
+
+    // 2. Limpa os resultados anteriores (para não mostrar "alunoA"
+    //    enquanto digita "alunoAB")
     if (financialData) {
       clearSearch();
     }
-    if (queryUsername) {
-      updateUrl("username", "");
-    }
+
+    // 3. A LINHA DO BUG FOI REMOVIDA
+    // if (queryUsername) { updateUrl("username", ""); } // <-- REMOVIDO
   };
+
+  // --- O RESTO DO COMPONENTE ---
+  // (Permanece idêntico)
 
   if (mode === "self" && !permissions.canViewSelf) {
     return (
@@ -98,7 +99,7 @@ export default function UserFinancials({ mode, permissions }) {
             onSearch={handleSearch}
             isLoading={isLoadingUserFinancials}
             username={searchUsername}
-            setUsername={handleUsernameChange} // Usando o novo handler
+            setUsername={handleUsernameChange}
           />
         </div>
       )}
@@ -110,17 +111,12 @@ export default function UserFinancials({ mode, permissions }) {
           <Alert type="error">{userFinancialsError}</Alert>
         ) : userFound ? (
           <div className="space-y-6">
+            <p>Usuario encontrado</p>
             <SubscriptionDetails subscription={financialData.subscription} />
             <PaymentHistoryList payments={financialData.payments} />
           </div>
         ) : (
-          mode === "other" &&
-          queryUsername &&
-          !isLoadingUserFinancials && (
-            <p className="text-center text-gray-500 py-8">
-              Nenhum resultado encontrado para "{queryUsername}".
-            </p>
-          )
+          <></>
         )}
       </div>
     </div>
