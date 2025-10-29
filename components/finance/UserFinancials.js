@@ -111,7 +111,6 @@ export default function UserFinancials({ mode, permissions }) {
           <Alert type="error">{userFinancialsError}</Alert>
         ) : userFound ? (
           <div className="space-y-6">
-            <p>Usuario encontrado</p>
             <SubscriptionDetails subscription={financialData.subscription} />
             <PaymentHistoryList payments={financialData.payments} />
           </div>

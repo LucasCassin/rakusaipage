@@ -98,10 +98,32 @@ async function del(planId) {
   return results.rows[0];
 }
 
+/**
+ * Conta quantas assinaturas ATIVAS estão associadas a um plano.
+ * @param {string} planId - O UUID do plano.
+ * @returns {Promise<number>} A contagem de assinaturas ativas.
+ */
+async function findActiveSubscriptionCount(planId) {
+  const validatedId = validator({ id: planId }, { id: "required" });
+
+  const query = {
+    text: `
+      SELECT COUNT(*) as count 
+      FROM user_subscriptions 
+      WHERE plan_id = $1 AND is_active = true;
+    `,
+    values: [validatedId.id],
+  };
+
+  const results = await database.query(query);
+  return parseInt(results.rows[0].count, 10);
+}
+
 export default {
   create,
   findAll,
   findById,
   update,
-  del, // Adicionar a nova função
+  del,
+  findActiveSubscriptionCount,
 };
