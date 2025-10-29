@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "src/contexts/AuthContext.js";
 import useUrlManager from "src/hooks/useUrlManager";
 import { useUserFinancials } from "src/hooks/useUserFinancials";
+import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext";
 
 import Alert from "components/ui/Alert";
 import UserSearchForm from "components/forms/UserSearchForm";
@@ -18,6 +19,8 @@ export default function UserFinancials({ mode, permissions }) {
   const { user } = useAuth();
   const { updateUrl, getParamValue } = useUrlManager();
   const queryUsername = getParamValue("username");
+
+  const { kpiTrigger } = useFinancialsDashboard();
 
   const [searchUsername, setSearchUsername] = useState(queryUsername || "");
 
@@ -55,6 +58,7 @@ export default function UserFinancials({ mode, permissions }) {
     fetchUserFinancials,
     clearSearch,
     searchUsername,
+    kpiTrigger,
   ]);
 
   // Handler para o onSearch do formulário

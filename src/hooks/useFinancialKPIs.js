@@ -3,9 +3,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings";
+import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext";
 
 export function useFinancialKPIs(user, canFetch) {
   const router = useRouter();
+  const { kpiTrigger } = useFinancialsDashboard();
   const [kpiData, setKpiData] = useState({
     activeStudents: "...",
     revenueThisMonth: "...",
@@ -43,7 +45,7 @@ export function useFinancialKPIs(user, canFetch) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, canFetch]);
+  }, [user, canFetch, kpiTrigger]);
 
   useEffect(() => {
     fetchData();

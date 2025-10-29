@@ -3,16 +3,31 @@ import { usePaymentManagement } from "src/hooks/usePaymentManagement";
 import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
 import PaymentListItem from "components/ui/PaymentListItem";
 import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
+import Alert from "components/ui/Alert"; // <-- Importar Alert
 
 export default function PaymentManagement({ user, canFetch }) {
-  const { payments, activeTab, setActiveTab, isLoading, error } =
-    usePaymentManagement(user, canFetch);
+  const {
+    payments,
+    activeTab,
+    setActiveTab,
+    isLoading,
+    error,
+    confirmPayment, // <-- Pegando a nova função do hook
+  } = usePaymentManagement(user, canFetch);
 
   return (
     <div className="mt-12">
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
         Gestão de Pagamentos
       </h3>
+
+      {/* Mostra erros (ex: falha ao confirmar) */}
+      {error && (
+        <Alert type="error" className="mb-4">
+          {error}
+        </Alert>
+      )}
+
       <PaymentManagementTabs
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -22,7 +37,11 @@ export default function PaymentManagement({ user, canFetch }) {
           <PaymentListSkeleton />
         ) : payments.length > 0 ? (
           payments.map((payment) => (
-            <PaymentListItem key={payment.id} payment={payment} />
+            <PaymentListItem
+              key={payment.id}
+              payment={payment}
+              onConfirmClick={confirmPayment} // <-- Passando a função como prop
+            />
           ))
         ) : (
           <p className="text-center text-gray-500 py-8">

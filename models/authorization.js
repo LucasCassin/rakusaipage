@@ -339,6 +339,8 @@ const profiles = {
       "created_at",
       "updated_at",
       "plan_name",
+      "username",
+      "user_id",
     ],
   },
   "update:payment:indicate_paid": {

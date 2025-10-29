@@ -498,6 +498,19 @@ const schemas = {
         otherwise: Joi.optional(),
       }),
     }),
+
+  action: () =>
+    // Para ações
+    Joi.object({
+      action: Joi.string()
+        .trim()
+        .valid("confirm_paid", "indicate_paid")
+        .when("$required.is_active", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 };
 
 // Helper function to check if the username is reserved.
