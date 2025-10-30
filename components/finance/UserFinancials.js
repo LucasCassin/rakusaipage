@@ -6,9 +6,14 @@ import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext"
 
 import Alert from "components/ui/Alert";
 import UserSearchForm from "components/forms/UserSearchForm";
-import SubscriptionDetails from "components/ui/SubscriptionDetails";
+// import SubscriptionDetails from "components/ui/SubscriptionDetails"; // <-- REMOVIDO
 import PaymentHistoryList from "components/ui/PaymentHistoryList";
 import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
+import Button from "components/ui/Button";
+
+// --- NOVOS IMPORTS ---
+import SubscriptionList from "components/finance/SubscriptionList";
+import SubscriptionFormModal from "components/finance/SubscriptionFormModal";
 
 export default function UserFinancials({ mode, permissions }) {
   const { user } = useAuth();
@@ -23,21 +28,28 @@ export default function UserFinancials({ mode, permissions }) {
     isLoading: isLoadingUserFinancials,
     error: userFinancialsError,
     userFound,
+    foundUserId,
     fetchUserFinancials,
     clearSearch,
-  } = useUserFinancials();
+    availablePlans,
+    isLoadingPlans, // <-- Pega o loading dos planos
+    isSubModalOpen,
+    subModalMode,
+    currentSubscription,
+    modalError,
+    openSubModal,
+    closeSubModal,
+    createSubscription,
+    updateSubscription,
+  } = useUserFinancials(user);
 
-  // Efeito 1: Sincroniza a URL com o estado do input.
-  // (Para bookmarks, botão "Voltar", etc.)
+  // (useEffect 1 e 2 permanecem iguais)
   useEffect(() => {
-    // Se a URL mudar, atualiza o campo de input
     if (queryUsername !== searchUsername) {
       setSearchUsername(queryUsername || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryUsername]);
 
-  // Efeito 2: Busca os dados QUANDO a URL ou o gatilho mudarem.
   useEffect(() => {
     if (mode === "self" && user && permissions.canViewSelf) {
       fetchUserFinancials(user.username);
@@ -56,30 +68,18 @@ export default function UserFinancials({ mode, permissions }) {
     clearSearch,
   ]);
 
-  // Handler para o onSearch (clique no botão ou Enter)
+  // (handleSearch e handleUsernameChange permanecem iguais)
   const handleSearch = (usernameToSearch) => {
-    // ESTA é a única função que deve atualizar a URL
     updateUrl("username", usernameToSearch);
   };
-
-  // Handler para o onChange (digitação no input)
   const handleUsernameChange = (newUsername) => {
-    // 1. Apenas atualiza o estado local do input
     setSearchUsername(newUsername);
-
-    // 2. Limpa os resultados anteriores (para não mostrar "alunoA"
-    //    enquanto digita "alunoAB")
-    if (financialData) {
+    if (financialData || userFinancialsError) {
       clearSearch();
     }
-
-    // 3. A LINHA DO BUG FOI REMOVIDA
-    // if (queryUsername) { updateUrl("username", ""); } // <-- REMOVIDO
   };
 
-  // --- O RESTO DO COMPONENTE ---
-  // (Permanece idêntico)
-
+  // (Verificação de permissão permanece igual)
   if (mode === "self" && !permissions.canViewSelf) {
     return (
       <Alert type="error">Você não tem permissão para ver estes dados.</Alert>
@@ -90,6 +90,41 @@ export default function UserFinancials({ mode, permissions }) {
       <Alert type="error">Você não tem permissão para buscar usuários.</Alert>
     );
   }
+
+  // --- RENDER CONTENT ATUALIZADO ---
+  const renderContent = () => {
+    if (isLoadingUserFinancials) {
+      return <UserFinancialsSkeleton />;
+    }
+    if (userFinancialsError) {
+      return <Alert type="error">{userFinancialsError}</Alert>;
+    }
+    if (userFound) {
+      return (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-md font-semibold text-gray-800">Assinaturas</h4>
+            <Button
+              size="small"
+              variant="primary" // Mudei para 'primary' para destaque
+              onClick={() => openSubModal("create")}
+              disabled={isLoadingPlans}
+            >
+              + Adicionar Plano
+            </Button>
+          </div>
+          <div className="space-y-6">
+            <SubscriptionList
+              subscriptions={financialData.subscriptions}
+              onEditClick={(sub) => openSubModal("edit", sub)}
+            />
+            <PaymentHistoryList payments={financialData.payments} />
+          </div>
+        </>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="mt-4">
@@ -104,20 +139,22 @@ export default function UserFinancials({ mode, permissions }) {
         </div>
       )}
 
-      <div className="mt-4">
-        {isLoadingUserFinancials ? (
-          <UserFinancialsSkeleton />
-        ) : userFinancialsError ? (
-          <Alert type="error">{userFinancialsError}</Alert>
-        ) : userFound ? (
-          <div className="space-y-6">
-            <SubscriptionDetails subscription={financialData.subscription} />
-            <PaymentHistoryList payments={financialData.payments} />
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
+      <div className="mt-4">{renderContent()}</div>
+
+      {/* --- RENDER DO NOVO MODAL --- */}
+      {isSubModalOpen && (
+        <SubscriptionFormModal
+          mode={subModalMode}
+          subscription={currentSubscription}
+          userId={foundUserId}
+          plans={availablePlans}
+          error={modalError}
+          onClose={closeSubModal}
+          onSubmit={
+            subModalMode === "create" ? createSubscription : updateSubscription
+          }
+        />
+      )}
     </div>
   );
 }

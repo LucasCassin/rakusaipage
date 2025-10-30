@@ -1,42 +1,68 @@
-import { useState, useCallback } from "react"; // Removido useEffect não utilizado
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings";
+// --- NOVOS IMPORTS ---
+import { usePaymentPlans } from "src/hooks/usePaymentPlans"; // Para buscar a lista de planos
+import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext"; // Para o trigger de atualização
 
-export function useUserFinancials() {
+export function useUserFinancials(user) {
   const router = useRouter();
   const [financialData, setFinancialData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userFound, setUserFound] = useState(false);
+  const [foundUserId, setFoundUserId] = useState(null);
 
-  // Helper interno para encapsular a lógica de fetch + handleApiResponse
-  const fetchAndHandle = async (url) => {
+  // --- NOVOS ESTADOS PARA O MODAL ---
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [subModalMode, setSubModalMode] = useState("create"); // 'create' ou 'edit'
+  const [currentSubscription, setCurrentSubscription] = useState(null); // Para 'edit'
+  const [modalError, setModalError] = useState(null);
+
+  // --- HOOKS ADICIONAIS ---
+  // 1. Hook para buscar todos os planos de pagamento (para o dropdown do modal 'create')
+  // Passamos 'user' e 'canFetch' como null/true, assumindo que se useUserFinancials
+  // for chamado, o usuário tem permissão para ler planos.
+  const { plans: availablePlans, isLoading: isLoadingPlans } = usePaymentPlans(
+    user,
+    true,
+  );
+  // 2. Hook para disparar a atualização de outros componentes
+  const { triggerKpiRefetch } = useFinancialsDashboard();
+
+  // (fetchAndHandle permanece o mesmo)
+  const fetchAndHandle = async (url, options = {}) => {
     const response = await fetch(url);
-    // Passa o setError principal. Se qualquer chamada falhar, o erro será setado.
-    return handleApiResponse({
+    if (options.allow404 && response.status === 404) {
+      return { status: 404, data: null };
+    }
+    return await handleApiResponse({
       response,
       router,
       setError,
-      onSuccess: (data) => data, // Em caso de sucesso, apenas retorna os dados
+      onSuccess: (data) => ({ status: 200, data }),
     });
   };
 
+  // (fetchUserFinancials permanece o mesmo, com pequenas correções)
   const fetchUserFinancials = useCallback(
     async (username) => {
       if (!username) {
         clearSearch();
         return;
       }
-
       setIsLoading(true);
       setError(null);
       setUserFound(false);
-      setFinancialData(null); // Limpa dados anteriores
+      setFinancialData(null);
+      setFoundUserId(null);
 
       try {
-        // Busca assinaturas e pagamentos em paralelo
-        const [subscriptionData, paymentsData] = await Promise.all([
+        const [userData, subscriptionData, paymentsData] = await Promise.all([
+          fetchAndHandle(`${settings.global.API.ENDPOINTS.USERS}/${username}`, {
+            allow404: true,
+          }),
           fetchAndHandle(
             `${settings.global.API.ENDPOINTS.SUBSCRIPTIONS}?username=${username}`,
           ),
@@ -45,25 +71,26 @@ export function useUserFinancials() {
           ),
         ]);
 
-        // handleApiResponse retorna null em caso de erro
-        // Só continuamos se AMBAS as chamadas tiverem sucesso
-        if (subscriptionData !== null && paymentsData !== null) {
-          // A API de subscriptions retorna um array, pegamos o primeiro item
-          const subscription =
-            subscriptionData.length > 0 ? subscriptionData[0] : null;
-
-          setFinancialData({
-            subscription: subscription,
-            payments: paymentsData,
-          });
-          setUserFound(true);
-        } else {
-          // Se "null", um erro já foi setado pelo handleApiResponse
+        if (!userData || userData.status === 404) {
+          setError(`Usuário "${username}" não encontrado.`);
           setUserFound(false);
           setFinancialData(null);
+          setFoundUserId(null);
+          setIsLoading(false);
+          return;
         }
+
+        setUserFound(true);
+        setFoundUserId(userData.id);
+
+        const subscriptions = subscriptionData ? subscriptionData : [];
+        const payments = paymentsData ? paymentsData : [];
+
+        setFinancialData({
+          subscriptions: subscriptions,
+          payments: payments,
+        });
       } catch (e) {
-        // Erro de conexão (ex: rede)
         setError("Erro de conexão. Verifique sua internet e tente novamente.");
         setUserFound(false);
         console.error("Erro ao buscar dados financeiros do usuário:", e);
@@ -71,21 +98,99 @@ export function useUserFinancials() {
         setIsLoading(false);
       }
     },
-    [router], // Adicionado router como dependência
+    [router],
   );
 
   const clearSearch = useCallback(() => {
     setFinancialData(null);
     setUserFound(false);
     setError(null);
+    setFoundUserId(null);
   }, []);
+
+  // --- NOVAS FUNÇÕES DO MODAL ---
+  const openSubModal = (mode, subscription = null) => {
+    setSubModalMode(mode);
+    setCurrentSubscription(subscription);
+    setIsSubModalOpen(true);
+    setModalError(null);
+  };
+
+  const closeSubModal = () => {
+    setIsSubModalOpen(false);
+    setCurrentSubscription(null);
+    setModalError(null);
+  };
+
+  const createSubscription = async (formData) => {
+    setModalError(null);
+    try {
+      const response = await fetch(
+        settings.global.API.ENDPOINTS.SUBSCRIPTIONS,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        },
+      );
+
+      return await handleApiResponse({
+        response,
+        router,
+        setError: setModalError, // Erro dentro do modal
+        onSuccess: () => {
+          triggerKpiRefetch(); // Atualiza KPIs e o próprio UserFinancials
+          closeSubModal();
+        },
+      });
+    } catch (e) {
+      setModalError("Erro de conexão ao criar a assinatura.");
+    }
+  };
+
+  const updateSubscription = async (formData) => {
+    setModalError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.SUBSCRIPTIONS}/${currentSubscription.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        },
+      );
+
+      return await handleApiResponse({
+        response,
+        router,
+        setError: setModalError, // Erro dentro do modal
+        onSuccess: () => {
+          triggerKpiRefetch(); // Atualiza KPIs e o próprio UserFinancials
+          closeSubModal();
+        },
+      });
+    } catch (e) {
+      setModalError("Erro de conexão ao atualizar a assinatura.");
+    }
+  };
 
   return {
     financialData,
     isLoading,
     error,
     userFound,
+    foundUserId,
     fetchUserFinancials,
     clearSearch,
+    availablePlans,
+    isLoadingPlans, // <-- Expondo o loading dos planos
+    isSubModalOpen,
+    subModalMode,
+    currentSubscription,
+    modalError,
+    openSubModal,
+    closeSubModal,
+    createSubscription,
+    updateSubscription,
   };
 }
