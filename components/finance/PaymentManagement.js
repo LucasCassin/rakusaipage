@@ -12,7 +12,8 @@ export default function PaymentManagement({ user, canFetch }) {
     setActiveTab,
     isLoading,
     error,
-    confirmPayment, // <-- Pegando a nova função do hook
+    confirmPayment,
+    deletePayment,
   } = usePaymentManagement(user, canFetch);
 
   return (
@@ -40,7 +41,8 @@ export default function PaymentManagement({ user, canFetch }) {
             <PaymentListItem
               key={payment.id}
               payment={payment}
-              onConfirmClick={confirmPayment} // <-- Passando a função como prop
+              onConfirmClick={confirmPayment}
+              onDeleteClick={deletePayment}
             />
           ))
         ) : (

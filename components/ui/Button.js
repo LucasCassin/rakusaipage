@@ -34,6 +34,7 @@ const Button = React.memo(
 
       // --- LINHA ADICIONADA ---
       danger: "bg-red-600 text-white hover:bg-red-700",
+      warning: "bg-yellow-500 text-white hover:bg-yellow-600",
     };
 
     return (

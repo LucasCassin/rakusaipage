@@ -34,6 +34,10 @@ export function usePaymentManagement(user, canFetch) {
       }
     } catch (e) {
       setError("Erro de conexão. Verifique sua internet e tente novamente.");
+      setTimeout(() => {
+        setError(null);
+        setIsLoading(false);
+      }, 2000);
       console.error("Erro ao buscar pagamentos do dashboard:", e);
     } finally {
       setIsLoading(false);
@@ -80,7 +84,56 @@ export function usePaymentManagement(user, canFetch) {
         });
       } catch (e) {
         setError("Erro de conexão ao confirmar o pagamento.");
+        setTimeout(() => {
+          setError(null);
+          setIsLoading(false);
+        }, 2000);
         console.error("Erro ao confirmar pagamento:", e);
+      }
+    },
+    [router, triggerKpiRefetch],
+  );
+
+  /**
+   * Deleta um pagamento e atualiza a lista.
+   */
+  const deletePayment = useCallback(
+    async (paymentId) => {
+      setError(null);
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        return await handleApiResponse({
+          response,
+          router,
+          setError,
+          onSuccess: (deletedPayment) => {
+            // Atualiza a lista localmente (melhor UX)
+            setPayments((prevPayments) =>
+              prevPayments.filter((p) => p.id !== deletedPayment.id),
+            );
+            // Dispara o trigger para atualizar os KPIs
+            triggerKpiRefetch();
+          },
+          onError: () => {
+            setTimeout(() => {
+              setError(null);
+              setIsLoading(false);
+            }, 2000);
+          },
+        });
+      } catch (e) {
+        setError("Erro de conexão ao deletar o pagamento.");
+        setTimeout(() => {
+          setError(null);
+          setIsLoading(false);
+        }, 2000);
+        console.error("Erro ao deletar pagamento:", e);
       }
     },
     [router, triggerKpiRefetch],
@@ -111,6 +164,7 @@ export function usePaymentManagement(user, canFetch) {
     setActiveTab,
     isLoading,
     error,
-    confirmPayment, // <-- Expondo a nova função
+    confirmPayment,
+    deletePayment,
   };
 }
