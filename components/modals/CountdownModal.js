@@ -105,7 +105,7 @@ export default function CountdownModal({
       onClick={onClose}
     >
       <div
-        className={`relative w-full max-w-4xl text-center text-white rounded-2xl shadow-2xl 
+        className={`relative w-full max-w-6xl text-center text-white rounded-2xl shadow-2xl 
                    bg-gradient-to-br ${theme.gradient} 
                    flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}

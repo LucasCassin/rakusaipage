@@ -30,7 +30,7 @@ export default function ComunicadoModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-6xl bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <Swiper
