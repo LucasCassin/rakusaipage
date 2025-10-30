@@ -7,7 +7,7 @@ const SubscriptionAccordionItem = ({
   subscription,
   onEditClick,
   startOpen = false,
-  showEditButton = false,
+  canManage = false,
 }) => {
   const [isOpen, setIsOpen] = useState(startOpen);
 
@@ -31,7 +31,7 @@ const SubscriptionAccordionItem = ({
           </span>
         </div>
         <div className="flex items-center gap-4">
-          {showEditButton && (
+          {canManage && (
             <Button
               size="small"
               variant="secondary"

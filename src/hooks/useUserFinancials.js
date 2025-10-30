@@ -85,7 +85,6 @@ export function useUserFinancials(user) {
 
         const subscriptions = subscriptionData ? subscriptionData : [];
         const payments = paymentsData ? paymentsData : [];
-
         setFinancialData({
           subscriptions: subscriptions,
           payments: payments,
@@ -185,6 +184,48 @@ export function useUserFinancials(user) {
     }
   };
 
+  const indicatePaid = useCallback(
+    async (paymentId) => {
+      setError(null);
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "indicate_paid" }),
+          },
+        );
+
+        return await handleApiResponse({
+          response,
+          router,
+          setError,
+          onSuccess: (updatedPayment) => {
+            // --- CORREÇÃO (Atualização de Estado Local) ---
+            // Em vez de recarregar tudo, atualizamos apenas
+            // o item de pagamento dentro do estado 'financialData'.
+            setFinancialData((prevData) => {
+              const newPayments = prevData.payments.map((p) =>
+                p.id === paymentId ? { ...p, ...updatedPayment } : p,
+              );
+              return {
+                ...prevData,
+                payments: newPayments,
+              };
+            });
+
+            // REMOVIDO: triggerKpiRefetch();
+          },
+        });
+      } catch (e) {
+        setError("Erro de conexão ao avisar o pagamento.");
+        console.error("Erro ao avisar pagamento:", e);
+      }
+    },
+    [router], // <-- REMOVIDO 'triggerKpiRefetch' das dependências
+  );
+
   return {
     financialData,
     isLoading,
@@ -203,5 +244,6 @@ export function useUserFinancials(user) {
     closeSubModal,
     createSubscription,
     updateSubscription,
+    indicatePaid,
   };
 }

@@ -68,7 +68,7 @@ const PaymentHistoryItem = ({ payment }) => {
 };
 
 // Componente principal que renderiza a lista
-const PaymentHistoryList = ({ payments }) => {
+const PaymentHistoryList = ({ payments, showTitle = true }) => {
   if (!payments || payments.length === 0) {
     return (
       <p className="text-gray-500 text-center py-6">
@@ -79,9 +79,11 @@ const PaymentHistoryList = ({ payments }) => {
 
   return (
     <div className="mt-6">
-      <h4 className="text-md font-semibold text-gray-800 mb-4">
-        Histórico de Pagamentos
-      </h4>
+      {showTitle && (
+        <h4 className="text-md font-semibold text-gray-800 mb-4">
+          Histórico de Pagamentos
+        </h4>
+      )}
       <div className="space-y-3">
         {payments.map((p) => (
           <PaymentHistoryItem key={p.id} payment={p} />

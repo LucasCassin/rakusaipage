@@ -6,8 +6,6 @@ import { settings } from "config/settings.js";
 import PageLayout from "components/layouts/PageLayout";
 import InitialLoading from "components/InitialLoading";
 
-import { FinancialsDashboardProvider } from "src/contexts/FinancialsDashboardContext";
-
 // Importe os NOVOS componentes "inteligentes"
 import DashboardKPIs from "components/finance/DashboardKPIs";
 import PaymentManagement from "components/finance/PaymentManagement";
@@ -102,73 +100,68 @@ export default function FinancialDashboardPage() {
   }
 
   return (
-    <FinancialsDashboardProvider>
-      <PageLayout
-        title="Dashboard Financeiro"
-        description="Acompanhamento de pagamentos"
-        maxWidth="max-w-7xl"
-      >
-        {authError && (
-          <Alert type="error" className="mb-4">
-            {authError}
-          </Alert>
-        )}
+    <PageLayout
+      title="Dashboard Financeiro"
+      description="Acompanhamento de pagamentos"
+      maxWidth="max-w-7xl"
+    >
+      {authError && (
+        <Alert type="error" className="mb-4">
+          {authError}
+        </Alert>
+      )}
 
-        {!authError && (
-          <>
-            {/* Título (permanece igual) */}
-            <div>
-              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Dashboard Financeiro
-              </h2>
-              <p className="mt-2 text-center text-sm text-gray-600">
-                Visão geral da saúde financeira e gestão de pagamentos.
-              </p>
+      {!authError && (
+        <>
+          {/* Título (permanece igual) */}
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Dashboard Financeiro
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Visão geral da saúde financeira e gestão de pagamentos.
+            </p>
+          </div>
+
+          {/* Seção KPIs (permanece igual) */}
+          {userPermissions.canViewKPIs && (
+            <DashboardKPIs user={user} canFetch={userPermissions.canViewKPIs} />
+          )}
+
+          {/* Seção Gestão de Pagamentos (permanece igual) */}
+          {userPermissions.canViewPaymentManagement && (
+            <PaymentManagement
+              user={user}
+              canFetch={userPermissions.canViewPaymentManagement}
+            />
+          )}
+
+          {/* --- SEÇÃO CONSULTA FINANCEIRA (ATUALIZADA) --- */}
+          {userPermissions.canViewOther && (
+            // Adicionada borda e padding-top
+            <div className="my-20 border-t border-gray-200 pt-12">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Consulta Financeira de Alunos
+              </h3>
+              <UserFinancials
+                mode="other"
+                permissions={{
+                  canViewOther: userPermissions.canViewOther,
+                }}
+              />
             </div>
+          )}
+          {/* --- FIM DA ATUALIZAÇÃO --- */}
 
-            {/* Seção KPIs (permanece igual) */}
-            {userPermissions.canViewKPIs && (
-              <DashboardKPIs
-                user={user}
-                canFetch={userPermissions.canViewKPIs}
-              />
-            )}
-
-            {/* Seção Gestão de Pagamentos (permanece igual) */}
-            {userPermissions.canViewPaymentManagement && (
-              <PaymentManagement
-                user={user}
-                canFetch={userPermissions.canViewPaymentManagement}
-              />
-            )}
-
-            {/* --- SEÇÃO CONSULTA FINANCEIRA (ATUALIZADA) --- */}
-            {userPermissions.canViewOther && (
-              // Adicionada borda e padding-top
-              <div className="my-20 border-t border-gray-200 pt-12">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                  Consulta Financeira de Alunos
-                </h3>
-                <UserFinancials
-                  mode="other"
-                  permissions={{
-                    canViewOther: userPermissions.canViewOther,
-                  }}
-                />
-              </div>
-            )}
-            {/* --- FIM DA ATUALIZAÇÃO --- */}
-
-            {/* Seção Planos de Pagamento (permanece igual) */}
-            {userPermissions.canViewPlanManagement && (
-              <PlanManagement
-                user={user}
-                canFetch={userPermissions.canViewPlanManagement}
-              />
-            )}
-          </>
-        )}
-      </PageLayout>
-    </FinancialsDashboardProvider>
+          {/* Seção Planos de Pagamento (permanece igual) */}
+          {userPermissions.canViewPlanManagement && (
+            <PlanManagement
+              user={user}
+              canFetch={userPermissions.canViewPlanManagement}
+            />
+          )}
+        </>
+      )}
+    </PageLayout>
   );
 }
