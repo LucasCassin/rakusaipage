@@ -4,11 +4,11 @@ import PlanListItem from "components/ui/PlanListItem";
 import PlanListSkeleton from "components/ui/PlanListSkeleton";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
-import PlanFormModal from "components/finance/PlanFormModal"; // <-- NOVO
-import DeletePlanModal from "components/finance/DeletePlanModal"; // <-- NOVO
+import PlanFormModal from "components/finance/PlanFormModal";
+import DeletePlanModal from "components/finance/DeletePlanModal";
 
 export default function PlanManagement({ user, canFetch }) {
-  // O hook agora retorna muito mais coisas
+  // ... (Hook permanece igual)
   const {
     plans,
     isLoading,
@@ -22,16 +22,16 @@ export default function PlanManagement({ user, canFetch }) {
     createPlan,
     updatePlan,
     deletePlan,
-    getPlanStats,
-  } = usePaymentPlans(user, canFetch); // Hook atualizado
+    getStats,
+  } = usePaymentPlans(user, canFetch);
 
   return (
-    <div className="mt-12">
+    // --- SEPARADOR ADICIONADO ---
+    <div className="my-20 border-t border-gray-200 pt-12">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg leading-6 font-medium text-gray-900">
           Planos de Pagamento
         </h3>
-        {/* O botão "Criar" agora abre o modal */}
         <Button
           variant="primary"
           size="small"
@@ -43,6 +43,9 @@ export default function PlanManagement({ user, canFetch }) {
 
       {error && <Alert type="error">{error}</Alert>}
 
+      {/* A lista de planos geralmente é curta,
+          então não adicionei scroll aqui,
+          mas poderíamos, se necessário. */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
         {isLoading ? (
           <PlanListSkeleton />
@@ -51,7 +54,6 @@ export default function PlanManagement({ user, canFetch }) {
             <PlanListItem
               key={plan.id}
               plan={plan}
-              // Passa as funções para abrir os modais
               onEditClick={() => openModal("edit", plan)}
               onDeleteClick={() => openModal("delete", plan)}
             />
@@ -63,9 +65,7 @@ export default function PlanManagement({ user, canFetch }) {
         )}
       </div>
 
-      {/* --- Renderização Condicional dos Modais --- */}
-
-      {/* Modal de Criar/Editar */}
+      {/* ... (Renderização dos modais permanece igual) ... */}
       {isModalOpen && (modalMode === "create" || modalMode === "edit") && (
         <PlanFormModal
           mode={modalMode}
@@ -73,18 +73,16 @@ export default function PlanManagement({ user, canFetch }) {
           error={modalError}
           onClose={closeModal}
           onSubmit={modalMode === "create" ? createPlan : updatePlan}
-          getStats={getPlanStats}
+          getStats={getStats}
         />
       )}
-
-      {/* Modal de Deletar */}
       {isModalOpen && modalMode === "delete" && (
         <DeletePlanModal
           plan={currentPlan}
           error={modalError}
           onClose={closeModal}
           onDelete={deletePlan}
-          getStats={getPlanStats} // Passa a função para buscar o "impacto"
+          getStats={getStats}
         />
       )}
     </div>

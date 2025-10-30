@@ -7,6 +7,7 @@ const SubscriptionAccordionItem = ({
   subscription,
   onEditClick,
   startOpen = false,
+  showEditButton = false,
 }) => {
   const [isOpen, setIsOpen] = useState(startOpen);
 
@@ -30,17 +31,19 @@ const SubscriptionAccordionItem = ({
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <Button
-            size="small"
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation(); // Impede o acordeão de fechar
-              onEditClick();
-            }}
-          >
-            <FiEdit2 className="mr-2" />
-            Editar
-          </Button>
+          {showEditButton && (
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation(); // Impede o acordeão de fechar
+                onEditClick();
+              }}
+            >
+              <FiEdit2 className="mr-2" />
+              Editar
+            </Button>
+          )}
           {isOpen ? (
             <FiChevronUp className="h-5 w-5 text-gray-500" />
           ) : (

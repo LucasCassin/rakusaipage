@@ -3,7 +3,7 @@ import { usePaymentManagement } from "src/hooks/usePaymentManagement";
 import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
 import PaymentListItem from "components/ui/PaymentListItem";
 import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
-import Alert from "components/ui/Alert"; // <-- Importar Alert
+import Alert from "components/ui/Alert";
 
 export default function PaymentManagement({ user, canFetch }) {
   const {
@@ -17,7 +17,8 @@ export default function PaymentManagement({ user, canFetch }) {
   } = usePaymentManagement(user, canFetch);
 
   return (
-    <div className="mt-12">
+    // --- SEPARADOR ADICIONADO ---
+    <div className="my-20 border-t border-gray-200 pt-12">
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
         Gestão de Pagamentos
       </h3>
@@ -33,7 +34,9 @@ export default function PaymentManagement({ user, canFetch }) {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
-      <div className="mt-6 space-y-4">
+
+      {/* --- LISTA COM SCROLL E ALTURA MÁXIMA --- */}
+      <div className="mt-6 space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full pr-2">
         {isLoading ? (
           <PaymentListSkeleton />
         ) : payments.length > 0 ? (
@@ -51,6 +54,7 @@ export default function PaymentManagement({ user, canFetch }) {
           </p>
         )}
       </div>
+      {/* --- FIM DA ATUALIZAÇÃO --- */}
     </div>
   );
 }

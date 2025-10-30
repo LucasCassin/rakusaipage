@@ -1,7 +1,7 @@
 import React from "react";
 import SubscriptionAccordionItem from "components/finance/SubscriptionAccordionItem";
 
-const SubscriptionList = ({ subscriptions, onEditClick }) => {
+const SubscriptionList = ({ subscriptions, onEditClick, showEditButton }) => {
   // Caso 1: Nenhuma assinatura
   if (!subscriptions || subscriptions.length === 0) {
     return (
@@ -20,6 +20,7 @@ const SubscriptionList = ({ subscriptions, onEditClick }) => {
         subscription={subscriptions[0]}
         onEditClick={() => onEditClick(subscriptions[0])}
         startOpen={true} // Começa aberto
+        showEditButton={showEditButton}
       />
     );
   }
@@ -32,6 +33,7 @@ const SubscriptionList = ({ subscriptions, onEditClick }) => {
           key={sub.id}
           subscription={sub}
           onEditClick={() => onEditClick(sub)}
+          showEditButton={showEditButton}
         />
       ))}
     </div>

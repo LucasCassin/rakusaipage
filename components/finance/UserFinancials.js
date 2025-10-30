@@ -6,16 +6,15 @@ import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext"
 
 import Alert from "components/ui/Alert";
 import UserSearchForm from "components/forms/UserSearchForm";
-// import SubscriptionDetails from "components/ui/SubscriptionDetails"; // <-- REMOVIDO
 import PaymentHistoryList from "components/ui/PaymentHistoryList";
 import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
 import Button from "components/ui/Button";
 
-// --- NOVOS IMPORTS ---
 import SubscriptionList from "components/finance/SubscriptionList";
 import SubscriptionFormModal from "components/finance/SubscriptionFormModal";
 
 export default function UserFinancials({ mode, permissions }) {
+  // ... (Hooks, useStates, useEffects e handlers permanecem iguais) ...
   const { user } = useAuth();
   const { updateUrl, getParamValue } = useUrlManager();
   const queryUsername = getParamValue("username");
@@ -32,7 +31,7 @@ export default function UserFinancials({ mode, permissions }) {
     fetchUserFinancials,
     clearSearch,
     availablePlans,
-    isLoadingPlans, // <-- Pega o loading dos planos
+    isLoadingPlans,
     isSubModalOpen,
     subModalMode,
     currentSubscription,
@@ -43,7 +42,6 @@ export default function UserFinancials({ mode, permissions }) {
     updateSubscription,
   } = useUserFinancials(user);
 
-  // (useEffect 1 e 2 permanecem iguais)
   useEffect(() => {
     if (queryUsername !== searchUsername) {
       setSearchUsername(queryUsername || "");
@@ -68,7 +66,6 @@ export default function UserFinancials({ mode, permissions }) {
     clearSearch,
   ]);
 
-  // (handleSearch e handleUsernameChange permanecem iguais)
   const handleSearch = (usernameToSearch) => {
     updateUrl("username", usernameToSearch);
   };
@@ -79,7 +76,6 @@ export default function UserFinancials({ mode, permissions }) {
     }
   };
 
-  // (Verificação de permissão permanece igual)
   if (mode === "self" && !permissions.canViewSelf) {
     return (
       <Alert type="error">Você não tem permissão para ver estes dados.</Alert>
@@ -91,7 +87,6 @@ export default function UserFinancials({ mode, permissions }) {
     );
   }
 
-  // --- RENDER CONTENT ATUALIZADO ---
   const renderContent = () => {
     if (isLoadingUserFinancials) {
       return <UserFinancialsSkeleton />;
@@ -104,22 +99,29 @@ export default function UserFinancials({ mode, permissions }) {
         <>
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-md font-semibold text-gray-800">Assinaturas</h4>
-            <Button
-              size="small"
-              variant="primary" // Mudei para 'primary' para destaque
-              onClick={() => openSubModal("create")}
-              disabled={isLoadingPlans}
-            >
-              + Adicionar Plano
-            </Button>
+            {mode === "other" && (
+              <Button
+                size="small"
+                variant="primary"
+                onClick={() => openSubModal("create")}
+                disabled={isLoadingPlans}
+              >
+                + Adicionar Plano
+              </Button>
+            )}
           </div>
-          <div className="space-y-6">
+
+          {/* --- LISTA COM SCROLL E ALTURA MÁXIMA --- */}
+          {/* Usamos max-h-[32rem] (512px) por ser uma seção maior */}
+          <div className="space-y-6 max-h-[32rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full pr-2">
             <SubscriptionList
               subscriptions={financialData.subscriptions}
               onEditClick={(sub) => openSubModal("edit", sub)}
+              showEditButton={mode === "other"}
             />
             <PaymentHistoryList payments={financialData.payments} />
           </div>
+          {/* --- FIM DA ATUALIZAÇÃO --- */}
         </>
       );
     }

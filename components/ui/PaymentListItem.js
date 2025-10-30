@@ -62,7 +62,7 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
           )}
           {payment.status === "PENDING" && (
             <span className="px-2 py-0.5 text-xs font-semibold text-yellow-600 bg-yellow-100 rounded-full">
-              Confirmado
+              Pendente
             </span>
           )}
           {payment.status === "CONFIRMED" && (

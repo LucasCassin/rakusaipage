@@ -15,7 +15,7 @@ import UserFinancials from "components/finance/UserFinancials";
 import PlanManagement from "components/finance/PlanManagement";
 import Alert from "components/ui/Alert";
 
-// Definições de permissões (permanecem iguais)
+// ... (Definições de permissões permanecem iguais) ...
 const PERMISSIONS_KPI_SECTION = [
   "read:payment:other",
   "read:subscription:other",
@@ -40,6 +40,7 @@ const PERMISSIONS_PLAN_MANAGEMENT = [
 ];
 
 export default function FinancialDashboardPage() {
+  // ... (Hooks de useAuth, useState, useRouter, useMemo, useEffect permanecem iguais) ...
   const { user, isLoading: isLoadingAuth } = useAuth();
   const [showContent, setShowContent] = useState(false);
   const [authError, setAuthError] = useState(null);
@@ -74,7 +75,6 @@ export default function FinancialDashboardPage() {
     };
   }, [user]);
 
-  // Efeito de guarda (permanece igual)
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
@@ -92,10 +92,8 @@ export default function FinancialDashboardPage() {
     setShowContent(true);
   }, [user, isLoadingAuth, userPermissions.canAccessPage, router]);
 
-  // filteredPayments (REMOVIDO - agora vive em PaymentManagement)
-
-  // Renderização do InitialLoading (permanece igual)
   if (isLoadingAuth || !showContent) {
+    // ... (Renderização do InitialLoading permanece igual)
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <InitialLoading message="Verificando permissões..." />
@@ -128,7 +126,7 @@ export default function FinancialDashboardPage() {
               </p>
             </div>
 
-            {/* Seção KPIs (MODIFICADA) */}
+            {/* Seção KPIs (permanece igual) */}
             {userPermissions.canViewKPIs && (
               <DashboardKPIs
                 user={user}
@@ -136,7 +134,7 @@ export default function FinancialDashboardPage() {
               />
             )}
 
-            {/* Seção Gestão de Pagamentos (MODIFICADA) */}
+            {/* Seção Gestão de Pagamentos (permanece igual) */}
             {userPermissions.canViewPaymentManagement && (
               <PaymentManagement
                 user={user}
@@ -144,20 +142,24 @@ export default function FinancialDashboardPage() {
               />
             )}
 
-            {/* Seção Consulta Financeira (permanece igual) */}
+            {/* --- SEÇÃO CONSULTA FINANCEIRA (ATUALIZADA) --- */}
             {userPermissions.canViewOther && (
-              <div className="mt-12">
+              // Adicionada borda e padding-top
+              <div className="my-20 border-t border-gray-200 pt-12">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
                   Consulta Financeira de Alunos
                 </h3>
                 <UserFinancials
                   mode="other"
-                  permissions={{ canViewOther: userPermissions.canViewOther }}
+                  permissions={{
+                    canViewOther: userPermissions.canViewOther,
+                  }}
                 />
               </div>
             )}
+            {/* --- FIM DA ATUALIZAÇÃO --- */}
 
-            {/* Seção Planos de Pagamento (MODIFICADA) */}
+            {/* Seção Planos de Pagamento (permanece igual) */}
             {userPermissions.canViewPlanManagement && (
               <PlanManagement
                 user={user}
