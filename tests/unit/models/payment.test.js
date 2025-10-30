@@ -129,4 +129,78 @@ describe("Payment Model", () => {
       expect(checkedPayment.status).toBe("OVERDUE");
     });
   });
+
+  describe("del()", () => {
+    let deletablePayment, confirmedPayment;
+
+    // Cria dados frescos para este conjunto de testes
+    beforeAll(async () => {
+      const delUser = await user.create({
+        username: "delUser",
+        email: "del@test.com",
+        password: "StrongPassword123@",
+      });
+      const delPlan = await plan.create({
+        name: "Plano para Deletar",
+        full_value: 10,
+        period_unit: "day",
+        period_value: 1,
+      });
+
+      // Pagamento PENDENTE
+      const delSub1 = await subscription.create({
+        user_id: delUser.id,
+        plan_id: delPlan.id,
+        payment_day: 1,
+        start_date: "2025-01-01",
+      });
+      deletablePayment = (await payment.findByUserId(delUser.id)).find(
+        (p) => p.subscription_id === delSub1.id,
+      );
+
+      // Pagamento CONFIRMADO
+      const delSub2 = await subscription.create({
+        user_id: delUser.id,
+        plan_id: delPlan.id,
+        payment_day: 1,
+        start_date: "2026-01-01",
+      });
+      confirmedPayment = (await payment.findByUserId(delUser.id)).find(
+        (p) => p.subscription_id === delSub2.id,
+      );
+      await payment.adminConfirmPaid(confirmedPayment.id); // Confirma o pagamento
+    });
+
+    it("should delete a PENDING payment by its ID", async () => {
+      await expect(payment.del(deletablePayment.id)).resolves.toEqual({
+        id: deletablePayment.id,
+      });
+
+      // Verifica se foi realmente deletado
+      const found = await payment.findById(deletablePayment.id);
+      expect(found).toBeUndefined();
+    });
+
+    // --- NOVO TESTE ---
+    it("should throw ForbiddenError when trying to delete a CONFIRMED payment", async () => {
+      await expect(payment.del(confirmedPayment.id)).rejects.toThrow(
+        ForbiddenError,
+      );
+      await expect(payment.del(confirmedPayment.id)).rejects.toThrow(
+        "Pagamentos confirmados não podem ser deletados.",
+      );
+    });
+
+    it("should throw NotFoundError when trying to delete a non-existent payment", async () => {
+      const randomId = orchestrator.generateRandomUUIDV4();
+      await expect(payment.del(randomId)).rejects.toThrow(NotFoundError);
+    });
+
+    it("should throw NotFoundError when trying to delete an already deleted payment", async () => {
+      // 'deletablePayment' já foi deletado no primeiro teste deste bloco
+      await expect(payment.del(deletablePayment.id)).rejects.toThrow(
+        NotFoundError,
+      );
+    });
+  });
 });

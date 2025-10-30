@@ -78,6 +78,7 @@ const availableFeatures = new Set([
   //Pagamentos
   "read:payment:self",
   "read:payment:other",
+  "delete:payment:other",
   "update:payment:indicate_paid",
   "update:payment:confirm_paid",
 

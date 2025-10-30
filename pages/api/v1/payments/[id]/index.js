@@ -12,6 +12,8 @@ const router = createRouter()
 
 router.patch(patchValidator, patchHandler);
 
+router.delete(authorization.canRequest("delete:payment:other"), deleteHandler);
+
 export default router.handler(controller.errorsHandlers);
 
 /**
@@ -70,6 +72,34 @@ async function patchHandler(req, res) {
     }
 
     res.status(200).json(updatedPayment);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
+}
+
+async function deleteHandler(req, res) {
+  try {
+    const { id: paymentId } = req.query;
+    const user = req.context.user; // O admin logado
+
+    // 1. Verificar se o pagamento existe
+    const paymentCheck = await payment.findById(paymentId);
+    if (!paymentCheck) {
+      throw new NotFoundError({ message: "Pagamento não encontrado." });
+    }
+
+    // 2. Aplicar regra de "não deletar o próprio"
+    if (paymentCheck.user_id === user.id) {
+      throw new ForbiddenError({
+        message: "Você não pode deletar seus próprios pagamentos.",
+        action: "Esta ação é reservada para pagamentos de outros usuários.",
+      });
+    }
+
+    // 3. Chamar o modelo (que vai checar o status 'CONFIRMED')
+    const deletedPayment = await payment.del(paymentId);
+
+    res.status(200).json(deletedPayment);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }

@@ -236,6 +236,42 @@ async function findAll() {
   return results.rows;
 }
 
+/**
+ * Deleta um pagamento específico. (Ação de Admin)
+ * NÃO permite deletar pagamentos com status 'CONFIRMED'.
+ * @param {string} paymentId - O UUID do pagamento a ser deletado.
+ */
+async function del(paymentId) {
+  const validatedId = validator({ id: paymentId }, { id: "required" });
+
+  // 1. Verificar se existe e qual o status
+  // (Usamos findById que você já criou, que busca em 'payments')
+  const paymentCheck = await findById(validatedId.id);
+
+  if (!paymentCheck) {
+    throw new NotFoundError({
+      message: "Pagamento não encontrado.",
+    });
+  }
+
+  // 2. Aplicar a regra de negócio (não deletar se confirmado)
+  if (paymentCheck.status === "CONFIRMED") {
+    throw new ForbiddenError({
+      message: "Pagamentos confirmados não podem ser deletados.",
+      action: "Este pagamento já foi processado e não pode ser removido.",
+    });
+  }
+
+  // 3. Se passou, deletar
+  const query = {
+    text: `DELETE FROM payments WHERE id = $1;`,
+    values: [validatedId.id],
+  };
+  await database.query(query);
+
+  return { id: paymentCheck.id }; // Retorna o ID
+}
+
 export default {
   create,
   createInitialPayment,
@@ -245,5 +281,6 @@ export default {
   findByUsername,
   findById,
   findAndSetOverdue,
-  findAll, // Adicionar a nova função
+  findAll,
+  del,
 };
