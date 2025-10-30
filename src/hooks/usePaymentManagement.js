@@ -6,7 +6,7 @@ import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext"
 
 export function usePaymentManagement(user, canFetch) {
   const router = useRouter();
-  const { triggerKpiRefetch } = useFinancialsDashboard();
+  const { triggerKpiRefetch, kpiTrigger } = useFinancialsDashboard();
   const [payments, setPayments] = useState([]);
   const [activeTab, setActiveTab] = useState("awaiting_confirmation");
   const [isLoading, setIsLoading] = useState(true);
@@ -17,7 +17,7 @@ export function usePaymentManagement(user, canFetch) {
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
+    // Não seta isLoading(true) aqui, para evitar piscar ao atualizar
     setError(null);
 
     try {
@@ -25,7 +25,7 @@ export function usePaymentManagement(user, canFetch) {
       const paymentsResult = await handleApiResponse({
         response,
         router,
-        setError,
+        setError, // Usa o setError do hook
         onSuccess: (data) => data,
       });
 
@@ -40,13 +40,18 @@ export function usePaymentManagement(user, canFetch) {
       }, 2000);
       console.error("Erro ao buscar pagamentos do dashboard:", e);
     } finally {
-      setIsLoading(false);
+      // Seta isLoading(false) apenas se ainda não foi feito
+      if (isLoading) setIsLoading(false);
     }
-  }, [user, canFetch]); // Removido 'router' da dependência
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, canFetch]); // Mantém as dependências originais
 
+  // --- useEffect PRINCIPAL ATUALIZADO ---
   useEffect(() => {
+    // Seta isLoading(true) apenas na primeira carga ou quando o trigger muda
+    setIsLoading(true);
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, kpiTrigger]); // <-- 3. ADICIONAR kpiTrigger AQUI
 
   // --- NOVA FUNÇÃO ---
   /**

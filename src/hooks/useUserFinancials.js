@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings";
@@ -94,6 +94,9 @@ export function useUserFinancials(user) {
         setError("Erro de conexão. Verifique sua internet e tente novamente.");
         setUserFound(false);
         console.error("Erro ao buscar dados financeiros do usuário:", e);
+        setTimeout(() => {
+          setError(null);
+        }, 2000);
       } finally {
         setIsLoading(false);
       }
@@ -145,6 +148,10 @@ export function useUserFinancials(user) {
       });
     } catch (e) {
       setModalError("Erro de conexão ao criar a assinatura.");
+      setTimeout(() => {
+        setModalError(null);
+      }, 2000);
+      console.error("Erro ao criar assinatura:", e);
     }
   };
 
@@ -171,6 +178,10 @@ export function useUserFinancials(user) {
       });
     } catch (e) {
       setModalError("Erro de conexão ao atualizar a assinatura.");
+      setTimeout(() => {
+        setModalError(null);
+      }, 2000);
+      console.error("Erro ao atualizar assinatura:", e);
     }
   };
 

@@ -46,7 +46,7 @@ const PaymentHistoryItem = ({ payment }) => {
         {payment.confirmed_at && (
           <p className="text-xs text-green-700">
             Pago em:{" "}
-            {new Date(payment.confirmed_at).toLocaleDateString("pt-BR", {
+            {new Date(payment.confirmed_at).toLocaleString("pt-BR", {
               timeZone: "UTC",
             })}
           </p>

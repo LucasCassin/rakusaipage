@@ -18,7 +18,7 @@ describe("DELETE /api/v1/payments/[id]", () => {
     adminUser = await user.findOneUser({ username: "mainUser" });
     adminUser = await user.update({
       id: adminUser.id,
-      password: "StrongPassword1T@",
+      password: "StrongPassword123@",
     });
     // Damos ao admin todas as features de pagamento para os testes
     await user.addFeatures(adminUser, [
@@ -30,11 +30,11 @@ describe("DELETE /api/v1/payments/[id]", () => {
     regularUser = await user.create({
       username: "paymentDeleter",
       email: "deleter@test.com",
-      password: "StrongPassword1T@",
+      password: "StrongPassword123@",
     });
     regularUser = await user.update({
       id: regularUser.id,
-      password: "StrongPassword1T@",
+      password: "StrongPassword123@",
     });
 
     // Cria um plano genérico

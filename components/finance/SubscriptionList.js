@@ -1,5 +1,4 @@
 import React from "react";
-import SubscriptionDetails from "components/ui/SubscriptionDetails";
 import SubscriptionAccordionItem from "components/finance/SubscriptionAccordionItem";
 
 const SubscriptionList = ({ subscriptions, onEditClick }) => {

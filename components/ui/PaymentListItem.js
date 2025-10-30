@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import Button from "./Button";
-import { FiCheck, FiTrash2 } from "react-icons/fi"; // Adiciona FiTrash2
 
 const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -11,7 +10,7 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
     style: "currency",
     currency: "BRL",
   }).format(payment.amount_due);
-  const formattedDate = new Date(payment.due_date).toLocaleString("pt-BR", {
+  const formattedDate = new Date(payment.due_date).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
   });
 

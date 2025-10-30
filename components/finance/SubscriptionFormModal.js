@@ -3,6 +3,7 @@ import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX } from "react-icons/fi";
+import Switch from "components/ui/Switch";
 
 const SubscriptionFormModal = ({
   mode,
@@ -39,10 +40,26 @@ const SubscriptionFormModal = ({
   }, [mode, subscription, userId, plans, isEdit, today]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
+    // Precisamos tratar o 'is_active' separadamente se for o Switch
+    if (name === "is_active") {
+      setFormData((prev) => ({
+        ...prev,
+        is_active: !prev.is_active, // Inverte o valor booleano
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  // Handler específico para o Switch (mais seguro)
+  const handleSwitchChange = () => {
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      is_active: !prev.is_active,
     }));
   };
 
@@ -99,21 +116,16 @@ const SubscriptionFormModal = ({
                   className="mt-1"
                 />
               </div>
-              <div className="flex items-center">
-                <input
-                  id="is_active"
-                  name="is_active"
-                  type="checkbox"
-                  checked={formData.is_active || false}
-                  onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300 text-rakusai-purple"
-                />
-                <label
-                  htmlFor="is_active"
-                  className="ml-2 block text-sm text-gray-900"
-                >
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-sm font-medium text-gray-900">
                   Assinatura Ativa
-                </label>
+                </span>
+                <Switch
+                  checked={formData.is_active || false}
+                  onChange={handleSwitchChange} // Usa o handler específico
+                  disabled={isLoading}
+                />
               </div>
             </>
           ) : (

@@ -40,6 +40,9 @@ export function usePaymentPlans(user, canFetch) {
       setError("Erro de conexão. Verifique sua internet e tente novamente.");
       setIsLoading(false);
       console.error("Erro ao buscar planos de pagamento:", e);
+      setTimeout(() => {
+        setError(null);
+      }, 2000);
     }
   }, [user, canFetch, router]);
 
@@ -86,6 +89,10 @@ export function usePaymentPlans(user, canFetch) {
       });
     } catch (e) {
       setModalError("Erro de conexão ao criar o plano.");
+      setTimeout(() => {
+        setModalError(null);
+      }, 2000);
+      console.error("Erro ao criar plano:", e);
     }
   };
 
@@ -114,6 +121,10 @@ export function usePaymentPlans(user, canFetch) {
       });
     } catch (e) {
       setModalError("Erro de conexão ao atualizar o plano.");
+      setTimeout(() => {
+        setModalError(null);
+      }, 2000);
+      console.error("Erro ao atualizar plano:", e);
     }
   };
 
@@ -138,6 +149,10 @@ export function usePaymentPlans(user, canFetch) {
       });
     } catch (e) {
       setModalError("Erro de conexão ao deletar o plano.");
+      setTimeout(() => {
+        setModalError(null);
+      }, 2000);
+      console.error("Erro ao deletar plano:", e);
     }
   };
 
@@ -157,6 +172,10 @@ export function usePaymentPlans(user, canFetch) {
       });
     } catch (e) {
       setError("Erro de conexão ao buscar estatísticas do plano.");
+      setTimeout(() => {
+        setError(null);
+      }, 2000);
+      console.error("Erro ao buscar estatísticas do plano:", e);
       return null;
     }
   };
