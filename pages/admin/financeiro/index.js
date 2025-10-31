@@ -22,10 +22,7 @@ const PERMISSIONS_PAYMENT_MANAGEMENT = [
   "read:payment:other",
   "update:payment:confirm_paid",
 ];
-const PERMISSIONS_USER_FINANCIALS_SELF = [
-  "read:subscription:self",
-  "read:payment:self",
-];
+
 const PERMISSIONS_USER_FINANCIALS_OTHER = [
   "read:subscription:other",
   "read:user:other",
@@ -54,20 +51,18 @@ export default function FinancialDashboardPage() {
     const canViewPaymentManagement = hasPermission(
       PERMISSIONS_PAYMENT_MANAGEMENT,
     );
-    const canViewSelf = hasPermission(PERMISSIONS_USER_FINANCIALS_SELF);
+
     const canViewOther = hasPermission(PERMISSIONS_USER_FINANCIALS_OTHER);
     const canViewPlanManagement = hasPermission(PERMISSIONS_PLAN_MANAGEMENT);
 
     return {
       canViewKPIs,
       canViewPaymentManagement,
-      canViewSelf,
       canViewOther,
       canViewPlanManagement,
       canAccessPage:
         canViewKPIs ||
         canViewPaymentManagement ||
-        canViewSelf ||
         canViewOther ||
         canViewPlanManagement,
     };
@@ -94,7 +89,11 @@ export default function FinancialDashboardPage() {
     // ... (Renderização do InitialLoading permanece igual)
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <InitialLoading message="Verificando permissões..." />
+        {authError ? (
+          <Alert type="error">{authError}</Alert>
+        ) : (
+          <InitialLoading message="Verificando permissões..." />
+        )}
       </div>
     );
   }
@@ -106,9 +105,9 @@ export default function FinancialDashboardPage() {
       maxWidth="max-w-7xl"
     >
       {authError && (
-        <Alert type="error" className="mb-4">
-          {authError}
-        </Alert>
+        <div className="mt-8">
+          <Alert type="error">{authError}</Alert>
+        </div>
       )}
 
       {!authError && (

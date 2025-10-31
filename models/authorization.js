@@ -280,6 +280,8 @@ const profiles = {
       "start_date",
       "is_active",
       "plan_name",
+      "plan_description",
+      "plan_full_value",
     ],
   },
   "read:subscription:other": {
@@ -295,6 +297,8 @@ const profiles = {
       "updated_at",
       "plan_name",
       "username",
+      "plan_description",
+      "plan_full_value",
     ],
   },
   "update:subscription": {

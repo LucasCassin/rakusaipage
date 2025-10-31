@@ -115,9 +115,11 @@ export default function StudentFinancePage() {
   if (isLoadingAuth || !showContent) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <InitialLoading
-          message={authError ? "Acesso negado..." : "Carregando seus dados..."}
-        />
+        {authError ? (
+          <Alert type="error">{authError}</Alert>
+        ) : (
+          <InitialLoading message="Verificando permissões..." />
+        )}
       </div>
     );
   }

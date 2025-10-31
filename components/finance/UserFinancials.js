@@ -117,7 +117,7 @@ export default function UserFinancials({ mode, permissions }) {
             <SubscriptionList
               subscriptions={financialData.subscriptions}
               onEditClick={(sub) => openSubModal("edit", sub)}
-              showEditButton={mode === "other"}
+              canManage={mode === "other"}
             />
             <PaymentHistoryList payments={financialData.payments} />
           </div>

@@ -24,7 +24,13 @@ const SubscriptionDetails = ({ subscription }) => {
         Detalhes da Assinatura
       </h4>
       <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
-        <DetailItem label="Plano" value={subscription.plan_name} />
+        <DetailItem
+          label="Plano"
+          value={`${subscription.plan_name} (${new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(subscription.plan_full_value)})`}
+        />
         <DetailItem
           label="Valor do Desconto"
           value={new Intl.NumberFormat("pt-BR", {
