@@ -23,13 +23,19 @@ async function getHandler(req, res) {
       throw new NotFoundError({ message: "Plano não encontrado." });
     }
 
-    const activeSubscriptions =
-      await paymentPlan.findActiveSubscriptionCount(id);
+    // --- LÓGICA ATUALIZADA ---
+    // Busca as duas contagens em paralelo
+    const [activeSubscriptions, totalSubscriptions] = await Promise.all([
+      paymentPlan.findActiveSubscriptionCount(id),
+      paymentPlan.findTotalSubscriptionCount(id),
+    ]);
 
     res.status(200).json({
       plan_id: id,
       activeSubscriptions: activeSubscriptions,
+      totalSubscriptions: totalSubscriptions, // <-- Novo dado
     });
+    // --- FIM DA ATUALIZAÇÃO ---
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }

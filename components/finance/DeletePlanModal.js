@@ -3,11 +3,10 @@ import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import FormInput from "components/forms/FormInput";
 import { FiX, FiAlertTriangle } from "react-icons/fi";
-// import Loader from "components/ui/Loader"; // <-- Removido
 
 const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [impactCount, setImpactCount] = useState(0);
+  const [impactCount, setImpactCount] = useState(0); // Agora é a contagem TOTAL
   const [confirmationText, setConfirmationText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -18,7 +17,9 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
       setIsLoadingStats(true);
       const stats = await getStats(plan.id);
       if (stats) {
-        setImpactCount(stats.activeSubscriptions);
+        // --- MUDANÇA AQUI ---
+        // Usa 'totalSubscriptions' para bloquear a exclusão
+        setImpactCount(stats.totalSubscriptions);
       }
       setIsLoadingStats(false);
     };
@@ -31,7 +32,10 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
     setIsDeleting(false);
   };
 
-  const canDelete = confirmationText === KEYWORD;
+  // --- LÓGICA DE DESABILITAÇÃO ATUALIZADA ---
+  // Não pode deletar se estiver em uso OU se a keyword estiver errada
+  const isBlocked = impactCount > 0;
+  const canDelete = confirmationText === KEYWORD && !isBlocked;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -55,17 +59,33 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
           </p>
         </div>
 
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-300 rounded-md">
+        {/* --- LÓGICA DE AVISO ATUALIZADA --- */}
+        <div
+          className={`mt-6 p-4 border rounded-md ${
+            isLoadingStats
+              ? "bg-yellow-50 border-yellow-300" // Carregando
+              : isBlocked
+                ? "bg-red-50 border-red-300" // Cor de Erro
+                : "bg-green-50 border-green-300" // Cor verde
+          }`}
+        >
           {isLoadingStats ? (
-            // --- CORREÇÃO DO SPINNER ---
             <p className="text-center text-gray-700">Verificando...</p>
+          ) : isBlocked ? (
+            // Mensagem de Bloqueio
+            <p className="text-center font-medium text-red-800">
+              Este plano está associado a{" "}
+              <strong>{impactCount} assinatura(s)</strong> (ativas ou inativas)
+              e não pode ser excluído.
+            </p>
           ) : (
-            <p className="text-center font-medium text-yellow-800">
-              Atenção: Este plano está sendo usado por{" "}
-              <strong>{impactCount} assinatura(s) ativa(s)</strong>.
+            // Mensagem de "Ok"
+            <p className="text-center font-medium text-green-800">
+              Este plano não está em uso e pode ser excluído com segurança.
             </p>
           )}
         </div>
+        {/* --- FIM DA ATUALIZAÇÃO --- */}
 
         <div className="mt-6">
           <p className="text-sm text-gray-700 mb-2">
@@ -75,7 +95,7 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
             name="confirmation"
             value={confirmationText}
             onChange={(e) => setConfirmationText(e.target.value)}
-            disabled={isDeleting}
+            disabled={isDeleting || isBlocked || isLoadingStats} // <-- Desabilita se estiver bloqueado
           />
         </div>
 
@@ -91,7 +111,7 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
             variant="secondary"
             onClick={onClose}
             disabled={isDeleting}
-            size="small" // <-- CORREÇÃO DA ALTURA DO BOTÃO
+            size="small"
           >
             Cancelar
           </Button>
@@ -100,8 +120,9 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
             variant="danger"
             onClick={handleDelete}
             isLoading={isDeleting}
-            disabled={!canDelete || isDeleting}
-            size="small" // <-- CORREÇÃO DA ALTURA DO BOTÃO
+            // Desabilita se a keyword estiver errada OU se estiver bloqueado
+            disabled={!canDelete || isDeleting || isBlocked}
+            size="small"
           >
             Deletar Permanentemente
           </Button>

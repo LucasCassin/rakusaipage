@@ -27,18 +27,22 @@ export default router.handler(controller.errorsHandlers);
 
 // --- Handlers do GET ---
 async function getHandler(req, res) {
-  const { id } = req.query;
-  const plan = await paymentPlan.findById(id);
-  if (!plan) {
-    throw new NotFoundError({ message: "Plano não encontrado." });
-  }
+  try {
+    const { id } = req.query;
+    const plan = await paymentPlan.findById(id);
+    if (!plan) {
+      throw new NotFoundError({ message: "Plano não encontrado." });
+    }
 
-  const filteredOutput = authorization.filterOutput(
-    req.context.user,
-    "read:payment_plan",
-    plan,
-  );
-  res.status(200).json(filteredOutput);
+    const filteredOutput = authorization.filterOutput(
+      req.context.user,
+      "read:payment_plan",
+      plan,
+    );
+    res.status(200).json(filteredOutput);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
 }
 
 // --- Handlers do PATCH ---
@@ -53,34 +57,45 @@ function patchValidator(req, res, next) {
   next();
 }
 async function patchHandler(req, res) {
-  const { id } = req.query;
-  const updatedPlan = await paymentPlan.update(id, req.body);
-  if (!updatedPlan) {
-    throw new NotFoundError({
-      message: "Plano não encontrado para atualização.",
-    });
-  }
+  try {
+    const { id } = req.query;
+    const updatedPlan = await paymentPlan.update(id, req.body);
+    if (!updatedPlan) {
+      throw new NotFoundError({
+        message: "Plano não encontrado para atualização.",
+      });
+    }
 
-  const filteredOutput = authorization.filterOutput(
-    req.context.user,
-    "update:payment_plan",
-    updatedPlan,
-  );
-  res.status(200).json(filteredOutput);
+    const filteredOutput = authorization.filterOutput(
+      req.context.user,
+      "update:payment_plan",
+      updatedPlan,
+    );
+    res.status(200).json(filteredOutput);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
 }
 
 // --- Handler do DELETE ---
 async function deleteHandler(req, res) {
-  const { id } = req.query;
-  const deletedPlan = await paymentPlan.del(id);
-  if (!deletedPlan) {
-    throw new NotFoundError({ message: "Plano não encontrado para deleção." });
-  }
+  try {
+    const { id } = req.query;
+    console.log("Vou tentar excluir, id: ", id);
+    const deletedPlan = await paymentPlan.del(id);
+    if (!deletedPlan) {
+      throw new NotFoundError({
+        message: "Plano não encontrado para deleção.",
+      });
+    }
 
-  const filteredOutput = authorization.filterOutput(
-    req.context.user,
-    "delete:payment_plan",
-    deletedPlan,
-  );
-  res.status(200).json(filteredOutput);
+    const filteredOutput = authorization.filterOutput(
+      req.context.user,
+      "delete:payment_plan",
+      deletedPlan,
+    );
+    res.status(200).json(filteredOutput);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
 }

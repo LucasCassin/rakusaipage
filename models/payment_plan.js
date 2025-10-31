@@ -1,5 +1,6 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
+import { NotFoundError, ForbiddenError } from "errors/index.js";
 
 async function create(planData) {
   // MUDANÇA: A validação agora usa as chaves que criamos no validator.js
@@ -85,16 +86,43 @@ async function update(planId, updateData) {
 
 /**
  * Deleta um plano de pagamento.
- * A DB vai impedir a deleção se houver assinaturas ativas.
+ * Lança um erro se o plano estiver associado a qualquer assinatura (ativa ou não).
  * @param {string} planId - O UUID do plano a ser deletado.
  */
 async function del(planId) {
-  const validatedId = validator({ id: planId }, { id: "required" });
-  const query = {
+  // 2. Valida o ID
+  const validatedId = validator({ id: planId }, { id: "required|uuid" });
+
+  // 3. VERIFICAÇÃO DE USO: Checa se algum usuário está inscrito neste plano
+  const checkQuery = {
+    text: `SELECT COUNT(*) FROM user_subscriptions WHERE plan_id = $1;`,
+    values: [validatedId.id],
+  };
+
+  const checkResult = await database.query(checkQuery);
+  const subscriptionCount = parseInt(checkResult.rows[0].count, 10);
+
+  // 4. REGRA DE NEGÓCIO: Se estiver em uso, bloqueia a exclusão
+  if (subscriptionCount > 0) {
+    throw new ForbiddenError({
+      message: "Este plano de pagamento não pode ser deletado.",
+      action: `Este plano está associado a ${subscriptionCount} assinatura(s) e não pode ser removido.`,
+    });
+  }
+
+  // 5. Se chegou aqui, o plano não está em uso e pode ser deletado
+  const deleteQuery = {
     text: `DELETE FROM payment_plans WHERE id = $1 RETURNING id;`,
     values: [validatedId.id],
   };
-  const results = await database.query(query);
+
+  const results = await database.query(deleteQuery);
+
+  // 6. Se a exclusão não afetou nenhuma linha (plano não existia)
+  if (results.rowCount === 0) {
+    throw new NotFoundError({ message: "Plano de pagamento não encontrado." });
+  }
+
   return results.rows[0];
 }
 
@@ -119,6 +147,23 @@ async function findActiveSubscriptionCount(planId) {
   return parseInt(results.rows[0].count, 10);
 }
 
+/**
+ * Conta QUANTAS ASSINATURAS (ativas ou não) estão associadas a um plano.
+ * @param {string} planId - O UUID do plano.
+ * @returns {Promise<number>} A contagem total de assinaturas.
+ */
+async function findTotalSubscriptionCount(planId) {
+  const validatedId = validator({ id: planId }, { id: "required|uuid" });
+
+  const query = {
+    text: `SELECT COUNT(*) as count FROM user_subscriptions WHERE plan_id = $1;`,
+    values: [validatedId.id],
+  };
+
+  const results = await database.query(query);
+  return parseInt(results.rows[0].count, 10);
+}
+
 export default {
   create,
   findAll,
@@ -126,4 +171,5 @@ export default {
   update,
   del,
   findActiveSubscriptionCount,
+  findTotalSubscriptionCount,
 };

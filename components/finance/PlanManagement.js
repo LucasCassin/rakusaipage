@@ -22,7 +22,7 @@ export default function PlanManagement({ user, canFetch }) {
     createPlan,
     updatePlan,
     deletePlan,
-    getStats,
+    getPlanStats: getStats,
   } = usePaymentPlans(user, canFetch);
 
   return (

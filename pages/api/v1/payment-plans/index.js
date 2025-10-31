@@ -31,22 +31,30 @@ function postValidator(req, res, next) {
 }
 
 async function postHandler(req, res) {
-  const newPlan = await paymentPlan.create(req.body);
+  try {
+    const newPlan = await paymentPlan.create(req.body);
 
-  // A feature 'create:payment_plan' também dá permissão para ler o resultado.
-  const filteredOutput = authorization.filterOutput(
-    req.context.user,
-    "create:payment_plan",
-    newPlan,
-  );
+    // A feature 'create:payment_plan' também dá permissão para ler o resultado.
+    const filteredOutput = authorization.filterOutput(
+      req.context.user,
+      "create:payment_plan",
+      newPlan,
+    );
 
-  res.status(201).json(filteredOutput);
+    res.status(201).json(filteredOutput);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
 }
 
 async function getHandler(req, res) {
-  const plans = await paymentPlan.findAll();
-  const filteredOutput = plans.map((plan) =>
-    authorization.filterOutput(req.context.user, "read:payment_plan", plan),
-  );
-  res.status(200).json(filteredOutput);
+  try {
+    const plans = await paymentPlan.findAll();
+    const filteredOutput = plans.map((plan) =>
+      authorization.filterOutput(req.context.user, "read:payment_plan", plan),
+    );
+    res.status(200).json(filteredOutput);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
 }

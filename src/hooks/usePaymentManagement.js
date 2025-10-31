@@ -17,26 +17,27 @@ export function usePaymentManagement(user, canFetch) {
     setIsTaskRunning(true);
     setError(null);
     try {
+      // 1. ATUALIZAÇÃO: Aponta para a nova rota 'admin-run'
       const response = await fetch(
-        `${settings.global.API.ENDPOINTS.TASKS}/run`, // (Assumindo /api/v1/tasks)
+        "/api/v1/tasks/admin-run", // <-- MUDANÇA AQUI
         { method: "POST" },
       );
 
+      // (O resto da lógica permanece o mesmo)
       return await handleApiResponse({
         response,
         router,
         setError,
-        onSuccess: () => {
-          // Sucesso! Recarrega tudo.
+        onSuccess: (data) => {
           triggerKpiRefetch();
         },
       });
     } catch (e) {
       setError("Erro de conexão ao executar as tarefas.");
+      console.log(e);
       setTimeout(() => {
         setError(null);
       }, 2000);
-      console.error("Erro ao executar tarefas:", e);
     } finally {
       setIsTaskRunning(false);
     }
