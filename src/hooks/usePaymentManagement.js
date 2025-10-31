@@ -36,6 +36,7 @@ export function usePaymentManagement(user, canFetch) {
       setTimeout(() => {
         setError(null);
       }, 2000);
+      console.error("Erro ao executar tarefas:", e);
     } finally {
       setIsTaskRunning(false);
     }
