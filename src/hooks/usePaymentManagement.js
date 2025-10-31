@@ -28,7 +28,7 @@ export function usePaymentManagement(user, canFetch) {
         response,
         router,
         setError,
-        onSuccess: (data) => {
+        onSuccess: () => {
           triggerKpiRefetch();
         },
       });
