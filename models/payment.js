@@ -5,7 +5,12 @@ import { NotFoundError, ForbiddenError } from "errors/index.js";
 /**
  * Calcula a próxima data de vencimento.
  */
-function calculateNextDueDate(startDate, paymentDay, periodUnit, periodValue) {
+export function calculateNextDueDate(
+  startDate,
+  paymentDay,
+  periodUnit,
+  periodValue,
+) {
   const nextDate = new Date(startDate);
   nextDate.setUTCHours(0, 0, 0, 0);
 

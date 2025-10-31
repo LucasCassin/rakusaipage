@@ -24,6 +24,7 @@ export const settings = {
         PAYMENT_PLANS: "/api/v1/payment-plans",
         FINANCIALS_KPI: "/api/v1/financials_kpi",
         PAYMENT_PLANS_STATS: "/api/v1/payment-plans",
+        TASKS: "/api/v1/tasks",
       },
     },
     REDIRECTS: {

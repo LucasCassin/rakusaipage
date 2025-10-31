@@ -4,6 +4,8 @@ import PaymentManagementTabs from "components/ui/PaymentManagementTabs";
 import PaymentListItem from "components/ui/PaymentListItem";
 import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
 import Alert from "components/ui/Alert";
+import Button from "components/ui/Button"; // <-- Importar Button
+import { FiRefreshCw } from "react-icons/fi"; // <-- Importar Ícone
 
 export default function PaymentManagement({ user, canFetch }) {
   const {
@@ -14,14 +16,29 @@ export default function PaymentManagement({ user, canFetch }) {
     error,
     confirmPayment,
     deletePayment,
+    isTaskRunning,
+    runManualTasks,
   } = usePaymentManagement(user, canFetch);
 
   return (
     // --- SEPARADOR ADICIONADO ---
     <div className="my-20 border-t border-gray-200 pt-12">
-      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-        Gestão de Pagamentos
-      </h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">
+          Gestão de Pagamentos
+        </h3>
+        <Button
+          size="small"
+          variant="secondary"
+          onClick={runManualTasks}
+          disabled={isTaskRunning}
+        >
+          <FiRefreshCw
+            className={`mr-2 ${isTaskRunning ? "animate-spin" : ""}`}
+          />
+          {isTaskRunning ? "Executando..." : "Executar Tarefas"}
+        </Button>
+      </div>
 
       {/* Mostra erros (ex: falha ao confirmar) */}
       {error && (

@@ -11,6 +11,35 @@ export function usePaymentManagement(user, canFetch) {
   const [activeTab, setActiveTab] = useState("awaiting_confirmation");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isTaskRunning, setIsTaskRunning] = useState(false);
+
+  const runManualTasks = useCallback(async () => {
+    setIsTaskRunning(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.TASKS}/run`, // (Assumindo /api/v1/tasks)
+        { method: "POST" },
+      );
+
+      return await handleApiResponse({
+        response,
+        router,
+        setError,
+        onSuccess: () => {
+          // Sucesso! Recarrega tudo.
+          triggerKpiRefetch();
+        },
+      });
+    } catch (e) {
+      setError("Erro de conexão ao executar as tarefas.");
+      setTimeout(() => {
+        setError(null);
+      }, 2000);
+    } finally {
+      setIsTaskRunning(false);
+    }
+  }, [router, triggerKpiRefetch]);
 
   const fetchData = useCallback(async () => {
     if (!user || !canFetch) {
@@ -171,5 +200,7 @@ export function usePaymentManagement(user, canFetch) {
     error,
     confirmPayment,
     deletePayment,
+    isTaskRunning,
+    runManualTasks,
   };
 }
