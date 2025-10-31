@@ -9,7 +9,13 @@ const PaymentManagementTabs = ({ activeTab, setActiveTab }) => {
 
   return (
     <div className="border-b border-gray-200">
-      <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+      {/* --- ATUALIZAÇÃO APLICADA AQUI --- */}
+      <nav
+        className="-mb-px flex space-x-6 max-w-full overflow-x-auto 
+                   pb-2 scrollbar-thin scrollbar-thumb-gray-300 
+                   scrollbar-track-gray-100 scrollbar-thumb-rounded-full"
+        aria-label="Tabs"
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -24,6 +30,7 @@ const PaymentManagementTabs = ({ activeTab, setActiveTab }) => {
           </button>
         ))}
       </nav>
+      {/* --- FIM DA ATUALIZAÇÃO --- */}
     </div>
   );
 };
