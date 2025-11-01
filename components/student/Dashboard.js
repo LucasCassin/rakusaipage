@@ -4,6 +4,7 @@ import ComunicadoModal from "../modals/ComunicadoModal";
 import ComunicadosSection from "./ComunicadosSection";
 import VideoAulasSection from "./VideoAulasSection";
 import CommentsSection from "components/comments/CommentsSection";
+import PendingPaymentsSection from "components/student/PendingPaymentsSection";
 
 export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
@@ -76,6 +77,7 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
       <WelcomeHeader user={user} welcomeData={welcomeData} />
 
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-12">
+        <PendingPaymentsSection user={user} />
         <ComunicadosSection
           user={user}
           visibleComunicados={visibleComunicados}

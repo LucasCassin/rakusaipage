@@ -310,6 +310,207 @@ const schemas = {
         otherwise: Joi.optional(),
       }),
     }),
+
+  name: () =>
+    // Schema genérico para nomes/títulos
+    Joi.object({
+      name: Joi.string().trim().min(3).max(255).when("$required.name", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  description: () =>
+    // Schema genérico para descrições
+    Joi.object({
+      description: Joi.string()
+        .trim()
+        .max(5000) // Um limite generoso para descrições
+        .when("$required.description", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null, ""),
+        }),
+    }),
+
+  full_value: () =>
+    // Para valores monetários
+    Joi.object({
+      full_value: Joi.number()
+        .precision(2) // Garante 2 casas decimais
+        .positive() // O valor não pode ser negativo
+        .when("$required.full_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  period_unit: () =>
+    // Para a unidade de período do plano
+    Joi.object({
+      period_unit: Joi.string()
+        .trim()
+        .valid("day", "week", "month", "year") // Valida contra a lista do ENUM
+        .when("$required.period_unit", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  period_value: () =>
+    // Para o valor do período do plano
+    Joi.object({
+      period_value: Joi.number()
+        .integer()
+        .min(1) // O período deve ser de no mínimo 1 (1 dia, 1 mês, etc.)
+        .when("$required.period_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  plan_id: () =>
+    // Referência ao ID de um plano
+    Joi.object({
+      plan_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.plan_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  discount_value: () =>
+    // Para valor de desconto
+    Joi.object({
+      discount_value: Joi.number()
+        .precision(2)
+        .min(0) // O desconto não pode ser negativo
+        .when("$required.discount_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  payment_day: () =>
+    // Para o dia do pagamento
+    Joi.object({
+      payment_day: Joi.number()
+        .integer()
+        .min(1)
+        .max(31) // Um dia de pagamento válido
+        .when("$required.payment_day", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  start_date: () =>
+    // Para datas
+    Joi.object({
+      start_date: Joi.date()
+        .iso() // Garante o formato 'YYYY-MM-DD'
+        .when("$required.start_date", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  subscription_id: () =>
+    // Referência ao ID de uma assinatura
+    Joi.object({
+      subscription_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.subscription_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  due_date: () =>
+    // Para a data de vencimento de um pagamento
+    Joi.object({
+      due_date: Joi.date()
+        .iso() // Garante o formato 'YYYY-MM-DD'
+        .when("$required.due_date", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  amount_due: () =>
+    // Para o valor a ser pago em uma cobrança
+    Joi.object({
+      amount_due: Joi.number()
+        .precision(2)
+        .min(0) // O valor a pagar não pode ser negativo
+        .when("$required.amount_due", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  status: () =>
+    // Para o status de um pagamento
+    Joi.object({
+      status: Joi.string()
+        .trim()
+        .valid("PENDING", "CONFIRMED", "OVERDUE") // Valida contra a lista do ENUM
+        .when("$required.status", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  user_notified_payment: () =>
+    // Para o booleano de notificação do usuário
+    Joi.object({
+      user_notified_payment: Joi.boolean().when(
+        "$required.user_notified_payment",
+        {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        },
+      ),
+    }),
+
+  is_active: () =>
+    // Para o booleano de status de uma assinatura
+    Joi.object({
+      is_active: Joi.boolean().when("$required.is_active", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  action: () =>
+    // Para ações
+    Joi.object({
+      action: Joi.string()
+        .trim()
+        .valid("confirm_paid", "indicate_paid")
+        .when("$required.is_active", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

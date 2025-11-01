@@ -19,6 +19,12 @@ export const settings = {
         STATUS: "/api/v1/status",
         COMMENT: "/api/v1/comment",
         COMMENT_LIKE: "/api/v1/comment-like",
+        PAYMENTS: "/api/v1/payments",
+        SUBSCRIPTIONS: "/api/v1/subscriptions",
+        PAYMENT_PLANS: "/api/v1/payment-plans",
+        FINANCIALS_KPI: "/api/v1/financials_kpi",
+        PAYMENT_PLANS_STATS: "/api/v1/payment-plans",
+        TASKS: "/api/v1/tasks",
       },
     },
     REDIRECTS: {
@@ -339,6 +345,16 @@ export const settings = {
           icon: "UserIcon",
         },
         {
+          name: "Minhas Finanças",
+          href: "/financeiro",
+          FEATURES: [
+            ["read:payment:self", "update:payment:indicate_paid"],
+            ["read:subscription:self"],
+            ["read:payment:self"],
+          ],
+          icon: "CurrencyDollarIcon",
+        },
+        {
           name: "Editar Perfil",
           href: "/profile/edit",
           FEATURES: [
@@ -370,6 +386,22 @@ export const settings = {
           href: "/find-users",
           FEATURES: [["read:user:other"]],
           icon: "MagnifyingGlassIcon", // Exemplo de ícone
+        },
+        {
+          name: "Dashboard Financeiro",
+          href: "/admin/financeiro",
+          FEATURES: [
+            ["read:payment:other", "read:subscription:other"],
+            ["read:payment:other", "update:payment:confirm_paid"],
+            ["read:subscription:other", "read:user:other"],
+            [
+              "read:payment_plan",
+              "create:payment_plan",
+              "update:payment_plan",
+              "delete:payment_plan",
+            ],
+          ],
+          icon: "CurrencyDollarIcon", // Exemplo de ícone
         },
       ],
       [

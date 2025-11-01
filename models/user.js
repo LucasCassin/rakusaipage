@@ -22,6 +22,9 @@ const DEFAULT_FEATURES = [
   "delete:self:comment",
   "like:comment",
   "unlike:comment",
+  "read:subscription:self",
+  "read:payment:self",
+  "update:payment:indicate_paid",
 ];
 
 /**

@@ -20,13 +20,17 @@ const FormInput = React.memo(
     leftElement = null,
     required = false,
     onKeyDown = null,
+    min = null, // <-- ADICIONADO
+    max = null, // <-- ADICIONADO
   }) => (
     <div>
       <label htmlFor={id} className="sr-only">
         {placeholder}
       </label>
       <div
-        className={`relative ${rightElement || leftElement ? "flex items-stretch" : ""}`}
+        className={`relative ${
+          rightElement || leftElement ? "flex items-stretch" : ""
+        }`}
       >
         {leftElement && leftElement}
         <div
@@ -55,6 +59,8 @@ const FormInput = React.memo(
             disabled={disabled}
             required={required}
             onKeyDown={onKeyDown}
+            min={min} // <-- ADICIONADO
+            max={max} // <-- ADICIONADO
           />
         </div>
         {rightElement && rightElement}

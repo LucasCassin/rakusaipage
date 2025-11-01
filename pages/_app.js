@@ -5,7 +5,7 @@ import React, { useEffect } from "react";
 import Layout from "pages/layout.js";
 import RouteChangeLoading from "components/RouteChangeLoading";
 import { poppins, caveat } from "src/utils/fonts";
-
+import { FinancialsDashboardProvider } from "src/contexts/FinancialsDashboardContext";
 // --- Imports para o Google Analytics ---
 import { useRouter } from "next/router";
 import Script from "next/script";
@@ -71,7 +71,9 @@ function MyApp({ Component, pageProps }) {
         <AuthProvider>
           <ViewProvider>
             <Layout>
-              <Component {...pageProps} />
+              <FinancialsDashboardProvider>
+                <Component {...pageProps} />
+              </FinancialsDashboardProvider>
             </Layout>
             <RouteChangeLoading />
           </ViewProvider>
