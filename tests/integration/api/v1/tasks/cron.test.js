@@ -10,7 +10,7 @@ if (!cronSecret) {
   );
 }
 
-describe("POST /api/v1/tasks/cron/[secret]", () => {
+describe("GET /api/v1/tasks/cron/[secret]", () => {
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
   });
@@ -19,7 +19,7 @@ describe("POST /api/v1/tasks/cron/[secret]", () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/tasks/cron/${cronSecret}`,
       {
-        method: "POST",
+        method: "GET",
       },
     );
     const resBody = await res.json();
@@ -33,7 +33,7 @@ describe("POST /api/v1/tasks/cron/[secret]", () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/tasks/cron/WRONG_SECRET`,
       {
-        method: "POST",
+        method: "GET",
       },
     );
 
@@ -45,7 +45,7 @@ describe("POST /api/v1/tasks/cron/[secret]", () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/tasks/cron/`, // URL incompleta
       {
-        method: "POST",
+        method: "GET",
       },
     );
     // 404 (Not Found) porque a rota não foi encontrada sem o [secret]
@@ -56,7 +56,7 @@ describe("POST /api/v1/tasks/cron/[secret]", () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/tasks/cron/${cronSecret}`,
       {
-        method: "GET",
+        method: "POST",
       },
     );
     expect(res.status).toBe(405);
