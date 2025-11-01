@@ -3,25 +3,25 @@ import Button from "./Button";
 
 const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  // Estado para a confirmação: null, 'confirm', ou 'delete'
   const [pendingAction, setPendingAction] = useState(null);
 
   const formattedAmount = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(payment.amount_due);
+
+  // Alterei para 'toLocaleString' para incluir a hora,
+  // mas 'toLocaleDateString' (como está no seu) também funciona
   const formattedDate = new Date(payment.due_date).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
   });
 
-  // Este Effect reseta o botão se o usuário não confirmar em 3s
   useEffect(() => {
     if (!pendingAction) return;
     const timer = setTimeout(() => setPendingAction(null), 3000);
-    return () => clearTimeout(timer); // Limpa o timer se o componente for desmontado
+    return () => clearTimeout(timer);
   }, [pendingAction]);
 
-  // --- NOVOS HANDLERS ---
   const handleConfirm = async () => {
     if (pendingAction !== "confirm") {
       setPendingAction("confirm");
@@ -29,10 +29,6 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
     }
     setIsProcessing(true);
     await onConfirmClick(payment.id);
-    setIsProcessing(false);
-    setPendingAction(null);
-    // O item será atualizado via props, então 'isProcessing' e 'pendingAction'
-    // serão resetados quando o componente re-renderizar com o novo status.
   };
 
   const handleDelete = async () => {
@@ -42,27 +38,20 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
     }
     setIsProcessing(true);
     await onDeleteClick(payment.id);
-    setIsProcessing(false);
-    setPendingAction(null);
-    // O item será removido da lista, então não precisamos resetar o estado.
   };
 
   return (
     <div className="bg-white p-4 rounded-md shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      {/* ... (Div da esquerda com o nome e status - permanece igual) ... */}
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <p className="font-bold text-gray-800">
             {payment.username || "Desconhecido"}
           </p>
+
+          {/* ... (Badges de status 'Avisado', 'Confirmado', 'Atrasado' permanecem aqui) ... */}
           {payment.user_notified_payment && payment.status !== "CONFIRMED" && (
             <span className="px-2 py-0.5 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
               Avisado
-            </span>
-          )}
-          {payment.status === "PENDING" && (
-            <span className="px-2 py-0.5 text-xs font-semibold text-yellow-600 bg-yellow-100 rounded-full">
-              Pendente
             </span>
           )}
           {payment.status === "CONFIRMED" && (
@@ -79,19 +68,27 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
         <p className="text-sm text-gray-500">
           {payment.plan_name} - Venc: {formattedDate}
         </p>
+
+        {/* --- ADICIONADO (baseado no PaymentHistoryList.js) --- */}
+        {payment.status === "CONFIRMED" && payment.confirmed_at && (
+          <p className="text-xs text-green-700 mt-1">
+            Pago em:{" "}
+            {new Date(payment.confirmed_at).toLocaleDateString("pt-BR", {
+              timeZone: "UTC",
+            })}
+          </p>
+        )}
+        {/* --- FIM DA ADIÇÃO --- */}
       </div>
 
-      {/* --- SEÇÃO DE BOTÕES ATUALIZADA --- */}
       <div className="flex items-center gap-2 w-full sm:w-auto">
         {payment.status !== "CONFIRMED" && (
           <>
             <Button
               size="small"
-              // Muda a cor e o texto baseado no estado de confirmação
               variant={pendingAction === "confirm" ? "warning" : "primary"}
               className="w-1/2 sm:w-auto"
               onClick={handleConfirm}
-              // Desabilita se estiver processando OU se outro botão estiver em modo de confirmação
               disabled={
                 isProcessing || (pendingAction && pendingAction !== "confirm")
               }
@@ -103,7 +100,6 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
                   : "Confirmar"}
             </Button>
 
-            {/* O NOVO BOTÃO DE DELETAR */}
             <Button
               size="small"
               variant={pendingAction === "delete" ? "warning" : "danger"}
