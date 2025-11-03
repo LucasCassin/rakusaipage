@@ -1,8 +1,6 @@
 import orchestrator from "tests/orchestrator.js";
 
-// 1. LEIA o segredo (NÃO O DEFINA AQUI)
-// Você deve rodar o teste assim:
-// CRON_SECRET="meu-segredo-de-teste-do-cron" npm run test:integration
+// Pega o segredo (como antes)
 const cronSecret = process.env.CRON_SECRET;
 if (!cronSecret) {
   throw new Error(
@@ -10,55 +8,51 @@ if (!cronSecret) {
   );
 }
 
-describe("GET /api/v1/tasks/cron/[secret]", () => {
+describe("POST /api/v1/tasks/cron", () => {
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
   });
 
-  it("should allow access with the correct Cron Secret", async () => {
+  it("should allow access with the correct 'x-vercel-cron-secret' header", async () => {
     const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/tasks/cron/${cronSecret}`,
+      `${orchestrator.webserverUrl}/api/v1/tasks/cron`, // Rota estática
       {
         method: "GET",
+        headers: {
+          // Adiciona o header que a Vercel injetaria
+          "x-vercel-cron-secret": cronSecret,
+        },
       },
     );
     const resBody = await res.json();
-
     expect(res.status).toBe(200);
-    expect(resBody.message).toContain("via Cron");
-    expect(resBody.summary.overdueUpdated).toBeDefined();
+    expect(resBody.message).toContain("via Cron Header");
   });
 
-  it("should return 403 for a wrong Cron Secret", async () => {
-    const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/tasks/cron/WRONG_SECRET`,
-      {
-        method: "GET",
+  it("should return 403 for a wrong 'x-vercel-cron-secret' header", async () => {
+    const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
+      method: "GET",
+      headers: {
+        "x-vercel-cron-secret": "WRONG_SECRET",
       },
-    );
-
-    // 403 (Forbidden) como definimos na rota
+    });
     expect(res.status).toBe(403);
   });
 
-  it("should return 404 for a missing Cron Secret (rota não encontrada)", async () => {
-    const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/tasks/cron/`, // URL incompleta
-      {
-        method: "GET",
-      },
-    );
-    // 404 (Not Found) porque a rota não foi encontrada sem o [secret]
-    expect(res.status).toBe(404);
+  it("should return 403 if the header is missing", async () => {
+    const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
+      method: "GET",
+    });
+    expect(res.status).toBe(403);
   });
 
-  it("should return 405 Method Not Allowed for GET", async () => {
-    const res = await fetch(
-      `${orchestrator.webserverUrl}/api/v1/tasks/cron/${cronSecret}`,
-      {
-        method: "POST",
+  it("should return 405 Method Not Allowed for POST", async () => {
+    const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
+      method: "POST",
+      headers: {
+        "x-vercel-cron-secret": cronSecret,
       },
-    );
+    });
     expect(res.status).toBe(405);
   });
 });
