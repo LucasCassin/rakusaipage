@@ -82,6 +82,27 @@ const availableFeatures = new Set([
   "update:payment:indicate_paid",
   "update:payment:confirm_paid",
 
+  // Apresentações
+  "create:presentation",
+  "read:presentation:self",
+  "read:presentation:other",
+  "update:presentation",
+  "delete:presentation",
+  "manage:presentation_viewers",
+
+  // Cenas (gerenciadas pela permissão "update:presentation")
+  "create:scene",
+  "update:scene",
+  "delete:scene",
+
+  // Elementos (gerenciados pela permissão "update:presentation")
+  "create:scene_element",
+  "update:scene_element",
+  "delete:scene_element",
+
+  // Tipos de Elementos (admin global)
+  "manage:element_types",
+
   //Feature para teste
   "test:feature",
   "test:feature:2",

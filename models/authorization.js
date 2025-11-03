@@ -360,6 +360,89 @@ const profiles = {
     allowedInputFields: ["payment_id"],
     allowedOutputFields: ["id", "status", "confirmed_at"],
   },
+
+  // ### Presentation Features ###
+  "create:presentation": {
+    allowedInputFields: [
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_by_user_id",
+      "created_at",
+    ],
+  },
+  "read:presentation:self": {
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_at",
+      // (Vamos popular 'scenes' e 'elements' na API)
+    ],
+  },
+  "read:presentation:other": {
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_by_user_id",
+      "created_at",
+      "updated_at",
+    ],
+  },
+  "update:presentation": {
+    allowedInputFields: [
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "updated_at",
+    ],
+  },
+  "delete:presentation": {
+    allowedOutputFields: ["id"],
+  },
+  "manage:presentation_viewers": {
+    allowedInputFields: ["user_id"],
+    allowedOutputFields: ["id", "presentation_id", "user_id"],
+  },
 };
 
 function can(user, feature, resource) {
