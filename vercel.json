@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/v1/tasks/cron/$CRON_SECRET",
+      "path": "/api/v1/tasks/cron",
       "schedule": "0 3 * * *"
     }
   ]
