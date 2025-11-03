@@ -1,6 +1,6 @@
 import orchestrator from "tests/orchestrator.js";
 
-// Pega o segredo (como antes)
+// Lê o CRON_SECRET (como antes)
 const cronSecret = process.env.CRON_SECRET;
 if (!cronSecret) {
   throw new Error(
@@ -8,19 +8,20 @@ if (!cronSecret) {
   );
 }
 
-describe("POST /api/v1/tasks/cron", () => {
+describe("GET /api/v1/tasks/cron", () => {
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
   });
 
-  it("should allow access with the correct 'x-vercel-cron-secret' header", async () => {
+  it("should allow access with the correct 'Authorization' header", async () => {
     const res = await fetch(
       `${orchestrator.webserverUrl}/api/v1/tasks/cron`, // Rota estática
       {
         method: "GET",
         headers: {
-          // Adiciona o header que a Vercel injetaria
-          "x-vercel-cron-secret": cronSecret,
+          // --- MUDANÇA AQUI ---
+          // Adiciona o cabeçalho 'Authorization' com o prefixo 'Bearer '
+          Authorization: `Bearer ${cronSecret}`,
         },
       },
     );
@@ -29,28 +30,29 @@ describe("POST /api/v1/tasks/cron", () => {
     expect(resBody.message).toContain("via Cron Header");
   });
 
-  it("should return 403 for a wrong 'x-vercel-cron-secret' header", async () => {
+  it("should return 401 for a wrong Bearer token", async () => {
     const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
       method: "GET",
       headers: {
-        "x-vercel-cron-secret": "WRONG_SECRET",
+        Authorization: "Bearer WRONG_SECRET", // Token errado
       },
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
-  it("should return 403 if the header is missing", async () => {
+  it("should return 401 if the header is missing", async () => {
     const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
       method: "GET",
+      // Nenhum header de autorização
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("should return 405 Method Not Allowed for POST", async () => {
     const res = await fetch(`${orchestrator.webserverUrl}/api/v1/tasks/cron`, {
-      method: "POST",
+      method: "POST", // Método errado
       headers: {
-        "x-vercel-cron-secret": cronSecret,
+        Authorization: `Bearer ${cronSecret}`,
       },
     });
     expect(res.status).toBe(405);
