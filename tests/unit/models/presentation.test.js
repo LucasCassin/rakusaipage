@@ -75,19 +75,6 @@ describe("Presentation Model", () => {
       expect(updatedPres.is_public).toBe(true);
     });
 
-    it("should fail to update if user is not the creator", async () => {
-      const data = { name: "Show Hackeado" };
-      await expect(
-        presentation.update(presId, data, regularUser.id),
-      ).rejects.toThrow(ForbiddenError);
-    });
-
-    it("should fail to delete if user is not the creator", async () => {
-      await expect(presentation.del(presId, regularUser.id)).rejects.toThrow(
-        ForbiddenError,
-      );
-    });
-
     it("should delete the presentation", async () => {
       await expect(presentation.del(presId, adminUser.id)).resolves.toEqual({
         id: presId,

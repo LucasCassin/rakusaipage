@@ -414,7 +414,7 @@ const profiles = {
       "updated_at",
     ],
   },
-  "update:presentation": {
+  "update:presentation:self": {
     allowedInputFields: [
       "name",
       "date",
@@ -436,7 +436,32 @@ const profiles = {
       "updated_at",
     ],
   },
-  "delete:presentation": {
+  "update:presentation:other": {
+    allowedInputFields: [
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "updated_at",
+    ],
+  },
+  "delete:presentation:self": {
+    allowedOutputFields: ["id"],
+  },
+  "delete:presentation:other": {
     allowedOutputFields: ["id"],
   },
   "manage:presentation_viewers": {
@@ -467,6 +492,12 @@ function can(user, feature, resource) {
     case "read:subscription:self":
     case "read:payment:self":
       return resource?.user_id && user.id === resource.user_id;
+
+    case "update:presentation:self":
+    case "delete:presentation:self":
+      return (
+        resource?.created_by_user_id && user.id === resource.created_by_user_id
+      );
   }
 
   return true;

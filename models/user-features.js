@@ -86,8 +86,10 @@ const availableFeatures = new Set([
   "create:presentation",
   "read:presentation:self",
   "read:presentation:other",
-  "update:presentation",
-  "delete:presentation",
+  "update:presentation:self",
+  "update:presentation:other",
+  "delete:presentation:self",
+  "delete:presentation:other",
   "manage:presentation_viewers",
 
   // Cenas (gerenciadas pela permissão "update:presentation")

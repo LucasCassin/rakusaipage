@@ -45,7 +45,7 @@ async function create(data, created_by_user_id) {
   return results.rows[0];
 }
 
-async function update(presentation_id, data, user_id) {
+async function update(presentation_id, data) {
   // Valida os dados do body
   const validatedData = validator(data, {
     name: "optional",
@@ -59,22 +59,15 @@ async function update(presentation_id, data, user_id) {
 
   // Valida os IDs
   const validatedIds = validator(
-    { presentation_id, user_id },
+    { presentation_id },
     {
       presentation_id: "required",
-      user_id: "required",
     },
   );
 
   const originalPresentation = await findById(validatedIds.presentation_id);
   if (!originalPresentation) {
     throw new NotFoundError({ message: "Apresentação não encontrada." });
-  }
-  // Só o criador pode editar
-  if (originalPresentation.created_by_user_id !== validatedIds.user_id) {
-    throw new ForbiddenError({
-      message: "Você não tem permissão para editar esta apresentação.",
-    });
   }
 
   // Constrói o SET clause APENAS com os dados do body
@@ -98,21 +91,21 @@ async function update(presentation_id, data, user_id) {
   return results.rows[0];
 }
 
-async function del(presentation_id, user_id) {
+async function del(presentation_id) {
   const validatedData = validator(
-    { presentation_id, user_id },
-    { presentation_id: "required", user_id: "required" },
+    { presentation_id },
+    { presentation_id: "required" },
   );
 
   const presentation = await findById(validatedData.presentation_id);
   if (!presentation) {
     throw new NotFoundError({ message: "Apresentação não encontrada." });
   }
-  if (presentation.created_by_user_id !== validatedData.user_id) {
-    throw new ForbiddenError({
-      message: "Você não tem permissão para deletar esta apresentação.",
-    });
-  }
+  // if (presentation.created_by_user_id !== validatedData.user_id) {
+  //   throw new ForbiddenError({
+  //     message: "Você não tem permissão para deletar esta apresentação.",
+  //   });
+  // }
 
   const query = {
     text: `DELETE FROM presentations WHERE id = $1 RETURNING id;`,

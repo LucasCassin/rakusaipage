@@ -26,6 +26,8 @@ const DEFAULT_FEATURES = [
   "read:payment:self",
   "update:payment:indicate_paid",
   "read:presentation:self",
+  "update:presentation:self",
+  "delete:presentation:self",
 ];
 
 /**
