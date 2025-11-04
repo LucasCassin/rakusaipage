@@ -159,10 +159,83 @@ async function findAllForUser(user_id) {
   return results.rows;
 }
 
+/**
+ * Busca uma apresentação completa (deep fetch), incluindo cenas,
+ * elementos e passos de transição.
+ */
+async function findDeepById(presentation_id) {
+  const validatedId = validator(
+    { presentation_id },
+    { presentation_id: "required" },
+  );
+
+  // 1. Busca a apresentação principal
+  const presentationQuery = {
+    text: `SELECT * FROM presentations WHERE id = $1;`,
+    values: [validatedId.presentation_id],
+  };
+
+  // 2. Busca todas as cenas, ordenadas
+  const scenesQuery = {
+    text: `SELECT * FROM scenes WHERE presentation_id = $1 ORDER BY "order";`,
+    values: [validatedId.presentation_id],
+  };
+
+  // 3. Busca todos os elementos (de todas as cenas)
+  const elementsQuery = {
+    text: `
+      SELECT el.*, et.name as element_type_name, et.image_url
+      FROM scene_elements el
+      JOIN scenes s ON el.scene_id = s.id
+      JOIN element_types et ON el.element_type_id = et.id
+      WHERE s.presentation_id = $1;
+    `,
+    values: [validatedId.presentation_id],
+  };
+
+  // 4. Busca todos os passos de transição (de todas as cenas)
+  const stepsQuery = {
+    text: `
+      SELECT ts.* FROM transition_steps ts
+      JOIN scenes s ON ts.scene_id = s.id
+      WHERE s.presentation_id = $1
+      ORDER BY ts."order";
+    `,
+    values: [validatedId.presentation_id],
+  };
+
+  const [presentationResult, scenesResult, elementsResult, stepsResult] =
+    await Promise.all([
+      database.query(presentationQuery),
+      database.query(scenesQuery),
+      database.query(elementsQuery),
+      database.query(stepsQuery),
+    ]);
+
+  if (presentationResult.rows.length === 0) {
+    return undefined; // Apresentação não encontrada
+  }
+
+  const presentation = presentationResult.rows[0];
+  const allElements = elementsResult.rows;
+  const allSteps = stepsResult.rows;
+
+  // 5. Junta o JSON (Nesting)
+  presentation.scenes = scenesResult.rows.map((scene) => {
+    // Adiciona os elementos e passos corretos a cada cena
+    scene.scene_elements = allElements.filter((el) => el.scene_id === scene.id);
+    scene.transition_steps = allSteps.filter((st) => st.scene_id === scene.id);
+    return scene;
+  });
+
+  return presentation;
+}
+
 export default {
   create,
   update,
   del,
   findById,
   findAllForUser,
+  findDeepById,
 };

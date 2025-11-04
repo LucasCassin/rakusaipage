@@ -13,7 +13,7 @@ async function create(data) {
 
   const query = {
     text: `
-      INSERT INTO scenes (presentation_id, name, type, "order", description)
+      INSERT INTO scenes (presentation_id, name, scene_type, "order", description)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *;
     `,

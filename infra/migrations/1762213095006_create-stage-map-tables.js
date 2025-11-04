@@ -82,7 +82,7 @@ exports.up = (pgm) => {
     },
     order: { type: "integer", notNull: true },
     name: { type: "text", notNull: true },
-    type: { type: "scene_type_enum", notNull: true },
+    scene_type: { type: "scene_type_enum", notNull: true },
     description: { type: "text" }, // Para notas da música (se for FORMATION)
   });
 
