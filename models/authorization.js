@@ -396,7 +396,7 @@ const profiles = {
       "description",
       "is_public",
       "created_at",
-      // (Vamos popular 'scenes' e 'elements' na API)
+      // (Vamos popular 'scenes', 'elements', 'viewers' na API)
     ],
   },
   "read:presentation:other": {
@@ -466,6 +466,7 @@ function can(user, feature, resource) {
     case "delete:self:comment":
     case "read:subscription:self":
     case "read:payment:self":
+    case "read:presentation:self":
       return resource?.user_id && user.id === resource.user_id;
   }
 
