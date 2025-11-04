@@ -82,7 +82,6 @@ async function update(presentation_id, data, user_id) {
     .map((key, index) => `"${key}" = $${index + 1}`)
     .join(", ");
 
-  // Se o body estava vazio, não faz nada
   if (Object.keys(validatedData).length === 0) return originalPresentation;
 
   const query = {
@@ -136,10 +135,6 @@ async function findById(presentation_id) {
   return results.rows[0];
 }
 
-/**
- * Encontra todas as apresentações que um usuário pode ver.
- * (Que ele criou OU que ele está no elenco).
- */
 async function findAllForUser(user_id) {
   const validatedId = validator({ user_id }, { user_id: "required" });
 
@@ -159,10 +154,6 @@ async function findAllForUser(user_id) {
   return results.rows;
 }
 
-/**
- * Busca uma apresentação completa (deep fetch), incluindo cenas,
- * elementos e passos de transição.
- */
 async function findDeepById(presentation_id) {
   const validatedId = validator(
     { presentation_id },
@@ -213,7 +204,7 @@ async function findDeepById(presentation_id) {
     ]);
 
   if (presentationResult.rows.length === 0) {
-    return undefined; // Apresentação não encontrada
+    return undefined;
   }
 
   const presentation = presentationResult.rows[0];
@@ -222,13 +213,121 @@ async function findDeepById(presentation_id) {
 
   // 5. Junta o JSON (Nesting)
   presentation.scenes = scenesResult.rows.map((scene) => {
-    // Adiciona os elementos e passos corretos a cada cena
     scene.scene_elements = allElements.filter((el) => el.scene_id === scene.id);
     scene.transition_steps = allSteps.filter((st) => st.scene_id === scene.id);
     return scene;
   });
 
   return presentation;
+}
+
+async function findElementPool(presentation_id) {
+  const validatedId = validator(
+    { presentation_id },
+    { presentation_id: "required" },
+  );
+
+  const query = {
+    text: `
+      SELECT DISTINCT 
+        se.display_name, 
+        se.assigned_user_id, 
+        se.element_type_id,
+        et.name as element_type_name,
+        et.image_url
+      FROM 
+        scene_elements se
+      JOIN 
+        element_types et ON se.element_type_id = et.id
+      JOIN 
+        scenes s ON se.scene_id = s.id
+      WHERE 
+        s.presentation_id = $1
+        AND se.display_name IS NOT NULL;
+    `,
+    values: [validatedId.presentation_id],
+  };
+
+  const results = await database.query(query);
+  return results.rows;
+}
+
+async function updateElementGlobally(presentation_id, data) {
+  // Valida os IDs de contexto
+  const validatedIds = validator(
+    {
+      presentation_id: presentation_id,
+      element_type_id: data.element_type_id,
+    },
+    {
+      presentation_id: "required",
+      element_type_id: "required",
+    },
+  );
+
+  // Valida os dados (nomes) individualmente usando as regras do 'validator.js'
+  const validatedOldName = validator(
+    { display_name: data.old_display_name },
+    {
+      display_name: "required",
+    },
+  );
+  const validatedNewName = validator(
+    { display_name: data.new_display_name },
+    {
+      display_name: "required",
+    },
+  );
+
+  // Valida o ID de usuário (opcional)
+  const validatedNewUserId = validator(
+    { assigned_user_id: data.new_assigned_user_id },
+    {
+      assigned_user_id: "optional",
+    },
+  );
+
+  // Encontra todos os scene_elements IDs que correspondem
+  const findQuery = {
+    text: `
+      SELECT se.id FROM scene_elements se
+      JOIN scenes s ON se.scene_id = s.id
+      WHERE s.presentation_id = $1
+        AND se.element_type_id = $2
+        AND se.display_name = $3;
+    `,
+    values: [
+      validatedIds.presentation_id,
+      validatedIds.element_type_id,
+      validatedOldName.display_name, // Usa o valor validado
+    ],
+  };
+
+  const elementsToUpdate = await database.query(findQuery);
+  const elementIds = elementsToUpdate.rows.map((row) => row.id);
+
+  if (elementIds.length === 0) {
+    return { updatedCount: 0 };
+  }
+
+  // Executa o update em massa
+  const updateQuery = {
+    text: `
+      UPDATE scene_elements
+      SET 
+        display_name = $1,
+        assigned_user_id = $2
+      WHERE id = ANY($3::uuid[]);
+    `,
+    values: [
+      validatedNewName.display_name, // Usa o valor validado
+      validatedNewUserId.assigned_user_id || null, // Usa o valor validado
+      elementIds,
+    ],
+  };
+
+  const results = await database.query(updateQuery);
+  return { updatedCount: results.rowCount };
 }
 
 export default {
@@ -238,4 +337,6 @@ export default {
   findById,
   findAllForUser,
   findDeepById,
+  findElementPool,
+  updateElementGlobally,
 };
