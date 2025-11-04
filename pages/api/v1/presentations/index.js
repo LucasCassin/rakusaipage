@@ -3,61 +3,73 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentation from "models/presentation.js";
+import { ForbiddenError, UnauthorizedError } from "errors/index.js";
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
   .use(authentication.checkIfUserPasswordExpired);
 
+// --- Middleware de Auth (CORRIGIDO) ---
+// Middleware para rotas GET (Listar)
+async function getAuthCheck(req, res, next) {
+  const user = req.context.user;
+  // CORREÇÃO: A rota de listagem só precisa saber se o usuário está logado.
+  // O modelo 'findAllForUser' já cuida da lógica de "o que" ele pode ver.
+  if (!user.id) {
+    throw new UnauthorizedError({ message: "Usuário não autenticado." });
+  }
+  // Se ele está logado (tem 'id'), ele tem permissão para listar (mesmo que a lista venha vazia).
+  next();
+}
+
+// Middleware para rotas POST (Criar)
+async function postAuthCheck(req, res, next) {
+  const user = req.context.user;
+  if (!user.id) {
+    throw new UnauthorizedError({ message: "Usuário não autenticado." });
+  }
+  if (!authorization.can(user, "create:presentation")) {
+    throw new ForbiddenError({
+      message: "Você não tem permissão para criar apresentações.",
+    });
+  }
+  next();
+}
+
 // --- Rota GET (Listar) ---
-// Protegida por "read:presentation:self" (a feature default)
-router.get(authorization.canRequest("read:presentation:self"), getHandler);
+router.get(
+  getAuthCheck, // <-- Usa o middleware corrigido
+  getHandler,
+);
 
 // --- Rota POST (Criar) ---
-// Protegida por "create:presentation" (feature de admin)
-router.post(authorization.canRequest("create:presentation"), postHandler);
+router.post(postAuthCheck, postHandler);
 
 export default router.handler(controller.errorsHandlers);
 
-/**
- * Handler para GET /api/v1/presentations
- * Lista todas as apresentações que o usuário pode ver.
- */
+// ... (getHandler e postHandler permanecem os mesmos) ...
 async function getHandler(req, res) {
   try {
     const user = req.context.user;
-
-    // A função do modelo já cuida da lógica de "criou OU é viewer"
     const presentations = await presentation.findAllForUser(user.id);
-
-    // Filtra a saída (embora aqui 'self' e 'other' sejam parecidas)
     const filteredOutput = presentations.map((pres) =>
       authorization.filterOutput(user, "read:presentation:self", pres),
     );
-
     res.status(200).json(filteredOutput);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }
 }
 
-/**
- * Handler para POST /api/v1/presentations
- * Cria uma nova apresentação.
- */
 async function postHandler(req, res) {
   try {
     const user = req.context.user;
-
-    // 'presentation.create' já valida os dados do body
     const newPresentation = await presentation.create(req.body, user.id);
-
-    // Filtra a saída
     const filteredOutput = authorization.filterOutput(
       user,
-      "create:presentation", //
+      "create:presentation",
       newPresentation,
     );
-
     res.status(201).json(filteredOutput);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
