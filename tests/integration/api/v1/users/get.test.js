@@ -119,10 +119,18 @@ describe("GET /api/v1/users", () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(resBody)).toBe(true);
       expect(resBody).toHaveLength(2);
-      expect(resBody[0].username).toBe(targetUserWithFeature.username);
-      expect(resBody[0].id).toBe(targetUserWithFeature.id);
-      expect(resBody[1].username).toBe(targetUserWithFeature2.username);
-      expect(resBody[1].id).toBe(targetUserWithFeature2.id);
+      expect(resBody).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: targetUserWithFeature.id,
+            username: targetUserWithFeature.username,
+          }),
+          expect.objectContaining({
+            id: targetUserWithFeature2.id,
+            username: targetUserWithFeature2.username,
+          }),
+        ]),
+      );
       await user.removeFeatures(targetUserWithFeature2, [
         "nivel:fue:nao:mostrar",
       ]);

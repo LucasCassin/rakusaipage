@@ -2,36 +2,18 @@ import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
-import presentation from "models/presentation.js";
 import presentationViewer from "models/presentation_viewer.js";
-import { NotFoundError, ForbiddenError } from "errors/index.js";
+// Erros e "presentation" não são mais necessários aqui.
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
   .use(authentication.checkIfUserPasswordExpired);
 
-// Middleware de autorização (o mesmo da rota index)
-async function checkOwnership(req, res, next) {
-  const user = req.context.user;
-  const { id: presentation_id } = req.query;
-
-  const pres = await presentation.findById(presentation_id);
-  if (!pres) {
-    throw new NotFoundError({ message: "Apresentação não encontrada." });
-  }
-  if (pres.created_by_user_id !== user.id) {
-    throw new ForbiddenError({
-      message:
-        "Você não tem permissão para gerenciar o elenco desta apresentação.",
-    });
-  }
-  next();
-}
-
 // --- Rota DELETE (Remover do Elenco) ---
 router.delete(
-  authorization.canRequest("manage:presentation_viewers"), //
-  checkOwnership,
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // Agora apenas checa se o usuário tem a "chave" para deletar um membro do elenco.
+  authorization.canRequest("delete:viewer"),
   deleteHandler,
 );
 
@@ -45,7 +27,8 @@ async function deleteHandler(req, res) {
   try {
     const { id: presentation_id, userId: user_id } = req.query;
 
-    // O modelo 'removeViewer' cuida da lógica e validação
+    // A permissão já foi validada pelo canRequest.
+    // O modelo 'removeViewer' cuida da lógica e do 404.
     const deletedViewer = await presentationViewer.removeViewer(
       presentation_id,
       user_id,

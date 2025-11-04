@@ -2,49 +2,26 @@ import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
-import presentation from "models/presentation.js";
-import scene from "models/scene.js";
 import transitionStep from "models/transition_step.js";
-import { NotFoundError, ForbiddenError } from "errors/index.js";
+// presentation, scene, NotFoundError e ForbiddenError não são mais necessários
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
   .use(authentication.checkIfUserPasswordExpired);
 
-// Middleware para verificar se o usuário é o dono (através da cena > apresentação)
-async function checkOwnership(req, res, next) {
-  const user = req.context.user;
-  const { id: step_id } = req.query;
-
-  const step = await transitionStep.findById(step_id);
-  if (!step) {
-    throw new NotFoundError({ message: "Passo de transição não encontrado." });
-  }
-
-  const scn = await scene.findById(step.scene_id);
-  const pres = await presentation.findById(scn.presentation_id);
-
-  if (pres.created_by_user_id !== user.id) {
-    throw new ForbiddenError({
-      message: "Você não tem permissão para modificar este passo de transição.",
-    });
-  }
-
-  req.context.step = step;
-  next();
-}
-
 // --- Rota PATCH (Atualizar Passo) ---
 router.patch(
-  authorization.canRequest("update:presentation"),
-  checkOwnership,
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // A "chave" antiga ("update:presentation") foi trocada por "update:step".
+  authorization.canRequest("update:step"),
   patchHandler,
 );
 
 // --- Rota DELETE (Deletar Passo) ---
 router.delete(
-  authorization.canRequest("update:presentation"),
-  checkOwnership,
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // A "chave" antiga ("update:presentation") foi trocada por "delete:step".
+  authorization.canRequest("delete:step"),
   deleteHandler,
 );
 
@@ -58,7 +35,8 @@ async function patchHandler(req, res) {
   try {
     const { id: step_id } = req.query;
 
-    // O modelo 'transitionStep.update' valida o body
+    // A permissão já foi validada pelo canRequest.
+    // O modelo 'transitionStep.update' valida o body e cuida do 404.
     const updatedStep = await transitionStep.update(step_id, req.body);
 
     res.status(200).json(updatedStep);
@@ -75,6 +53,8 @@ async function deleteHandler(req, res) {
   try {
     const { id: step_id } = req.query;
 
+    // A permissão já foi validada pelo canRequest.
+    // O modelo 'transitionStep.del' cuida do 404.
     const deletedStep = await transitionStep.del(step_id);
 
     res.status(200).json(deletedStep);

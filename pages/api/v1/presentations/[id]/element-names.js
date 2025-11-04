@@ -3,35 +3,18 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentation from "models/presentation.js";
-import { NotFoundError, ForbiddenError } from "errors/index.js";
+// Erros não são mais necessários aqui, pois o canRequest cuida do 403
+// e o modelo cuida do 404.
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
   .use(authentication.checkIfUserPasswordExpired);
 
-// Middleware para verificar se o usuário é o dono
-async function checkOwnership(req, res, next) {
-  const user = req.context.user;
-  const { id: presentation_id } = req.query;
-
-  const pres = await presentation.findById(presentation_id);
-  if (!pres) {
-    throw new NotFoundError({ message: "Apresentação não encontrada." });
-  }
-
-  if (pres.created_by_user_id !== user.id) {
-    throw new ForbiddenError({
-      message: "Você não tem permissão para acessar este recurso.",
-    });
-  }
-
-  next();
-}
-
 // --- Rota PATCH (Edição Global) ---
 router.patch(
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // Agora, apenas checa se o usuário tem a "chave" para atualizar apresentações.
   authorization.canRequest("update:presentation"),
-  checkOwnership,
   patchHandler,
 );
 
@@ -45,7 +28,8 @@ async function patchHandler(req, res) {
   try {
     const { id: presentation_id } = req.query;
 
-    // O modelo 'updateElementGlobally' valida o req.body
+    // O canRequest() já validou a permissão.
+    // O modelo 'updateElementGlobally' valida o req.body e cuida do 404.
     const result = await presentation.updateElementGlobally(
       presentation_id,
       req.body,

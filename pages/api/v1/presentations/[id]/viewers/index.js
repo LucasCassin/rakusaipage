@@ -2,49 +2,27 @@ import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
-import presentation from "models/presentation.js";
 import presentationViewer from "models/presentation_viewer.js";
-import { NotFoundError, ForbiddenError } from "errors/index.js";
+// Erros e "presentation" não são mais necessários aqui,
+// o canRequest e o modelo cuidam de tudo.
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
   .use(authentication.checkIfUserPasswordExpired);
 
-// Middleware de autorização (para ambas as rotas)
-// Verifica se o usuário logado é o criador da apresentação
-async function checkOwnership(req, res, next) {
-  const user = req.context.user;
-  const { id: presentation_id } = req.query;
-
-  const pres = await presentation.findById(presentation_id);
-  if (!pres) {
-    throw new NotFoundError({ message: "Apresentação não encontrada." });
-  }
-
-  // Apenas o criador da apresentação pode gerenciar o elenco
-  if (pres.created_by_user_id !== user.id) {
-    throw new ForbiddenError({
-      message:
-        "Você não tem permissão para gerenciar o elenco desta apresentação.",
-    });
-  }
-
-  // Anexa a apresentação ao request para não buscar de novo
-  req.context.presentation = pres;
-  next();
-}
-
 // --- Rota GET (Listar Elenco) ---
 router.get(
-  authorization.canRequest("manage:presentation_viewers"), //
-  checkOwnership,
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // Agora apenas checa se o usuário tem a "chave" para ler o elenco.
+  authorization.canRequest("read:viewer"),
   getHandler,
 );
 
 // --- Rota POST (Adicionar ao Elenco) ---
 router.post(
-  authorization.canRequest("manage:presentation_viewers"), //
-  checkOwnership,
+  // A verificação de "dono" (checkOwnership) foi removida.
+  // Agora apenas checa se o usuário tem a "chave" para criar um membro no elenco.
+  authorization.canRequest("create:viewer"),
   postHandler,
 );
 
@@ -58,7 +36,7 @@ async function getHandler(req, res) {
   try {
     const { id: presentation_id } = req.query;
 
-    // O modelo já retorna os dados do usuário (id, username)
+    // A permissão já foi validada pelo canRequest.
     const viewers =
       await presentationViewer.findByPresentationId(presentation_id);
 
@@ -77,7 +55,8 @@ async function postHandler(req, res) {
     const { id: presentation_id } = req.query;
     const { user_id } = req.body; // Espera um body { "user_id": "..." }
 
-    // O modelo 'addViewer' valida os dados
+    // A permissão já foi validada pelo canRequest.
+    // O modelo 'addViewer' valida os dados e cuida do 404.
     const newViewer = await presentationViewer.addViewer(
       presentation_id,
       user_id,

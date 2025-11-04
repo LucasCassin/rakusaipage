@@ -108,7 +108,7 @@ describe("Authentication Model Tests", () => {
       );
 
       expect(mockRequest.context.user).toMatchObject({
-        features: [/*"create:user",*/ "create:session"],
+        features: [/*"create:user",*/ "create:session", "read:presentation"],
       });
       expect(mockNext).toHaveBeenCalled();
     });

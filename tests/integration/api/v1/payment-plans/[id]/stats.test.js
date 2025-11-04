@@ -83,6 +83,7 @@ describe("GET /api/v1/payment-plans/[id]/stats", () => {
     expect(resBody).toEqual({
       plan_id: testPlan.id,
       activeSubscriptions: 2, // Espera 2 assinaturas ativas
+      totalSubscriptions: 3, // Espera 3 assinaturas totais
     });
   });
 
