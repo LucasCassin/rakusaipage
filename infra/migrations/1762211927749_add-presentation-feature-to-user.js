@@ -1,9 +1,5 @@
 // É uma boa prática agrupar as features que você quer adicionar
-const FEATURES_TO_ADD = [
-  "read:presentation:self",
-  "update:presentation:self",
-  "delete:presentation:self",
-];
+const FEATURES_TO_ADD = ["read:presentation"];
 
 exports.up = (pgm) => {
   // Converte o array de features e JÁ FAZ O CAST para o tipo correto
