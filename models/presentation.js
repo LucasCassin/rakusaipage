@@ -136,9 +136,33 @@ async function findById(presentation_id) {
   return results.rows[0];
 }
 
+/**
+ * Encontra todas as apresentações que um usuário pode ver.
+ * (Que ele criou OU que ele está no elenco).
+ */
+async function findAllForUser(user_id) {
+  const validatedId = validator({ user_id }, { user_id: "required" });
+
+  const query = {
+    text: `
+      SELECT p.* FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      WHERE 
+        p.created_by_user_id = $1 OR pv.user_id = $1
+      GROUP BY p.id
+      ORDER BY p.date DESC, p.created_at DESC;
+    `,
+    values: [validatedId.user_id],
+  };
+
+  const results = await database.query(query);
+  return results.rows;
+}
+
 export default {
   create,
   update,
   del,
   findById,
+  findAllForUser,
 };
