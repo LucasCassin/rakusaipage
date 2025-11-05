@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import transitionStep from "models/transition_step.js";
+import validator from "models/validator";
 // presentation, scene, NotFoundError e ForbiddenError não são mais necessários
 
 const router = createRouter()
@@ -11,21 +12,24 @@ const router = createRouter()
 
 // --- Rota PATCH (Atualizar Passo) ---
 router.patch(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "update:step".
   authorization.canRequest("update:step"),
+  stepsIdValidator,
   patchHandler,
 );
 
 // --- Rota DELETE (Deletar Passo) ---
 router.delete(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "delete:step".
   authorization.canRequest("delete:step"),
+  stepsIdValidator,
   deleteHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function stepsIdValidator(req, res, next) {
+  req.query = validator({ id: req.query?.id }, { id: "required" });
+  next();
+}
 
 /**
  * Handler para PATCH /api/v1/transition_steps/[id]

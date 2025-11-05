@@ -2,8 +2,9 @@ import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
-import scene from "models/scene.js"; // <-- Importado para o middleware
+import scene from "models/scene.js";
 import transitionStep from "models/transition_step.js";
+import validator from "models/validator.js";
 import { NotFoundError, ForbiddenError } from "errors/index.js";
 
 const router = createRouter()
@@ -15,35 +16,43 @@ const router = createRouter()
  * Esta lógica estava no 'checkOwnership' original.
  */
 async function validateSceneType(req, res, next) {
-  const { id: scene_id } = req.query;
+  try {
+    const { id: scene_id } = req.query;
 
-  const scn = await scene.findById(scene_id);
-  if (!scn) {
-    throw new NotFoundError({ message: "Cena não encontrada." });
+    const scn = await scene.findById(scene_id);
+    if (!scn) {
+      throw new NotFoundError({ message: "Cena não encontrada." });
+    }
+
+    // Validação extra: Só permite adicionar passos a cenas do tipo 'TRANSITION'
+    if (scn.scene_type !== "TRANSITION") {
+      // Corrigido de 'scn.type' para 'scn.scene_type'
+      throw new ForbiddenError({
+        message:
+          "Passos de transição só podem ser adicionados a cenas do tipo 'TRANSITION'.",
+      });
+    }
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
   }
-
-  // Validação extra: Só permite adicionar passos a cenas do tipo 'TRANSITION'
-  if (scn.scene_type !== "TRANSITION") {
-    // Corrigido de 'scn.type' para 'scn.scene_type'
-    throw new ForbiddenError({
-      message:
-        "Passos de transição só podem ser adicionados a cenas do tipo 'TRANSITION'.",
-    });
-  }
-
   next();
 }
 
 // --- Rota POST (Criar Passo de Transição) ---
 router.post(
-  // 1. O usuário tem a "chave" para criar um passo?
   authorization.canRequest("create:step"),
+  sceneIdValidator,
   // 2. A cena-alvo é do tipo correto?
   validateSceneType,
   postHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function sceneIdValidator(req, res, next) {
+  req.query = validator({ id: req.query?.id }, { id: "required" });
+  next();
+}
 
 /**
  * Handler para POST /api/v1/scenes/[id]/steps

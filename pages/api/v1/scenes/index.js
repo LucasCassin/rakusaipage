@@ -10,12 +10,7 @@ const router = createRouter()
   .use(authentication.checkIfUserPasswordExpired);
 
 // --- Rota POST (Criar Cena) ---
-router.post(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada pela "chave" correta.
-  authorization.canRequest("create:scene"),
-  postHandler,
-);
+router.post(authorization.canRequest("create:scene"), postHandler);
 
 export default router.handler(controller.errorsHandlers);
 

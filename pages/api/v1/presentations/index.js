@@ -10,25 +10,15 @@ const router = createRouter()
   .use(authentication.checkIfUserPasswordExpired);
 
 // --- Rota GET (Listar Apresentações do Usuário) ---
-router.get(
-  // Usuário deve estar logado para listar suas apresentações.
-  // A lógica de "o que" ele pode ver (dono ou elenco)
-  // está no modelo "findAllForUser".
-  async (req, res, next) => {
-    if (!req.context.user.id) {
-      throw new UnauthorizedError({ message: "Usuário não autenticado." });
-    }
-    next();
-  },
-  getHandler,
-);
+router.get(async (req, res, next) => {
+  if (!req.context.user.id) {
+    throw new UnauthorizedError({ message: "Usuário não autenticado." });
+  }
+  next();
+}, getHandler);
 
 // --- Rota POST (Criar) ---
-router.post(
-  // Verifica se o usuário tem a "chave" para criar
-  authorization.canRequest("create:presentation"),
-  postHandler,
-);
+router.post(authorization.canRequest("create:presentation"), postHandler);
 
 export default router.handler(controller.errorsHandlers);
 

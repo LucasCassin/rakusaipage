@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentation from "models/presentation.js";
+import validator from "models/validator.js";
 // Erros não são mais necessários aqui, pois o canRequest cuida do 403
 // e o modelo cuida do 404.
 
@@ -12,13 +13,20 @@ const router = createRouter()
 
 // --- Rota PATCH (Edição Global) ---
 router.patch(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // Agora, apenas checa se o usuário tem a "chave" para atualizar apresentações.
   authorization.canRequest("update:presentation"),
+  presentationIdValidator,
   patchHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function presentationIdValidator(req, res, next) {
+  req.query = validator(
+    { presentation_id: req.query?.id },
+    { presentation_id: "required" },
+  );
+  next();
+}
 
 /**
  * Handler para PATCH /api/v1/presentations/[id]/element-names
@@ -26,7 +34,7 @@ export default router.handler(controller.errorsHandlers);
  */
 async function patchHandler(req, res) {
   try {
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     // O canRequest() já validou a permissão.
     // O modelo 'updateElementGlobally' valida o req.body e cuida do 404.

@@ -4,6 +4,7 @@ import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentation from "models/presentation.js";
 import presentationViewer from "models/presentation_viewer.js";
+import validator from "models/validator.js";
 import {
   NotFoundError,
   ForbiddenError,
@@ -17,13 +18,29 @@ const router = createRouter()
 // --- Rotas ---
 // A lógica de autorização de leitura é complexa e
 // é tratada DIRETAMENTE dentro do "getHandler".
-router.get(getHandler);
+router.get(presentationIdValidator, getHandler);
 
 // Rotas de escrita usam "canRequest" com a "chave" limpa.
-router.patch(authorization.canRequest("update:presentation"), patchHandler);
-router.delete(authorization.canRequest("delete:presentation"), deleteHandler);
+router.patch(
+  authorization.canRequest("update:presentation"),
+  presentationIdValidator,
+  patchHandler,
+);
+router.delete(
+  authorization.canRequest("delete:presentation"),
+  presentationIdValidator,
+  deleteHandler,
+);
 
 export default router.handler(controller.errorsHandlers);
+
+function presentationIdValidator(req, res, next) {
+  req.query = validator(
+    { presentation_id: req.query?.id },
+    { presentation_id: "required" },
+  );
+  next();
+}
 
 /**
  * Handler para GET /api/v1/presentations/[id]
@@ -34,7 +51,7 @@ export default router.handler(controller.errorsHandlers);
 async function getHandler(req, res) {
   try {
     const user = req.context.user;
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     const presentationData = await presentation.findDeepById(presentation_id);
     if (!presentationData) {
@@ -105,7 +122,7 @@ async function getHandler(req, res) {
 async function patchHandler(req, res) {
   try {
     const user = req.context.user;
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     // Lógica de "dono" removida. O canRequest() já cuidou da permissão.
     // O modelo "update" cuidará do 404 se o ID estiver errado.
@@ -130,7 +147,7 @@ async function patchHandler(req, res) {
 async function deleteHandler(req, res) {
   try {
     const user = req.context.user;
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     // Lógica de "dono" removida. O canRequest() já cuidou da permissão.
     // O modelo "del" cuidará do 404.

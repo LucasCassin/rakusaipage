@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import sceneElement from "models/scene_element.js";
+import validator from "models/validator.js";
 // presentation, scene, NotFoundError e ForbiddenError não são mais necessários
 
 const router = createRouter()
@@ -11,21 +12,24 @@ const router = createRouter()
 
 // --- Rota PATCH (Atualizar Elemento) ---
 router.patch(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "update:element".
   authorization.canRequest("update:element"),
+  elementIdValidator,
   patchHandler,
 );
 
 // --- Rota DELETE (Deletar Elemento) ---
 router.delete(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "delete:element".
   authorization.canRequest("delete:element"),
+  elementIdValidator,
   deleteHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function elementIdValidator(req, res, next) {
+  req.query = validator({ id: req.query?.id }, { id: "required" });
+  next();
+}
 
 /**
  * Handler para PATCH /api/v1/scene_elements/[id]

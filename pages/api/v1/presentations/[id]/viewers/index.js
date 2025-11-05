@@ -13,22 +13,28 @@ const router = createRouter()
 
 // --- Rota GET (Listar Elenco) ---
 router.get(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // Agora apenas checa se o usuário tem a "chave" para ler o elenco.
   authorization.canRequest("read:viewer"),
+  presentationIdValidator,
   getHandler,
 );
 
 // --- Rota POST (Adicionar ao Elenco) ---
 router.post(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // Agora apenas checa se o usuário tem a "chave" para criar um membro no elenco.
   authorization.canRequest("create:viewer"),
-  patchValidator,
+  postValidator,
+  presentationIdValidator,
   postHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function presentationIdValidator(req, res, next) {
+  req.query = validator(
+    { presentation_id: req.query?.id },
+    { presentation_id: "required" },
+  );
+  next();
+}
 
 /**
  * Handler para GET /api/v1/presentations/[id]/viewers
@@ -36,7 +42,7 @@ export default router.handler(controller.errorsHandlers);
  */
 async function getHandler(req, res) {
   try {
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     // A permissão já foi validada pelo canRequest.
     const viewers =
@@ -48,7 +54,7 @@ async function getHandler(req, res) {
   }
 }
 
-function patchValidator(req, res, next) {
+function postValidator(req, res, next) {
   req.body = validator(req.body, { user_id: "required" });
   next();
 }
@@ -59,7 +65,7 @@ function patchValidator(req, res, next) {
  */
 async function postHandler(req, res) {
   try {
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
     const { user_id } = req.body; // Espera um body { "user_id": "..." }
 
     // A permissão já foi validada pelo canRequest.

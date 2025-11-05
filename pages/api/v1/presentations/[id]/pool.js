@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentation from "models/presentation.js";
+import validator from "models/validator.js";
 // Erros não são mais necessários aqui
 
 const router = createRouter()
@@ -11,13 +12,20 @@ const router = createRouter()
 
 // --- Rota GET (Buscar o Pool) ---
 router.get(
-  // Verificação de "dono" removida.
-  // Se o usuário pode "atualizar" a apresentação, ele pode ver o pool de elementos.
   authorization.canRequest("update:presentation"),
+  presentationIdValidator,
   getHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function presentationIdValidator(req, res, next) {
+  req.query = validator(
+    { presentation_id: req.query?.id },
+    { presentation_id: "required" },
+  );
+  next();
+}
 
 /**
  * Handler para GET /api/v1/presentations/[id]/pool
@@ -25,7 +33,7 @@ export default router.handler(controller.errorsHandlers);
  */
 async function getHandler(req, res) {
   try {
-    const { id: presentation_id } = req.query;
+    const { presentation_id } = req.query;
 
     // A permissão já foi validada.
     const pool = await presentation.findElementPool(presentation_id);

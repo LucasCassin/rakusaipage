@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import sceneElement from "models/scene_element.js";
+import validator from "models/validator.js";
 // presentation, scene, NotFoundError e ForbiddenError não são mais necessários
 
 const router = createRouter()
@@ -11,13 +12,17 @@ const router = createRouter()
 
 // --- Rota POST (Criar Elemento) ---
 router.post(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "create:element".
   authorization.canRequest("create:element"),
+  sceneIdValidator,
   postHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function sceneIdValidator(req, res, next) {
+  req.query = validator({ id: req.query?.id }, { id: "required" });
+  next();
+}
 
 /**
  * Handler para POST /api/v1/scenes/[id]/elements

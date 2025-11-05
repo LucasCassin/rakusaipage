@@ -3,7 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentationViewer from "models/presentation_viewer.js";
-// Erros e "presentation" não são mais necessários aqui.
+import validator from "models/validator.js";
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
@@ -11,13 +11,20 @@ const router = createRouter()
 
 // --- Rota DELETE (Remover do Elenco) ---
 router.delete(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // Agora apenas checa se o usuário tem a "chave" para deletar um membro do elenco.
   authorization.canRequest("delete:viewer"),
+  deleteValidator,
   deleteHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function deleteValidator(req, res, next) {
+  req.query = validator(
+    { presentation_id: req.query?.id, user_id: req.query?.userId },
+    { presentation_id: "required", user_id: "required" },
+  );
+  next();
+}
 
 /**
  * Handler para DELETE /api/v1/presentations/[id]/viewers/[userId]
@@ -25,7 +32,7 @@ export default router.handler(controller.errorsHandlers);
  */
 async function deleteHandler(req, res) {
   try {
-    const { id: presentation_id, userId: user_id } = req.query;
+    const { presentation_id, user_id } = req.query;
 
     // A permissão já foi validada pelo canRequest.
     // O modelo 'removeViewer' cuida da lógica e do 404.

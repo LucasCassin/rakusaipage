@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import scene from "models/scene.js";
+import validator from "models/validator.js";
 // presentation, NotFoundError e ForbiddenError não são mais necessários
 
 const router = createRouter()
@@ -11,21 +12,24 @@ const router = createRouter()
 
 // --- Rota PATCH (Atualizar Cena) ---
 router.patch(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "update:scene".
   authorization.canRequest("update:scene"),
+  sceneIdValidator,
   patchHandler,
 );
 
 // --- Rota DELETE (Deletar Cena) ---
 router.delete(
-  // A verificação de "dono" (checkOwnership) foi removida.
-  // A "chave" antiga ("update:presentation") foi trocada por "delete:scene".
   authorization.canRequest("delete:scene"),
+  sceneIdValidator,
   deleteHandler,
 );
 
 export default router.handler(controller.errorsHandlers);
+
+function sceneIdValidator(req, res, next) {
+  req.query = validator({ id: req.query?.id }, { id: "required" });
+  next();
+}
 
 /**
  * Handler para PATCH /api/v1/scenes/[id]
