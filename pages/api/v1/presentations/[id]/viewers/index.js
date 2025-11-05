@@ -3,6 +3,7 @@ import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import presentationViewer from "models/presentation_viewer.js";
+import validator from "models/validator.js";
 // Erros e "presentation" não são mais necessários aqui,
 // o canRequest e o modelo cuidam de tudo.
 
@@ -23,6 +24,7 @@ router.post(
   // A verificação de "dono" (checkOwnership) foi removida.
   // Agora apenas checa se o usuário tem a "chave" para criar um membro no elenco.
   authorization.canRequest("create:viewer"),
+  patchValidator,
   postHandler,
 );
 
@@ -44,6 +46,11 @@ async function getHandler(req, res) {
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
   }
+}
+
+function patchValidator(req, res, next) {
+  req.body = validator(req.body, { user_id: "required" });
+  next();
 }
 
 /**
