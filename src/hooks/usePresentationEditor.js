@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"; // <-- ADICIONE "useRef"
+import { useReactToPrint } from "react-to-print";
 import { useRouter } from "next/router";
 import { usePresentation } from "./usePresentation";
 import { useAuth } from "src/contexts/AuthContext";
@@ -44,7 +45,15 @@ export function usePresentationEditor(presentationId) {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareModalError, setShareModalError] = useState(null);
+
+  const componentToPrintRef = useRef(null);
   // --- FIM DA MUDANÇA ---
+
+  const handlePrint = useReactToPrint({
+    content: () => componentToPrintRef.current,
+    documentTitle: presentation?.name || "Apresentação Rakusai",
+    // (Podemos adicionar CSS de impressão aqui depois, se necessário)
+  });
 
   // ... (Lógica de Cena e Permissões permanecem as mesmas) ...
   useEffect(() => {
@@ -593,6 +602,11 @@ export function usePresentationEditor(presentationId) {
     },
     stepHandlers: {
       deleteStep: deleteStep,
+    },
+
+    printHandlers: {
+      ref: componentToPrintRef, // A ref para o componente "fantasma"
+      onPrint: handlePrint, // A função que o botão vai chamar
     },
     // --- FIM DA MUDANÇA ---
   };

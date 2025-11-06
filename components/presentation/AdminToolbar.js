@@ -13,6 +13,7 @@ export default function AdminToolbar({
   permissions,
   onOpenCastModal,
   onOpenShareModal,
+  onPrint,
 }) {
   // Se o usuário não tem a "chave" principal de edição,
   // esta barra inteira nem é renderizada.
@@ -45,9 +46,11 @@ export default function AdminToolbar({
         </Button>
         {/* --- FIM DA MUDANÇA --- */}
 
-        <Button size="small" variant="ghost" disabled>
-          {" "}
-          {/* Desabilitado por enquanto */}
+        <Button
+          size="small"
+          variant="ghost"
+          onClick={onPrint} // Chama o hook 'useReactToPrint'
+        >
           <FiDownload className="mr-2" /> Baixar PDF
         </Button>
       </div>

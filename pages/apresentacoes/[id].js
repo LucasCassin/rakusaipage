@@ -21,6 +21,7 @@ import TransitionStepModal from "components/presentation/TransitionStepModal";
 import CastManagerModal from "components/presentation/CastManagerModal";
 import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal";
 import ShareModal from "components/presentation/ShareModal";
+import PrintablePresentation from "components/presentation/PrintablePresentation";
 
 export default function PresentationPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function PresentationPage() {
     modal, // Contém .openElement, .openStep, .saveStep, etc.
     dropHandlers,
     stepHandlers, // Contém .deleteStep
+    printHandlers,
   } = usePresentationEditor(presentationId);
 
   // ... (código de Loading e Erro permanece o mesmo) ...
@@ -84,6 +86,7 @@ export default function PresentationPage() {
             permissions={permissions}
             onOpenCastModal={modal.openCast}
             onOpenShareModal={modal.openShare}
+            onPrint={printHandlers.onPrint}
           />
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -179,6 +182,10 @@ export default function PresentationPage() {
             onSubmit={modal.savePublicStatus}
           />
         )}
+        <PrintablePresentation
+          ref={printHandlers.ref}
+          presentation={presentation}
+        />
         {/* --- FIM DA MUDANÇA --- */}
       </PageLayout>
     </DndProvider>
