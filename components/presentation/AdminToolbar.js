@@ -11,7 +11,7 @@ export default function AdminToolbar({
   isEditorMode,
   onToggleEditorMode,
   permissions,
-  // (Vamos adicionar os handlers de clique para os outros botões depois)
+  onOpenCastModal,
 }) {
   // Se o usuário não tem a "chave" principal de edição,
   // esta barra inteira nem é renderizada.
@@ -32,6 +32,11 @@ export default function AdminToolbar({
 
       {/* Outros botões de gerenciamento */}
       <div className="flex flex-wrap gap-2">
+        {permissions.canManageCast && (
+          <Button size="small" variant="ghost" onClick={onOpenCastModal}>
+            <FiUsers className="mr-2" /> Gerenciar Elenco
+          </Button>
+        )}
         <Button size="small" variant="ghost">
           <FiUsers className="mr-2" /> Gerenciar Elenco
         </Button>

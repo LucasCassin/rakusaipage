@@ -2,6 +2,9 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { usePresentationEditor } from "src/hooks/usePresentationEditor";
 
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
 import PageLayout from "components/layouts/PageLayout";
 import InitialLoading from "components/InitialLoading";
 import ErrorPage from "components/ui/ErrorPage";
@@ -12,12 +15,15 @@ import SceneSelector from "components/presentation/SceneSelector";
 import StageView from "components/presentation/StageView";
 import AdminToolbar from "components/presentation/AdminToolbar";
 import EditorPalette from "components/presentation/EditorPalette";
+import SceneElementModal from "components/presentation/SceneElementModal";
+
+import TransitionStepModal from "components/presentation/TransitionStepModal";
+import CastManagerModal from "components/presentation/CastManagerModal";
 
 export default function PresentationPage() {
   const router = useRouter();
   const { id: presentationId } = router.query;
 
-  // --- MUDANÇA: Usando o novo hook "cérebro" ---
   const {
     presentation,
     isLoading,
@@ -27,13 +33,16 @@ export default function PresentationPage() {
     currentSceneId,
     setCurrentSceneId,
     isEditorMode,
-    setIsEditorMode, // A função "interruptor"
-    permissions, // O objeto de permissões
+    setIsEditorMode,
+    permissions, // Contém as "chaves" (canCreateStep, etc.)
     palette,
+    castHook,
+    modal, // Contém .openElement, .openStep, .saveStep, etc.
+    dropHandlers,
+    stepHandlers, // Contém .deleteStep
   } = usePresentationEditor(presentationId);
-  // --- FIM DA MUDANÇA ---
 
-  // 1. Estado de Carregamento
+  // ... (código de Loading e Erro permanece o mesmo) ...
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -42,7 +51,6 @@ export default function PresentationPage() {
     );
   }
 
-  // 2. Estado de Erro (403, 404, 500)
   if (error) {
     return (
       <ErrorPage
@@ -61,48 +69,93 @@ export default function PresentationPage() {
 
   // 3. Estado de Sucesso
   return (
-    <PageLayout
-      title={presentation?.name || "Apresentação"}
-      description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
-      maxWidth="max-w-7xl" // <-- Aumentei para 7xl para caber a paleta
-    >
-      <div className="p-4">
-        <AdminToolbar
-          isEditorMode={isEditorMode}
-          onToggleEditorMode={() => setIsEditorMode(!isEditorMode)}
-          permissions={permissions}
-        />
+    <DndProvider backend={HTML5Backend}>
+      <PageLayout
+        title={presentation?.name || "Apresentação"}
+        description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
+        maxWidth="max-w-7xl"
+      >
+        <div className="p-4">
+          <AdminToolbar
+            isEditorMode={isEditorMode}
+            onToggleEditorMode={() => setIsEditorMode(!isEditorMode)}
+            permissions={permissions}
+            onOpenCastModal={modal.openCast}
+          />
 
-        {/* --- MUDANÇA: Layout de 2 Colunas (Grid) --- */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna Principal (2/3) */}
-          <div className="lg:col-span-2">
-            <h1 className="text-3xl font-bold mb-2">{presentation.name}</h1>
-            <p className="text-gray-600 mb-6">{presentation.description}</p>
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <h1 className="text-3xl font-bold mb-2">{presentation.name}</h1>
+              <p className="text-gray-600 mb-6">{presentation.description}</p>
 
-            <SceneSelector
-              scenes={presentation.scenes}
-              currentSceneId={currentSceneId}
-              onSelectScene={setCurrentSceneId}
-            />
+              <SceneSelector
+                scenes={presentation.scenes}
+                currentSceneId={currentSceneId}
+                onSelectScene={setCurrentSceneId}
+              />
 
-            <StageView scene={currentScene} loggedInUser={user} />
+              {/* --- MUDANÇA: Passando todas as props de edição --- */}
+              <StageView
+                scene={currentScene}
+                loggedInUser={user}
+                isEditorMode={isEditorMode}
+                permissions={permissions}
+                // Props do Mapa
+                onPaletteDrop={dropHandlers.onPaletteDrop}
+                onElementMove={dropHandlers.onElementMove}
+                onElementClick={modal.openElement}
+                // Props da Checklist
+                onAddStep={() => modal.openStep("create")}
+                onEditStep={(step) => modal.openStep("edit", step)}
+                onDeleteStep={stepHandlers.deleteStep}
+              />
+              {/* --- FIM DA MUDANÇA --- */}
+            </div>
+
+            {isEditorMode && (
+              <aside className="lg:col-span-1">
+                <div className="sticky top-4">
+                  <h3 className="text-xl font-bold mb-4">
+                    Paleta de Elementos
+                  </h3>
+                  <EditorPalette palette={palette} />
+                </div>
+              </aside>
+            )}
           </div>
-
-          {/* Coluna Lateral (1/3) - A Paleta */}
-          {isEditorMode && (
-            <aside className="lg:col-span-1">
-              <div className="sticky top-4">
-                {" "}
-                {/* Faz a paleta "flutuar" */}
-                <h3 className="text-xl font-bold mb-4">Paleta de Elementos</h3>
-                <EditorPalette palette={palette} />
-              </div>
-            </aside>
-          )}
         </div>
+
+        {/* --- MUDANÇA: Renderizar AMBOS os Modais --- */}
+        {modal.isElementOpen && (
+          <SceneElementModal
+            modalData={modal.elementData}
+            cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
+            error={modal.elementError}
+            onClose={modal.closeElement}
+            onSubmit={modal.saveElement}
+          />
+        )}
+
+        {modal.isStepOpen && (
+          <TransitionStepModal
+            modalData={modal.stepData}
+            cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
+            error={modal.stepError}
+            onClose={modal.closeStep}
+            onSubmit={modal.saveStep}
+          />
+        )}
+
+        {modal.isCastOpen && (
+          <CastManagerModal
+            presentation={presentation}
+            permissions={permissions}
+            onClose={modal.closeCast}
+            castHook={castHook} // Passa o hook inteiro
+          />
+        )}
         {/* --- FIM DA MUDANÇA --- */}
-      </div>
-    </PageLayout>
+      </PageLayout>
+    </DndProvider>
   );
 }
