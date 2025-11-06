@@ -44,6 +44,8 @@
     "pg": "8.14.1",
     "postcss": "8.4.38",
     "react": "19.0.0",
+    "react-dnd": "16.0.1",
+    "react-dnd-html5-backend": "16.0.1",
     "react-dom": "19.0.0",
     "react-icons": "5.5.0",
     "react-select": "5.10.2",
