@@ -1,28 +1,46 @@
 import React from "react";
-import Button from "components/ui/Button"; //
-import Alert from "components/ui/Alert"; //
+import Button from "components/ui/Button";
+import Alert from "components/ui/Alert";
 import { FiX, FiUsers } from "react-icons/fi";
-import { usePresentationCast } from "src/hooks/usePresentationCast"; //
+import { usePresentationCast } from "src/hooks/usePresentationCast";
 import CastUserList from "./CastUserList";
-import KPICardSkeleton from "components/ui/KPICardSkeleton"; //
+import KPICardSkeleton from "components/ui/KPICardSkeleton";
 
-/**
- * Modal para gerenciar o Elenco (presentation_viewers).
- *
- */
+// --- NOVOS IMPORTS ---
+import { useCastSearch } from "src/hooks/useCastSearch";
+import CastSearch from "./CastSearch";
+// --- FIM DOS NOVOS IMPORTS ---
+
 export default function CastManagerModal({
   presentation,
   permissions,
   onClose,
-  castHook, // <-- 1. RECEBE O HOOK COMO PROP
 }) {
+  // Hook 1: Gerencia o estado do elenco (Viewers)
+  const castHook = usePresentationCast(presentation.id, permissions);
   const {
     viewers,
-    isLoading,
-    error,
-    addUserToCast, // (Usaremos no próximo passo)
+    isLoading: isLoadingCast,
+    error: castError,
+    addUserToCast,
     removeUserFromCast,
-  } = castHook; // <-- 2. USA O HOOK RECEBIDO
+  } = castHook;
+
+  // --- MUDANÇA: Hook 2: Gerencia o estado da Busca ---
+  // Passa os viewers atuais para o hook de busca saber quem filtrar
+  const searchHook = useCastSearch(viewers);
+  // --- FIM DA MUDANÇA ---
+
+  // Função que o <CastSearch /> vai chamar
+  const handleAddMultipleUsers = async (userIds) => {
+    // (Poderíamos otimizar isso para um 'Promise.all',
+    // mas por enquanto, um loop sequencial é mais seguro para o 'handleApiResponse')
+    for (const userId of userIds) {
+      await addUserToCast(userId);
+    }
+    // Após adicionar, limpa a busca
+    searchHook.clearSearch();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -39,33 +57,37 @@ export default function CastManagerModal({
 
         {/* Conteúdo (com scroll interno) */}
         <div className="p-6 overflow-y-auto space-y-8">
-          {error && <Alert type="error">{error}</Alert>}
+          {castError && <Alert type="error">{castError}</Alert>}
 
           {/* Seção 1: Elenco Atual */}
           <section>
             <h4 className="text-lg font-semibold text-gray-800 mb-3">
               Elenco Atual ({viewers.length})
             </h4>
-            {isLoading ? (
+            {isLoadingCast ? (
               <KPICardSkeleton />
             ) : (
               <CastUserList
                 viewers={viewers}
-                scenes={presentation.scenes} // Passa as cenas para o contador
+                scenes={presentation.scenes}
                 onRemove={removeUserFromCast}
               />
             )}
           </section>
 
-          {/* Seção 2: Adicionar Membros (Placeholder) */}
+          {/* --- MUDANÇA: Seção 2: Adicionar Membros (UI Real) --- */}
           <section className="border-t pt-6">
             <h4 className="text-lg font-semibold text-gray-800 mb-3">
               Adicionar Membros
             </h4>
-            <div className="p-8 bg-gray-100 rounded-lg text-center">
-              Placeholder para a "Busca Híbrida"
-            </div>
+            {/* Renderiza a UI de Busca Híbrida */}
+            <CastSearch
+              castHook={castHook}
+              searchHook={searchHook}
+              onAddUsers={handleAddMultipleUsers}
+            />
           </section>
+          {/* --- FIM DA MUDANÇA --- */}
         </div>
 
         {/* Rodapé */}

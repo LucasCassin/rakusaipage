@@ -19,6 +19,8 @@ import SceneElementModal from "components/presentation/SceneElementModal";
 
 import TransitionStepModal from "components/presentation/TransitionStepModal";
 import CastManagerModal from "components/presentation/CastManagerModal";
+import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal";
+import ShareModal from "components/presentation/ShareModal";
 
 export default function PresentationPage() {
   const router = useRouter();
@@ -81,6 +83,7 @@ export default function PresentationPage() {
             onToggleEditorMode={() => setIsEditorMode(!isEditorMode)}
             permissions={permissions}
             onOpenCastModal={modal.openCast}
+            onOpenShareModal={modal.openShare}
           />
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -136,6 +139,7 @@ export default function PresentationPage() {
           />
         )}
 
+        {/* Modal de Passo (Checklist) */}
         {modal.isStepOpen && (
           <TransitionStepModal
             modalData={modal.stepData}
@@ -146,12 +150,33 @@ export default function PresentationPage() {
           />
         )}
 
+        {/* Modal de Elenco (Cast) */}
         {modal.isCastOpen && (
           <CastManagerModal
             presentation={presentation}
             permissions={permissions}
             onClose={modal.closeCast}
-            castHook={castHook} // Passa o hook inteiro
+            castHook={castHook}
+          />
+        )}
+
+        {/* O Novo Modal de Confirmação Global */}
+        {modal.isGlobalEditOpen && (
+          <ConfirmGlobalEditModal
+            modalData={modal.globalEditData}
+            error={modal.globalEditError}
+            onClose={modal.closeGlobalEdit}
+            onUpdateLocal={modal.updateLocally}
+            onUpdateGlobal={modal.updateGlobally}
+          />
+        )}
+
+        {modal.isShareOpen && (
+          <ShareModal
+            presentation={presentation}
+            error={modal.shareError}
+            onClose={modal.closeShare}
+            onSubmit={modal.savePublicStatus}
           />
         )}
         {/* --- FIM DA MUDANÇA --- */}

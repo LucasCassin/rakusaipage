@@ -12,6 +12,7 @@ export default function AdminToolbar({
   onToggleEditorMode,
   permissions,
   onOpenCastModal,
+  onOpenShareModal,
 }) {
   // Se o usuário não tem a "chave" principal de edição,
   // esta barra inteira nem é renderizada.
@@ -37,13 +38,16 @@ export default function AdminToolbar({
             <FiUsers className="mr-2" /> Gerenciar Elenco
           </Button>
         )}
-        <Button size="small" variant="ghost">
-          <FiUsers className="mr-2" /> Gerenciar Elenco
-        </Button>
-        <Button size="small" variant="ghost">
+
+        {/* --- 2. CONECTAR O BOTÃO --- */}
+        <Button size="small" variant="ghost" onClick={onOpenShareModal}>
           <FiShare2 className="mr-2" /> Compartilhar
         </Button>
-        <Button size="small" variant="ghost">
+        {/* --- FIM DA MUDANÇA --- */}
+
+        <Button size="small" variant="ghost" disabled>
+          {" "}
+          {/* Desabilitado por enquanto */}
           <FiDownload className="mr-2" /> Baixar PDF
         </Button>
       </div>

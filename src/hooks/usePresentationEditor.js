@@ -17,7 +17,7 @@ export function usePresentationEditor(presentationId) {
     fetchData: refetchPresentationData,
   } = usePresentation(presentationId);
 
-  // ... (Estados do Editor, Cena, Paleta e Elenco permanecem os mesmos) ...
+  // ... (Estados do Editor, Cena, Paleta) ...
   const [isEditorMode, setIsEditorMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState(null);
   const [pool, setPool] = useState([]);
@@ -26,17 +26,24 @@ export function usePresentationEditor(presentationId) {
   const [isLoadingElementTypes, setIsLoadingElementTypes] = useState(false);
   const [hasFetchedPaletteData, setHasFetchedPaletteData] = useState(false);
 
-  // --- Estados do Modal de Elemento (Mapa) ---
+  // --- Estados dos Modais ---
   const [isElementModalOpen, setIsElementModalOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [modalError, setModalError] = useState(null);
 
-  // --- MUDANÇA: Estados do Modal de Passo (Checklist) ---
   const [isStepModalOpen, setIsStepModalOpen] = useState(false);
-  const [stepModalData, setStepModalData] = useState(null); // { mode, step? }
+  const [stepModalData, setStepModalData] = useState(null);
   const [stepModalError, setStepModalError] = useState(null);
 
   const [isCastModalOpen, setIsCastModalOpen] = useState(false);
+
+  // --- MUDANÇA: Estado para o Modal de Edição Global ---
+  const [isGlobalEditModalOpen, setIsGlobalEditModalOpen] = useState(false);
+  const [globalEditData, setGlobalEditData] = useState(null); // { original, updated, element }
+  const [globalEditError, setGlobalEditError] = useState(null);
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareModalError, setShareModalError] = useState(null);
   // --- FIM DA MUDANÇA ---
 
   // ... (Lógica de Cena e Permissões permanecem as mesmas) ...
@@ -70,6 +77,7 @@ export function usePresentationEditor(presentationId) {
     [user],
   );
 
+  const castHook = usePresentationCast(presentationId, permissions);
   // 5. Funções de API (que usam handleApiResponse)
 
   const fetchPool = useCallback(async () => {
@@ -118,8 +126,6 @@ export function usePresentationEditor(presentationId) {
       setIsLoadingElementTypes(false);
     }
   }, [permissions.canEdit, router]);
-
-  const castHook = usePresentationCast(presentationId, permissions);
 
   // Efeito para buscar os dados da paleta UMA VEZ
   useEffect(() => {
@@ -172,55 +178,165 @@ export function usePresentationEditor(presentationId) {
     async (formData) => {
       setModalError(null);
 
-      const isCreateMode = modalData?.mode === "create";
+      const {
+        mode,
+        id,
+        display_name: oldName,
+        assigned_user_id: oldUserId,
+      } = modalData;
+      const { display_name: newName, assigned_user_id: newUserId } = formData;
 
-      const body = {
-        scene_id: currentSceneId,
-        element_type_id: formData.element_type_id,
-        display_name: formData.display_name || null,
-        assigned_user_id: formData.assigned_user_id || null,
-        position_x: (formData.position?.x || 50).toFixed(2),
-        position_y: (formData.position?.y || 50).toFixed(2),
-      };
+      const isCreateMode = mode === "create";
 
-      // A lógica de 'saveElement' JÁ SUPORTA "edit"
-      const url = isCreateMode
-        ? `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/elements`
-        : `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${modalData.id}`;
+      // 1. Se for MODO CRIAÇÃO (veio da paleta)
+      if (isCreateMode) {
+        // (A API de criação precisa de *todos* os dados)
+        const createBody = {
+          scene_id: currentSceneId,
+          element_type_id: formData.element_type_id,
+          display_name: newName || null,
+          assigned_user_id: newUserId || null,
+          position_x: (formData.position?.x || 50).toFixed(2),
+          position_y: (formData.position?.y || 50).toFixed(2),
+        };
+        // Chama a API de criação direto (sem modal extra)
+        await createElementApi(createBody, formData.isTemplate);
 
-      const method = isCreateMode ? "POST" : "PATCH";
+        // 2. Se for MODO EDIÇÃO (clicou no ícone)
+      } else {
+        // Verifica se o nome ou o usuário mudou
+        const nameChanged = newName !== (oldName || "");
+        const userChanged = newUserId !== (oldUserId || "");
 
-      const editBody = {
-        display_name: formData.display_name || null,
-        assigned_user_id: formData.assigned_user_id || null,
-      };
+        if (!nameChanged && !userChanged) {
+          // Se nada mudou, apenas fecha o modal
+          closeElementModal();
+          return;
+        }
 
-      try {
-        const response = await fetch(url, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(isCreateMode ? body : editBody),
+        // Se MUDOU, fecha o modal de edição e abre o modal de "confirmação"
+        closeElementModal();
+        setGlobalEditData({
+          elementId: id,
+          element_type_id: formData.element_type_id,
+          oldData: {
+            display_name: oldName || null,
+            assigned_user_id: oldUserId || null,
+          },
+          newData: {
+            display_name: newName || null,
+            assigned_user_id: newUserId || null,
+          },
         });
+        setIsGlobalEditModalOpen(true);
+      }
+    },
+    [modalData, currentSceneId], // (Removido 'saveElementApi' das dependências)
+  );
 
+  const createElementApi = useCallback(
+    async (body, isTemplate) => {
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/elements`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
         await handleApiResponse({
           response,
           router,
-          setError: setModalError,
+          setError: setModalError, // Mostra erro no modal (se ainda estiver aberto)
           onSuccess: () => {
             refetchPresentationData();
-            if (isCreateMode && !formData.isTemplate && formData.display_name) {
-              fetchPool();
-            }
+            if (!isTemplate && body.display_name) fetchPool();
             closeElementModal();
           },
         });
       } catch (e) {
-        setModalError("Erro de conexão. Verifique sua internet.");
-        console.error("Erro ao salvar elemento:", e);
+        setModalError("Erro de conexão.");
+        console.error("Erro ao criar elemento:", e);
       }
     },
-    [router, refetchPresentationData, fetchPool, currentSceneId, modalData],
+    [router, refetchPresentationData, fetchPool, currentSceneId],
   );
+
+  // (API de Edição Local - chamada pelo *novo* modal)
+  const updateElementLocally = useCallback(async () => {
+    setGlobalEditError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${globalEditData.elementId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(globalEditData.newData),
+        },
+      );
+      await handleApiResponse({
+        response,
+        router,
+        setError: setGlobalEditError,
+        onSuccess: () => {
+          refetchPresentationData();
+          closeGlobalEditModal();
+        },
+      });
+    } catch (e) {
+      setGlobalEditError("Erro de conexão.");
+      console.error("Erro ao atualizar localmente:", e);
+    }
+  }, [router, refetchPresentationData, globalEditData]);
+
+  // (API de Edição Global - chamada pelo *novo* modal)
+  const updateElementGlobally = useCallback(async () => {
+    setGlobalEditError(null);
+    const { element_type_id } = globalEditData.oldData;
+    const body = {
+      element_type_id: globalEditData.element_type_id,
+      old_display_name: globalEditData.oldData.display_name,
+      new_display_name: globalEditData.newData.display_name,
+      new_assigned_user_id: globalEditData.newData.assigned_user_id,
+    };
+
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/element-names`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      await handleApiResponse({
+        response,
+        router,
+        setError: setGlobalEditError,
+        onSuccess: () => {
+          refetchPresentationData();
+          fetchPool(); // Precisa atualizar o pool
+          closeGlobalEditModal();
+        },
+      });
+    } catch (e) {
+      setGlobalEditError("Erro de conexão.");
+      console.error("Erro ao atualizar globalmente:", e);
+    }
+  }, [
+    router,
+    refetchPresentationData,
+    globalEditData,
+    presentationId,
+    fetchPool,
+  ]);
+
+  const closeGlobalEditModal = () => {
+    setIsGlobalEditModalOpen(false);
+    setGlobalEditData(null);
+    setGlobalEditError(null);
+  };
 
   const moveElement = useCallback(
     async (elementId, position) => {
@@ -368,38 +484,80 @@ export function usePresentationEditor(presentationId) {
   const closeCastModal = () => {
     setIsCastModalOpen(false);
   };
+
+  const openShareModal = () => {
+    setIsShareModalOpen(true);
+    setShareModalError(null);
+  };
+
+  const closeShareModal = () => {
+    setIsShareModalOpen(false);
+    setShareModalError(null);
+  };
+
+  // A função de API que o modal de "Salvar" chamará
+  const setPresentationPublicStatus = useCallback(
+    async (isPublic) => {
+      setShareModalError(null);
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_public: isPublic }),
+          },
+        );
+
+        await handleApiResponse({
+          response,
+          router,
+          setError: setShareModalError, // Mostra erro DENTRO do modal
+          onSuccess: () => {
+            refetchPresentationData(); // Recarrega os dados da apresentação
+            closeShareModal(); // Fecha o modal
+          },
+        });
+      } catch (e) {
+        setShareModalError("Erro de conexão. Verifique sua internet.");
+        console.error("Erro ao atualizar status público:", e);
+      }
+    },
+    [router, refetchPresentationData, presentationId],
+  );
   // --- FIM DA MUDANÇA ---
 
   return {
     // ... (props de leitura) ...
     presentation,
-    isLoading: isLoadingData,
+    isLoading,
     error,
     user,
     currentScene,
     currentSceneId,
     setCurrentSceneId,
     refetchPresentationData,
+    // ... (props de editor) ...
     isEditorMode,
     setIsEditorMode,
     permissions,
+    castHook,
     palette: {
       pool,
       elementTypes,
       isLoading: isLoadingPool || isLoadingElementTypes,
     },
-    castHook: castHook,
     // --- MUDANÇA: 'modal.open' agora está conectada ---
     modal: {
-      // Modal de Elemento (Mapa)
+      // ... (Modal de Elemento)
       isElementOpen: isElementModalOpen,
       elementData: modalData,
       elementError: modalError,
       openElement: openElementEditor,
       closeElement: closeElementModal,
-      saveElement: saveElement,
+      saveElement: saveElement, // Esta é a função "roteadora"
 
-      // Modal de Passo (Checklist)
+      // ... (Modal de Passo)
       isStepOpen: isStepModalOpen,
       stepData: stepModalData,
       stepError: stepModalError,
@@ -407,9 +565,25 @@ export function usePresentationEditor(presentationId) {
       closeStep: closeStepModal,
       saveStep: saveStep,
 
+      // ... (Modal de Elenco)
       isCastOpen: isCastModalOpen,
       openCast: openCastModal,
       closeCast: closeCastModal,
+
+      // --- MUDANÇA: Modal de Confirmação Global ---
+      isGlobalEditOpen: isGlobalEditModalOpen,
+      globalEditData: globalEditData,
+      globalEditError: globalEditError,
+      closeGlobalEdit: closeGlobalEditModal,
+      updateLocally: updateElementLocally,
+      updateGlobally: updateElementGlobally,
+
+      isShareOpen: isShareModalOpen,
+      shareError: shareModalError,
+      openShare: openShareModal,
+      closeShare: closeShareModal,
+      savePublicStatus: setPresentationPublicStatus,
+      // --- FIM DA MUDANÇA ---
     },
     // --- FIM DA MUDANÇA ---
 
