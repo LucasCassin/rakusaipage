@@ -8,7 +8,6 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import PageLayout from "components/layouts/PageLayout";
 import InitialLoading from "components/InitialLoading";
 import ErrorPage from "components/ui/ErrorPage";
-import Button from "components/ui/Button";
 import { texts } from "src/utils/texts";
 
 import SceneSelector from "components/presentation/SceneSelector";
@@ -73,6 +72,7 @@ export default function PresentationPage() {
 
   // 3. Estado de Sucesso
   return (
+    // O DndProvider DEVE envolver TUDO
     <DndProvider backend={HTML5Backend}>
       <PageLayout
         title={presentation?.name || "Apresentação"}
@@ -89,10 +89,21 @@ export default function PresentationPage() {
             onPrint={printHandlers.onPrint}
           />
 
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <h1 className="text-3xl font-bold mb-2">{presentation.name}</h1>
-              <p className="text-gray-600 mb-6">{presentation.description}</p>
+          <div
+            className={`mt-6 grid grid-cols-1 ${
+              isEditorMode ? "lg:grid-cols-3" : "lg:grid-cols-1"
+            } gap-6`}
+          >
+            {/* O 'div' abaixo agora será 'lg:col-span-3' (full-width)
+              quando o editor estiver desligado, centralizando o conteúdo.
+            */}
+            <div className={isEditorMode ? "lg:col-span-2" : "lg:col-span-3"}>
+              <h1 className="text-3xl font-bold mb-2">
+                {presentation?.name || "Apresentação"}
+              </h1>
+              <p className="text-gray-600 mb-6">
+                {presentation?.description || null}
+              </p>
 
               <SceneSelector
                 scenes={presentation.scenes}
@@ -100,22 +111,18 @@ export default function PresentationPage() {
                 onSelectScene={setCurrentSceneId}
               />
 
-              {/* --- MUDANÇA: Passando todas as props de edição --- */}
               <StageView
                 scene={currentScene}
                 loggedInUser={user}
                 isEditorMode={isEditorMode}
                 permissions={permissions}
-                // Props do Mapa
                 onPaletteDrop={dropHandlers.onPaletteDrop}
                 onElementMove={dropHandlers.onElementMove}
                 onElementClick={modal.openElement}
-                // Props da Checklist
                 onAddStep={() => modal.openStep("create")}
                 onEditStep={(step) => modal.openStep("edit", step)}
                 onDeleteStep={stepHandlers.deleteStep}
               />
-              {/* --- FIM DA MUDANÇA --- */}
             </div>
 
             {isEditorMode && (
@@ -131,63 +138,67 @@ export default function PresentationPage() {
           </div>
         </div>
 
-        {/* --- MUDANÇA: Renderizar AMBOS os Modais --- */}
-        {modal.isElementOpen && (
-          <SceneElementModal
-            modalData={modal.elementData}
-            cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
-            error={modal.elementError}
-            onClose={modal.closeElement}
-            onSubmit={modal.saveElement}
-          />
-        )}
-
-        {/* Modal de Passo (Checklist) */}
-        {modal.isStepOpen && (
-          <TransitionStepModal
-            modalData={modal.stepData}
-            cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
-            error={modal.stepError}
-            onClose={modal.closeStep}
-            onSubmit={modal.saveStep}
-          />
-        )}
-
-        {/* Modal de Elenco (Cast) */}
-        {modal.isCastOpen && (
-          <CastManagerModal
-            presentation={presentation}
-            permissions={permissions}
-            onClose={modal.closeCast}
-            castHook={castHook}
-          />
-        )}
-
-        {/* O Novo Modal de Confirmação Global */}
-        {modal.isGlobalEditOpen && (
-          <ConfirmGlobalEditModal
-            modalData={modal.globalEditData}
-            error={modal.globalEditError}
-            onClose={modal.closeGlobalEdit}
-            onUpdateLocal={modal.updateLocally}
-            onUpdateGlobal={modal.updateGlobally}
-          />
-        )}
-
-        {modal.isShareOpen && (
-          <ShareModal
-            presentation={presentation}
-            error={modal.shareError}
-            onClose={modal.closeShare}
-            onSubmit={modal.savePublicStatus}
-          />
-        )}
+        {/* O componente "fantasma" de impressão PODE ficar aqui dentro,
+          pois ele não é um overlay.
+        */}
         <PrintablePresentation
           ref={printHandlers.ref}
           presentation={presentation}
         />
-        {/* --- FIM DA MUDANÇA --- */}
       </PageLayout>
+
+      {/* --- MUDANÇA: MODAIS MOVIDOS PARA FORA DO PageLayout --- */}
+      {/* Isso corrige o bug do backdrop (Bug 1) e
+        também ajuda a previnir loops de renderização (como o de antes)
+      */}
+      {modal.isElementOpen && (
+        <SceneElementModal
+          modalData={modal.elementData}
+          cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
+          error={modal.elementError}
+          onClose={modal.closeElement}
+          onSubmit={modal.saveElement}
+        />
+      )}
+
+      {modal.isStepOpen && (
+        <TransitionStepModal
+          modalData={modal.stepData}
+          cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
+          error={modal.stepError}
+          onClose={modal.closeStep}
+          onSubmit={modal.saveStep}
+        />
+      )}
+
+      {modal.isCastOpen && (
+        <CastManagerModal
+          presentation={presentation}
+          permissions={permissions}
+          onClose={modal.closeCast}
+          castHook={castHook}
+        />
+      )}
+
+      {modal.isGlobalEditOpen && (
+        <ConfirmGlobalEditModal
+          modalData={modal.globalEditData}
+          error={modal.globalEditError}
+          onClose={modal.closeGlobalEdit}
+          onUpdateLocal={modal.updateLocally}
+          onUpdateGlobal={modal.updateGlobally}
+        />
+      )}
+
+      {modal.isShareOpen && (
+        <ShareModal
+          presentation={presentation}
+          error={modal.shareError}
+          onClose={modal.closeShare}
+          onSubmit={modal.savePublicStatus}
+        />
+      )}
+      {/* --- FIM DA MUDANÇA --- */}
     </DndProvider>
   );
 }
