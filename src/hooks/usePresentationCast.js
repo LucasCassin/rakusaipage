@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/router";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 
@@ -7,8 +6,7 @@ import { settings } from "config/settings.js";
  * Hook "cérebro" para gerenciar o ELENCO (viewers) de uma apresentação.
  * Ele lida com fetch, add e remove.
  */
-export function usePresentationCast(presentationId, permissions) {
-  const router = useRouter();
+export function usePresentationCast(presentationId, permissions, router) {
   const [viewers, setViewers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);

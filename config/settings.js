@@ -25,6 +25,11 @@ export const settings = {
         FINANCIALS_KPI: "/api/v1/financials_kpi",
         PAYMENT_PLANS_STATS: "/api/v1/payment-plans",
         TASKS: "/api/v1/tasks",
+        PRESENTATIONS: "/api/v1/presentations",
+        SCENES: "/api/v1/scenes",
+        SCENE_ELEMENTS: "/api/v1/scene_elements",
+        TRANSITION_STEPS: "/api/v1/transition_steps",
+        ELEMENT_TYPES: "/api/v1/element-types",
       },
     },
     REDIRECTS: {

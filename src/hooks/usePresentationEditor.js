@@ -12,7 +12,7 @@ export function usePresentationEditor(presentationId) {
 
   const {
     presentation,
-    isLoading: isLoadingData,
+    isLoading,
     error,
     user,
     fetchData: refetchPresentationData,
@@ -86,7 +86,7 @@ export function usePresentationEditor(presentationId) {
     [user],
   );
 
-  const castHook = usePresentationCast(presentationId, permissions);
+  const castHook = usePresentationCast(presentationId, permissions, router);
   // 5. Funções de API (que usam handleApiResponse)
 
   const fetchPool = useCallback(async () => {
