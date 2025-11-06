@@ -21,6 +21,9 @@ import CastManagerModal from "components/presentation/CastManagerModal";
 import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal";
 import ShareModal from "components/presentation/ShareModal";
 import PrintablePresentation from "components/presentation/PrintablePresentation";
+import SceneListEditor from "components/presentation/SceneListEditor";
+import SceneFormModal from "components/presentation/SceneFormModal";
+import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 
 export default function PresentationPage() {
   const router = useRouter();
@@ -105,11 +108,23 @@ export default function PresentationPage() {
                 {presentation?.description || null}
               </p>
 
-              <SceneSelector
-                scenes={presentation.scenes}
-                currentSceneId={currentSceneId}
-                onSelectScene={setCurrentSceneId}
-              />
+              {isEditorMode ? (
+                <SceneListEditor
+                  scenes={presentation.scenes}
+                  currentSceneId={currentSceneId}
+                  permissions={permissions}
+                  onSelectScene={setCurrentSceneId}
+                  onAddScene={() => modal.openSceneForm("create")}
+                  onEditScene={(scene) => modal.openSceneForm("edit", scene)}
+                  onDeleteScene={modal.openDeleteScene}
+                />
+              ) : (
+                <SceneSelector
+                  scenes={presentation.scenes}
+                  currentSceneId={currentSceneId}
+                  onSelectScene={setCurrentSceneId}
+                />
+              )}
 
               <StageView
                 scene={currentScene}
@@ -196,6 +211,24 @@ export default function PresentationPage() {
           error={modal.shareError}
           onClose={modal.closeShare}
           onSubmit={modal.savePublicStatus}
+        />
+      )}
+
+      {modal.isSceneFormOpen && (
+        <SceneFormModal
+          modalData={modal.sceneFormModalData}
+          error={modal.sceneFormModalError}
+          onClose={modal.closeSceneForm}
+          onSubmit={modal.saveScene}
+        />
+      )}
+
+      {modal.isDeleteSceneOpen && (
+        <DeleteSceneModal
+          scene={modal.deleteSceneModalData?.scene}
+          error={modal.deleteSceneModalError}
+          onClose={modal.closeDeleteScene}
+          onDelete={modal.deleteScene}
         />
       )}
       {/* --- FIM DA MUDANÇA --- */}

@@ -46,6 +46,14 @@ export function usePresentationEditor(presentationId) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareModalError, setShareModalError] = useState(null);
 
+  const [isSceneFormModalOpen, setIsSceneFormModalOpen] = useState(false);
+  const [sceneFormModalData, setSceneFormModalData] = useState(null); // { mode, scene? }
+  const [sceneFormModalError, setSceneFormModalError] = useState(null);
+
+  const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
+  const [deleteSceneModalData, setDeleteSceneModalData] = useState(null); // { scene }
+  const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
+
   const componentToPrintRef = useRef(null);
   // --- FIM DA MUDANÇA ---
 
@@ -534,6 +542,126 @@ export function usePresentationEditor(presentationId) {
     },
     [router, refetchPresentationData, presentationId],
   );
+
+  const openSceneFormModal = (mode, scene = null) => {
+    setSceneFormModalData({ mode, scene });
+    setIsSceneFormModalOpen(true);
+    setSceneFormModalError(null);
+  };
+
+  const closeSceneFormModal = () => {
+    setIsSceneFormModalOpen(false);
+    setSceneFormModalData(null);
+    setSceneFormModalError(null);
+  };
+
+  const openDeleteSceneModal = (scene) => {
+    setDeleteSceneModalData({ scene });
+    setIsDeleteSceneModalOpen(true);
+    setDeleteSceneModalError(null);
+  };
+
+  const closeDeleteSceneModal = () => {
+    setIsDeleteSceneModalOpen(false);
+    setDeleteSceneModalData(null);
+    setDeleteSceneModalError(null);
+  };
+
+  // API: Salvar Cena (Criar/Atualizar)
+  const saveScene = useCallback(
+    async (formData) => {
+      setSceneFormModalError(null);
+      const { mode, scene } = sceneFormModalData;
+      const isCreateMode = mode === "create";
+
+      let body, method, url;
+
+      if (isCreateMode) {
+        // --- MODO CRIAÇÃO ---
+        body = {
+          presentation_id: presentationId,
+          name: formData.name,
+          scene_type: formData.scene_type,
+          description: formData.description,
+          order: presentation?.scenes.length || 0,
+        };
+        method = "POST";
+        url = settings.global.API.ENDPOINTS.SCENES;
+      } else {
+        // --- MODO EDIÇÃO ---
+        // 'editBody' agora é 'body' e só é criado no 'else'
+        body = {
+          name: formData.name,
+          description: formData.description,
+          order: scene.order, // Agora 'scene' NUNCA é nulo
+        };
+        method = "PATCH";
+        url = `${settings.global.API.ENDPOINTS.SCENES}/${scene.id}`;
+      }
+
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          // Agora 'body' está sempre correto
+          body: JSON.stringify(body),
+        });
+
+        await handleApiResponse({
+          response,
+          router,
+          setError: setSceneFormModalError,
+          onSuccess: async (data) => {
+            await refetchPresentationData();
+            closeSceneFormModal();
+            if (isCreateMode && data) {
+              setCurrentSceneId(data.id);
+            }
+          },
+        });
+      } catch (e) {
+        setSceneFormModalError("Erro de conexão ao salvar a cena.");
+      }
+    },
+    [
+      router,
+      refetchPresentationData,
+      sceneFormModalData,
+      presentationId,
+      presentation?.scenes.length,
+    ],
+  );
+
+  // API: Deletar Cena
+  const deleteScene = useCallback(async () => {
+    if (!deleteSceneModalData?.scene) return;
+    setDeleteSceneModalError(null);
+
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.SCENES}/${deleteSceneModalData.scene.id}`,
+        { method: "DELETE" },
+      );
+
+      await handleApiResponse({
+        response,
+        router,
+        setError: setDeleteSceneModalError,
+        onSuccess: async () => {
+          await refetchPresentationData();
+          closeDeleteSceneModal();
+          // Se deletamos a cena ativa, seleciona a primeira
+          if (currentSceneId === deleteSceneModalData.scene.id) {
+            // (O 'refetch' vai acionar o 'useEffect' que re-seleciona a cena 0)
+            setCurrentSceneId(null);
+          }
+        },
+      });
+    } catch (e) {
+      setDeleteSceneModalError("Erro de conexão ao deletar a cena.");
+    }
+  }, [router, refetchPresentationData, deleteSceneModalData, currentSceneId]);
+
   // --- FIM DA MUDANÇA ---
 
   return {
@@ -592,6 +720,20 @@ export function usePresentationEditor(presentationId) {
       openShare: openShareModal,
       closeShare: closeShareModal,
       savePublicStatus: setPresentationPublicStatus,
+
+      isSceneFormOpen: isSceneFormModalOpen,
+      sceneFormModalData: sceneFormModalData,
+      sceneFormModalError: sceneFormModalError,
+      openSceneForm: openSceneFormModal,
+      closeSceneForm: closeSceneFormModal,
+      saveScene: saveScene,
+
+      isDeleteSceneOpen: isDeleteSceneModalOpen,
+      deleteSceneModalData: deleteSceneModalData,
+      deleteSceneModalError: deleteSceneModalError,
+      openDeleteScene: openDeleteSceneModal,
+      closeDeleteScene: closeDeleteSceneModal,
+      deleteScene: deleteScene,
       // --- FIM DA MUDANÇA ---
     },
     // --- FIM DA MUDANÇA ---
