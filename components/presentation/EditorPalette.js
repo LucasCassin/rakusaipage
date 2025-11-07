@@ -1,14 +1,28 @@
-import React from "react";
+import React, { useState } from "react"; // <-- ADICIONADO 'useState'
 import PaletteItem from "./PaletteItem";
 import PaletteSection from "./PaletteSection";
 import KPICardSkeleton from "components/ui/KPICardSkeleton";
 
 /**
  * A "Paleta Inteligente"
- * Contém as seções "Catálogo" e "Pool".
+ * MUDANÇA: Agora gerencia o estado "aberto/fechado" dos acordeões.
  */
 export default function EditorPalette({ palette }) {
   const { pool = [], elementTypes = [], isLoading } = palette;
+
+  // --- MUDANÇA: O estado vive aqui agora ---
+  const [openSections, setOpenSections] = useState({
+    pool: true, // "Pool" começa aberto
+    catalog: false, // "Catálogo" começa fechado
+  });
+
+  const toggleSection = (sectionName) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [sectionName]: !prev[sectionName],
+    }));
+  };
+  // --- FIM DA MUDANÇA ---
 
   if (isLoading) {
     return (
@@ -22,10 +36,15 @@ export default function EditorPalette({ palette }) {
   return (
     <div className="space-y-4">
       {/* 2. O Pool da Apresentação (Templates) */}
-      <PaletteSection title="Pool da Apresentação" startOpen={true}>
+      <PaletteSection
+        title="Pool da Apresentação"
+        // --- MUDANÇA: Passando o estado como prop ---
+        isOpen={openSections.pool}
+        onToggle={() => toggleSection("pool")}
+        // --- FIM DA MUDANÇA ---
+      >
         {pool.length > 0 ? (
           pool.map((item) => {
-            // --- MUDANÇA: Passando o objeto 'itemData' completo ---
             const itemData = {
               name: `${item.display_name} (${item.element_type_name})`,
               iconUrl: item.image_url,
@@ -41,7 +60,6 @@ export default function EditorPalette({ palette }) {
                 itemData={itemData}
               />
             );
-            // --- FIM DA MUDANÇA ---
           })
         ) : (
           <p className="text-sm text-gray-500 p-2">
@@ -51,21 +69,25 @@ export default function EditorPalette({ palette }) {
       </PaletteSection>
 
       {/* 1. O Catálogo (Genérico) */}
-      <PaletteSection title="Catálogo (Genérico)">
+      <PaletteSection
+        title="Catálogo (Genérico)"
+        // --- MUDANÇA: Passando o estado como prop ---
+        isOpen={openSections.catalog}
+        onToggle={() => toggleSection("catalog")}
+        // --- FIM DA MUDANÇA ---
+      >
         {elementTypes.length > 0 ? (
           elementTypes.map((type) => {
-            // --- MUDANÇA: Passando o objeto 'itemData' completo ---
             const itemData = {
               name: type.name,
               iconUrl: type.image_url,
               element_type_id: type.id,
-              display_name: null, // Genérico não tem nome
-              assigned_user_id: null, // Genérico não tem usuário
+              display_name: null,
+              assigned_user_id: null,
               element_type_name: type.name,
               isTemplate: false,
             };
             return <PaletteItem key={type.id} itemData={itemData} />;
-            // --- FIM DA MUDANÇA ---
           })
         ) : (
           <p className="text-sm text-gray-500 p-2">
