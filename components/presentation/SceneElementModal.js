@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
-import { FiX, FiTrash2 } from "react-icons/fi"; // <-- Adicionado FiTrash2
+import { FiX, FiTrash2 } from "react-icons/fi";
 
 /**
  * Modal para criar ou editar um SceneElement.
@@ -17,13 +17,13 @@ export default function SceneElementModal({
 }) {
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false); // <-- Estado de deleção
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { viewers = [], isLoading: isLoadingCast } = cast;
-  const { mode, step, element_type_name } = modalData || {}; // <-- 2. PEGAR O TIPO
+  const { mode, element_type_name } = modalData || {};
   const isCreate = mode === "create";
 
-  // --- 3. VERIFICAR SE É O "PALCO" (Bug 2) ---
+  // --- 2. VERIFICAR SE É O "PALCO" (Bug 2) ---
   const isStageLine = element_type_name === "Palco";
   // --- FIM DA MUDANÇA ---
 
@@ -51,11 +51,12 @@ export default function SceneElementModal({
     setIsLoading(false);
   };
 
-  // --- 4. HANDLER DE DELEÇÃO (Bug 1) ---
+  // --- 3. HANDLER DE DELEÇÃO (Bug 1) ---
   const handleDelete = async () => {
     setIsDeleting(true);
     await onDelete(modalData.id); // Chama 'deleteElement' do hook
     setIsDeleting(false);
+    // (O hook otimista fechará o modal)
   };
   // --- FIM DA MUDANÇA ---
 
@@ -74,7 +75,7 @@ export default function SceneElementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* --- 5. RENDERIZAÇÃO CONDICIONAL (Bug 2) --- */}
+          {/* --- 4. RENDERIZAÇÃO CONDICIONAL (Bug 2) --- */}
           {/* Se *NÃO* for a linha do palco, mostra os campos */}
           {!isStageLine && (
             <>
@@ -138,10 +139,10 @@ export default function SceneElementModal({
 
           {error && <Alert type="error">{error}</Alert>}
 
-          {/* --- 6. BOTÕES ATUALIZADOS (Bug 1) --- */}
+          {/* --- 5. BOTÕES ATUALIZADOS (Bug 1) --- */}
           <div className="flex justify-between items-center pt-4">
             <div>
-              {/* Botão de Deletar só aparece no modo "edit" */}
+              {/* Botão de Deletar (aparece no modo "edit" para TUDO) */}
               {!isCreate && (
                 <Button
                   type="button"
@@ -171,7 +172,9 @@ export default function SceneElementModal({
                 type="submit"
                 variant="primary"
                 isLoading={isLoading}
-                disabled={isLoading || isDeleting || isLoadingCast}
+                disabled={
+                  isLoading || isDeleting || (isLoadingCast && !isStageLine)
+                }
                 size="small"
               >
                 {isCreate ? "Adicionar ao Palco" : "Salvar Alterações"}

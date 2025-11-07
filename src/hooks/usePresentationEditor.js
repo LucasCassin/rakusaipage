@@ -168,12 +168,35 @@ export function usePresentationEditor(presentationId) {
   };
 
   const handlePaletteDrop = (item, position) => {
-    setModalData({
+    // 'item' é o payload do 'useDrag'
+    const dataForModal = {
       mode: "create",
       position: position,
       ...item,
-    });
-    setIsElementModalOpen(true);
+    };
+
+    // --- MUDANÇA (BUG 2): Fluxo do "Pool" ---
+    if (item.isTemplate) {
+      // Se for um Template (ex: "Renan (Odaiko)"),
+      // não abra o modal. Chame a API de criação diretamente.
+      //
+
+      const createBody = {
+        scene_id: currentSceneId,
+        element_type_id: item.element_type_id,
+        display_name: item.display_name || null,
+        assigned_user_id: item.assigned_user_id || null,
+        position_x: (position?.x || 50).toFixed(2),
+        position_y: (position?.y || 50).toFixed(2),
+      };
+      // (Usaremos a 'createElementApi' otimista que criaremos abaixo)
+      createElementApi(createBody, item.isTemplate);
+    } else {
+      // Se for do "Catálogo" (genérico), abra o modal
+      setModalData(dataForModal);
+      setIsElementModalOpen(true);
+    }
+    // --- FIM DA MUDANÇA ---
   };
 
   // --- MUDANÇA: Implementar a função "open" para edição ---
@@ -252,8 +275,34 @@ export function usePresentationEditor(presentationId) {
     [modalData, currentSceneId], // (Removido 'saveElementApi' das dependências)
   );
 
+  // API: Criar Elemento (AGORA OTIMISTA)
+  // API: Criar Elemento (OTIMISTA CORRIGIDO)
   const createElementApi = useCallback(
     async (body, isTemplate) => {
+      const tempId = `temp-${Date.now()}`;
+
+      const fakeElement = {
+        ...body,
+        id: tempId,
+        // Pegamos os dados visuais do modalData
+        element_type_name: modalData.element_type_name,
+        image_url: modalData.image_url,
+      };
+
+      // 1. Atualização Otimista (Mostra o "fantasma")
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find(
+          (s) => s.id === currentSceneId,
+        );
+        if (!scene) return prevPresentation;
+        scene.scene_elements.push(fakeElement);
+        return newPresentation;
+      });
+
+      closeElementModal();
+
+      // 2. Chamada de API em segundo plano
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/elements`,
@@ -263,22 +312,64 @@ export function usePresentationEditor(presentationId) {
             body: JSON.stringify(body),
           },
         );
+
         await handleApiResponse({
           response,
           router,
-          setError: setModalError, // Mostra erro no modal (se ainda estiver aberto)
-          onSuccess: () => {
+          setError: (msg) => {
+            console.error("Erro ao criar elemento, revertendo:", msg);
             refetchPresentationData();
+          },
+          onSuccess: (realElement) => {
+            // SUCESSO! 'realElement' (do DB) não tem 'image_url'.
+
+            // --- A CORREÇÃO ESTÁ AQUI ---
+            // Vamos criar o 'finalElement' combinando o 'realElement' (com o ID real)
+            // com os dados visuais do 'fakeElement' (que o 'realElement' não tem).
+            const finalElement = {
+              ...realElement, // O 'id' real, 'scene_id', etc.
+              image_url: fakeElement.image_url, // A 'image_url' do "fantasma"
+              element_type_name: fakeElement.element_type_name, // O 'name' do "fantasma"
+            };
+            // --- FIM DA CORREÇÃO ---
+
+            // Agora, substituímos o "fantasma" (tempId) pelo "real-completo"
+            setPresentation((prevPresentation) => {
+              const newPresentation = JSON.parse(
+                JSON.stringify(prevPresentation),
+              );
+              const scene = newPresentation.scenes.find(
+                (s) => s.id === currentSceneId,
+              );
+              if (!scene) return prevPresentation;
+
+              const elementIndex = scene.scene_elements.findIndex(
+                (el) => el.id === tempId,
+              );
+
+              if (elementIndex > -1) {
+                scene.scene_elements[elementIndex] = finalElement; // <-- CORRIGIDO
+              }
+
+              return newPresentation;
+            });
+
             if (!isTemplate && body.display_name) fetchPool();
-            closeElementModal();
           },
         });
       } catch (e) {
-        setModalError("Erro de conexão.");
-        console.error("Erro ao criar elemento:", e);
+        console.error("Erro de conexão ao criar elemento, revertendo:", e);
+        refetchPresentationData();
       }
     },
-    [router, refetchPresentationData, fetchPool, currentSceneId],
+    [
+      router,
+      refetchPresentationData,
+      fetchPool,
+      currentSceneId,
+      setPresentation,
+      modalData, // <-- Dependência (correta)
+    ],
   );
 
   // (API de Edição Local - chamada pelo *novo* modal)
@@ -360,12 +451,13 @@ export function usePresentationEditor(presentationId) {
     async (elementId, position) => {
       if (!elementId || !position) return;
 
-      // --- MUDANÇA (BUG 3): ATUALIZAÇÃO OTIMISTA ---
+      // --- MUDANÇA (BUG 1): ATUALIZAÇÃO OTIMISTA (MOVE) ---
       // 1. Atualiza o estado local IMEDIATAMENTE.
       setPresentation((prevPresentation) => {
-        // (É seguro mutar a cópia 'newPresentation' pois o 'setPresentation'
-        // aciona uma re-renderização com o novo objeto)
+        // Clona a apresentação para evitar mutação
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+
+        // Encontra a cena e o elemento
         const scene = newPresentation.scenes.find(
           (s) => s.id === currentSceneId,
         );
@@ -373,10 +465,11 @@ export function usePresentationEditor(presentationId) {
         const element = scene.scene_elements.find((el) => el.id === elementId);
         if (!element) return prevPresentation;
 
+        // Aplica a mudança
         element.position_x = position.x.toFixed(2);
         element.position_y = position.y.toFixed(2);
 
-        return newPresentation;
+        return newPresentation; // Retorna o novo estado
       });
       // --- FIM DA MUDANÇA (PARTE 1) ---
 
@@ -394,12 +487,20 @@ export function usePresentationEditor(presentationId) {
             body: JSON.stringify(body),
           },
         );
+
+        // --- MUDANÇA (BUG 1): ATUALIZAÇÃO OTIMISTA (MOVE) ---
+        // 2. Chama a API "silenciosamente" (em fundo).
         await handleApiResponse({
           response,
           router,
           onError: (err) => {
             console.error("Erro ao mover elemento, revertendo:", err.message);
-            refetchPresentationData(); // Reverte para o estado do servidor
+            // Se a API falhar, recarrega do servidor para reverter.
+            refetchPresentationData();
+          },
+          onSuccess: () => {
+            // NÃO FAZ NADA. A UI já foi atualizada.
+            //
           },
         });
         // --- FIM DA MUDANÇA (PARTE 2) ---
@@ -408,7 +509,7 @@ export function usePresentationEditor(presentationId) {
         refetchPresentationData(); // Reverte em caso de falha de conexão
       }
     },
-    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionar 'currentSceneId' e 'setPresentation'
+    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionar 'setPresentation' e 'currentSceneId'
   );
 
   const openStepModal = (mode, step = null) => {
@@ -509,9 +610,28 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData],
   );
 
+  // API: Deletar Elemento (AGORA OTIMISTA)
+  // API: Deletar Elemento (OTIMISTA CORRIGIDO)
   const deleteElement = useCallback(
     async (elementId) => {
-      setModalError(null); // Limpa erros do modal
+      setModalError(null);
+      closeElementModal(); // Fecha o modal imediatamente
+
+      // 1. Atualização Otimista (remove o item da UI)
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find(
+          (s) => s.id === currentSceneId,
+        );
+        if (!scene) return prevPresentation;
+
+        scene.scene_elements = scene.scene_elements.filter(
+          (el) => el.id !== elementId,
+        );
+        return newPresentation;
+      });
+
+      // 2. Chamada de API "silenciosa"
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${elementId}`,
@@ -521,18 +641,27 @@ export function usePresentationEditor(presentationId) {
         await handleApiResponse({
           response,
           router,
-          setError: setModalError, // Mostra o erro no modal
+          setError: (msg) => {
+            console.error("Erro ao deletar elemento, revertendo:", msg);
+            refetchPresentationData(); // Reverte em caso de erro
+          },
           onSuccess: () => {
-            refetchPresentationData(); // Recarrega tudo
-            closeElementModal(); // Fecha o modal
+            fetchPool();
+            // --- FIM DA CORREÇÃO ---
           },
         });
       } catch (e) {
-        setModalError("Erro de conexão ao deletar o elemento.");
         console.error("Erro de conexão ao deletar elemento:", e);
+        refetchPresentationData(); // Reverte em caso de erro
       }
     },
-    [router, refetchPresentationData],
+    [
+      router,
+      refetchPresentationData,
+      currentSceneId,
+      setPresentation,
+      fetchPool, // <-- Certifique-se de que 'fetchPool' está na lista
+    ],
   );
 
   const openCastModal = () => {

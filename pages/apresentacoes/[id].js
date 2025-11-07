@@ -137,6 +137,7 @@ export default function PresentationPage() {
                 onAddStep={() => modal.openStep("create")}
                 onEditStep={(step) => modal.openStep("edit", step)}
                 onDeleteStep={stepHandlers.deleteStep}
+                onElementDelete={modal.deleteElement}
               />
             </div>
 

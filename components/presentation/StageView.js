@@ -15,6 +15,7 @@ export default function StageView({
   onPaletteDrop,
   onElementMove,
   onElementClick,
+  onElementDelete,
   // Props da Checklist (Transição)
   onAddStep, // <-- 2. NOVA PROP (chama modal.openStep)
   onEditStep, // <-- 3. NOVA PROP (chama modal.openStep)
@@ -39,6 +40,7 @@ export default function StageView({
           onPaletteDrop={onPaletteDrop}
           onElementMove={onElementMove}
           onElementClick={onElementClick}
+          onElementDelete={onElementDelete}
           // (permissions não é necessário no mapa, pois os handlers já vêm do hook)
         />
       )}

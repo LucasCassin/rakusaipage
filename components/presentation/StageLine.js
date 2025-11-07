@@ -1,15 +1,19 @@
 import React from "react";
 import { useDrag } from "react-dnd";
-import { ItemTypes } from "./ItemTypes"; //
+import { ItemTypes } from "./ItemTypes";
+import { FiX } from "react-icons/fi"; // <-- Importar o 'X'
 
 /**
  * Renderiza um elemento "Palco" como uma linha divisória horizontal.
- * É arrastável (para cima e para baixo) no Modo Editor.
  */
-export default function StageLine({ element, isEditorMode }) {
+export default function StageLine({
+  element,
+  isEditorMode,
+  onDelete, // <-- 1. NOVA PROP (vem do 'deleteElement')
+}) {
   const [{ isDragging }, drag] = useDrag(
     () => ({
-      type: ItemTypes.STAGE_ELEMENT, // É o mesmo tipo, pois já está no palco
+      type: ItemTypes.STAGE_ELEMENT,
       item: {
         type: ItemTypes.STAGE_ELEMENT,
         id: element.id,
@@ -27,21 +31,26 @@ export default function StageLine({ element, isEditorMode }) {
   return (
     <div
       ref={drag}
-      className={`absolute w-full h-2 flex items-center justify-center
+      className={`absolute w-full h-4 flex items-center justify-center
         ${isEditorMode ? "cursor-ns-resize" : ""}
         ${isDragging ? "opacity-30" : "opacity-100"}
       `}
       style={{
-        // A 'position_x' é ignorada, a linha sempre ocupa 100% da largura
         left: "0",
-        top: `${element.position_y}%`, // A única posição que importa
-        transform: "translateY(-50%)", // Centraliza a linha
+        top: `${element.position_y}%`,
+        transform: "translateY(-50%)",
       }}
     >
       {/* A linha visível */}
       <div
+        // --- MUDANÇA (BUG 3): Visível no modo de leitura ---
         className={`w-full h-0.5
-        ${isEditorMode ? "bg-rakusai-yellow-dark" : "bg-white bg-opacity-30"}`}
+        ${
+          isEditorMode
+            ? "bg-rakusai-yellow-dark" // Amarelo no modo editor
+            : "bg-gray-500" // Cinza escuro (visível no branco)
+        }`}
+        // --- FIM DA MUDANÇA ---
       ></div>
 
       {/* "Alça" de arraste (só visível no modo editor) */}
@@ -50,6 +59,19 @@ export default function StageLine({ element, isEditorMode }) {
           PALCO
         </div>
       )}
+
+      {/* --- MUDANÇA (BUG 2): Botão de Deletar --- */}
+      {isEditorMode && (
+        <button
+          type="button"
+          onClick={() => onDelete(element.id)} // Chama 'deleteElement'
+          className="absolute right-0 flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 focus:outline-none"
+          aria-label="Deletar Linha do Palco"
+        >
+          <FiX className="h-4 w-4" />
+        </button>
+      )}
+      {/* --- FIM DA MUDANÇA --- */}
     </div>
   );
 }

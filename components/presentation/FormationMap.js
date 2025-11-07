@@ -14,6 +14,7 @@ export default function FormationMap({
   onPaletteDrop,
   onElementMove,
   onElementClick,
+  onElementDelete,
   isEditorMode,
 }) {
   const mapRef = useRef(null);
@@ -80,6 +81,7 @@ export default function FormationMap({
               key={element.id}
               element={element}
               isEditorMode={isEditorMode}
+              onDelete={onElementDelete}
             />
           );
         }
