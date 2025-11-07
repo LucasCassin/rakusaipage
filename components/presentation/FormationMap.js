@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "./ItemTypes"; //
 import StageElement from "./StageElement"; //
+import StageLine from "./StageLine";
 
 /**
  * Renderiza o "Palco" ...
@@ -10,10 +11,10 @@ import StageElement from "./StageElement"; //
 export default function FormationMap({
   elements = [],
   loggedInUser,
-  onPaletteDrop, // (veio do hook)
-  onElementMove, // <-- 1. NOVA PROP (veio do hook)
-  isEditorMode,
+  onPaletteDrop,
+  onElementMove,
   onElementClick,
+  isEditorMode,
 }) {
   const mapRef = useRef(null);
 
@@ -61,33 +62,39 @@ export default function FormationMap({
   return (
     <div
       ref={combinedRef}
-      className={`relative w-full min-h-[500px] h-full bg-gray-900 rounded-b-lg overflow-hidden p-4
+      // --- MUDANÇA: Estilos do Fundo ---
+      className={`relative w-full min-h-[500px] h-full
+        bg-white
+        border border-gray-300
+        shadow-inner
+        rounded-b-lg overflow-hidden p-4
         ${isEditorMode ? "cursor-move" : ""}
         ${isOver ? "ring-4 ring-rakusai-pink-light ring-inset" : ""} 
       `}
+      // --- FIM DA MUDANÇA ---
     >
-      {/* ... (fundo de pattern) ... */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: "url(/images/pattern.svg)",
-          backgroundSize: "cover",
-        }}
-      />
+      {elements.map((element) => {
+        if (element.element_type_name === "Palco") {
+          return (
+            <StageLine
+              key={element.id}
+              element={element}
+              isEditorMode={isEditorMode}
+            />
+          );
+        }
 
-      {/* --- 4. ATUALIZAÇÃO DO MAP ---
-        Precisamos passar 'isEditorMode' para o StageElement 
-        para que ele saiba se deve ser arrastável.
-      */}
-      {elements.map((element) => (
-        <StageElement
-          key={element.id}
-          element={element}
-          loggedInUser={loggedInUser}
-          isEditorMode={isEditorMode}
-          onClick={onElementClick} // <-- PASSAR PROP
-        />
-      ))}
+        // Caso contrário, renderiza o Ícone padrão
+        return (
+          <StageElement
+            key={element.id}
+            element={element}
+            loggedInUser={loggedInUser}
+            isEditorMode={isEditorMode}
+            onClick={onElementClick}
+          />
+        );
+      })}
       {elements.length === 0 && !isEditorMode && (
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="text-gray-500">Esta cena (formação) está vazia.</p>

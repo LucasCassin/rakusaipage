@@ -1,5 +1,5 @@
 //
-const ICONS_PATH = "/public/images"; // Caminho base na pasta 'public'
+const ICONS_PATH = "/images"; // Caminho base na pasta 'public'
 
 const elementTypes = [
   { name: "Ōdaiko", image_url: `${ICONS_PATH}/Odaiko.svg` },
@@ -10,6 +10,7 @@ const elementTypes = [
   { name: "Ippon", image_url: `${ICONS_PATH}/Ippon.svg` },
   { name: "Shinobue", image_url: `${ICONS_PATH}/Shinobue.svg` },
   { name: "Chappa", image_url: `${ICONS_PATH}/Chappa.svg` },
+  { name: "Palco", image_url: `${ICONS_PATH}/stage-line.svg` },
 ];
 
 exports.up = async (pgm) => {

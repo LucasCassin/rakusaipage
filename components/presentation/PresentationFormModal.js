@@ -66,7 +66,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Ex: Show Suzano 2025"
+              placeholder="Ex: Tanabata"
               required
               className="mt-1"
             />
@@ -84,7 +84,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Ex: Apresentação principal do ano"
+              placeholder="Ex: Apresentação anual no tanabata de Santo André"
               className="mt-1"
             />
           </div>
@@ -119,7 +119,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
-                placeholder="Ex: Bunkyo Suzano"
+                placeholder="Ex: Bunka Santo André"
                 className="mt-1"
               />
             </div>
@@ -151,7 +151,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
                 name="meet_location"
                 value={formData.meet_location}
                 onChange={handleChange}
-                placeholder="Ex: Estação Suzano"
+                placeholder="Ex: Sala de Treino"
                 className="mt-1"
               />
             </div>

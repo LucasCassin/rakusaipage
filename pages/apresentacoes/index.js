@@ -2,27 +2,23 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
-import { texts } from "src/utils/texts.js";
-
 // O "Cérebro"
 import { usePresentationsDashboard } from "src/hooks/usePresentationsDashboard"; //
 
 // Componentes de UI
 import PageLayout from "components/layouts/PageLayout";
 import InitialLoading from "components/InitialLoading";
-import Alert from "components/ui/Alert"; //
-import Button from "components/ui/Button"; //
+import Alert from "components/ui/Alert";
+import Button from "components/ui/Button";
 import { FiPlus } from "react-icons/fi";
 
 // Os componentes que acabamos de criar
-import PresentationListItem from "components/presentation/PresentationListItem"; //
+import PresentationListItem from "components/presentation/PresentationListItem";
 import PresentationFormModal from "components/presentation/PresentationFormModal"; //
-import DeletePresentationModal from "components/presentation/DeletePresentationModal"; //
-import PlanListSkeleton from "components/ui/PlanListSkeleton"; // Reutilizando o skeleton
+import DeletePresentationModal from "components/presentation/DeletePresentationModal";
 
 /**
  * Componente de Skeleton para a lista de apresentações
- * (Baseado no seu PlanListSkeleton)
  */
 const PresentationListSkeleton = () => (
   <div className="bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
@@ -46,7 +42,6 @@ const PresentationListSkeleton = () => (
 
 /**
  * O "Dashboard" ou "Hub" para gerenciar todas as apresentações.
- *
  */
 export default function PresentationsDashboardPage() {
   const router = useRouter();
@@ -68,31 +63,26 @@ export default function PresentationsDashboardPage() {
     closeModal,
     createPresentation,
     deletePresentation,
-  } = usePresentationsDashboard(); //
+  } = usePresentationsDashboard();
 
-  // 2. A LÓGICA DE PERMISSÃO (baseada em 'financeiro/index.js')
+  // 2. A LÓGICA DE PERMISSÃO
   const permissions = useMemo(() => {
     const features = user?.features || [];
     return {
-      // O usuário pode *ver* a página se ele puder ler as apresentações
       canAccessPage: features.includes("read:presentation"),
-      // Ele pode *criar* se tiver a "chave" de criação
       canCreate: features.includes("create:presentation"),
-      // Ele pode *editar* se tiver a "chave" de atualização
       canUpdate: features.includes("update:presentation"),
-      // Ele pode *deletar* se tiver a "chave" de deleção
       canDelete: features.includes("delete:presentation"),
     };
   }, [user]);
 
-  // 3. A GUARDA DE AUTENTICAÇÃO (baseada em 'find-users/index.js')
+  // 3. A GUARDA DE AUTENTICAÇÃO
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
       router.push(settings.global.REDIRECTS.LOGIN);
       return;
     }
-    // A API já filtra a lista, mas isso impede o acesso à página em si.
     if (!permissions.canAccessPage) {
       setAuthError("Você não tem permissão para acessar esta página.");
       setTimeout(() => router.push(settings.global.REDIRECTS.HOME), 2000);
@@ -114,67 +104,66 @@ export default function PresentationsDashboardPage() {
     );
   }
 
+  // --- MUDANÇA ESTRUTURAL ---
+  // O return agora é envolvido por um Fragment (<>)
   return (
-    <PageLayout
-      title="Apresentações"
-      description="Gerencie seus mapas de palco e apresentações."
-      maxWidth="max-w-4xl"
-    >
-      <div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Apresentações
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Crie, edite e gerencie seus mapas de palco.
-        </p>
-      </div>
-
-      {/* Botão de "Criar" (só aparece se tiver a permissão) */}
-      {permissions.canCreate && (
-        <div className="mt-8 text-right">
-          <Button
-            variant="primary" //
-            size="small"
-            onClick={openCreateModal}
-          >
-            <FiPlus className="mr-2" />
-            Criar Nova Apresentação
-          </Button>
-        </div>
-      )}
-
-      {/* Erro da API (ex: falha ao deletar) */}
-      {error && (
-        <Alert type="error" className="mt-4">
-          {error}
-        </Alert>
-      )}
-
-      {/* Lista de Apresentações */}
-      <div className="mt-6 bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
-        {isLoading ? (
-          <PresentationListSkeleton />
-        ) : presentations.length > 0 ? (
-          presentations.map((pres) => (
-            <PresentationListItem
-              key={pres.id}
-              presentation={pres}
-              // Passa as permissões para o item
-              permissions={{
-                canUpdate: permissions.canUpdate,
-                canDelete: permissions.canDelete,
-              }}
-              onDeleteClick={() => openDeleteModal(pres)}
-            />
-          ))
-        ) : (
-          <p className="text-center text-gray-500 p-8">
-            Nenhuma apresentação encontrada.
+    <>
+      <PageLayout
+        title="Apresentações"
+        description="Gerencie seus mapas de palco e apresentações."
+        maxWidth="max-w-4xl"
+      >
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Apresentações
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Crie, edite e gerencie seus mapas de palco.
           </p>
-        )}
-      </div>
+        </div>
 
-      {/* --- Renderização dos Modais --- */}
+        {permissions.canCreate && (
+          <div className="mt-8 text-right">
+            <Button variant="primary" size="small" onClick={openCreateModal}>
+              <FiPlus className="mr-2" />
+              Criar Nova Apresentação
+            </Button>
+          </div>
+        )}
+
+        {error && (
+          <Alert type="error" className="mt-4">
+            {error}
+          </Alert>
+        )}
+
+        <div className="mt-6 bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
+          {isLoading ? (
+            <PresentationListSkeleton />
+          ) : presentations.length > 0 ? (
+            presentations.map((pres) => (
+              <PresentationListItem
+                key={pres.id}
+                presentation={pres}
+                permissions={{
+                  canUpdate: permissions.canUpdate,
+                  canDelete: permissions.canDelete,
+                }}
+                onDeleteClick={() => openDeleteModal(pres)}
+              />
+            ))
+          ) : (
+            <p className="text-center text-gray-500 p-8">
+              Nenhuma apresentação encontrada.
+            </p>
+          )}
+        </div>
+
+        {/* OS MODAIS FORAM REMOVIDOS DAQUI */}
+      </PageLayout>
+
+      {/* --- MUDANÇA: MODAIS MOVIDOS PARA FORA DO PageLayout --- */}
+      {/* Isso corrige o bug do backdrop */}
       {isCreateModalOpen && (
         <PresentationFormModal
           error={modalError}
@@ -191,6 +180,7 @@ export default function PresentationsDashboardPage() {
           onDelete={deletePresentation}
         />
       )}
-    </PageLayout>
+      {/* --- FIM DA MUDANÇA --- */}
+    </>
   );
 }
