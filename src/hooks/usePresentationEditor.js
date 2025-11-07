@@ -12,6 +12,7 @@ export function usePresentationEditor(presentationId) {
 
   const {
     presentation,
+    setPresentation,
     isLoading,
     error,
     user,
@@ -357,10 +358,27 @@ export function usePresentationEditor(presentationId) {
 
   const moveElement = useCallback(
     async (elementId, position) => {
-      // 'elementId' é o ID do elemento que JÁ ESTÁ no palco
-      // 'position' é o { x, y } calculado pelo 'useDrop'
-
       if (!elementId || !position) return;
+
+      // --- MUDANÇA (BUG 3): ATUALIZAÇÃO OTIMISTA ---
+      // 1. Atualiza o estado local IMEDIATAMENTE.
+      setPresentation((prevPresentation) => {
+        // (É seguro mutar a cópia 'newPresentation' pois o 'setPresentation'
+        // aciona uma re-renderização com o novo objeto)
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find(
+          (s) => s.id === currentSceneId,
+        );
+        if (!scene) return prevPresentation; // Retorna o estado antigo se falhar
+        const element = scene.scene_elements.find((el) => el.id === elementId);
+        if (!element) return prevPresentation;
+
+        element.position_x = position.x.toFixed(2);
+        element.position_y = position.y.toFixed(2);
+
+        return newPresentation;
+      });
+      // --- FIM DA MUDANÇA (PARTE 1) ---
 
       const body = {
         position_x: position.x.toFixed(2),
@@ -376,26 +394,23 @@ export function usePresentationEditor(presentationId) {
             body: JSON.stringify(body),
           },
         );
-
-        // Usamos seu helper
         await handleApiResponse({
           response,
           router,
-          // TODO: Usar um setError de modal ou toast
-          onError: (err) =>
-            console.error("Erro ao mover elemento:", err.message),
-          onSuccess: () => {
-            // Sucesso! Recarrega a apresentação inteira para
-            // garantir que a nova posição está salva.
-            refetchPresentationData();
+          onError: (err) => {
+            console.error("Erro ao mover elemento, revertendo:", err.message);
+            refetchPresentationData(); // Reverte para o estado do servidor
           },
         });
+        // --- FIM DA MUDANÇA (PARTE 2) ---
       } catch (e) {
         console.error("Erro de conexão ao mover elemento:", e);
+        refetchPresentationData(); // Reverte em caso de falha de conexão
       }
     },
-    [router, refetchPresentationData],
+    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionar 'currentSceneId' e 'setPresentation'
   );
+
   const openStepModal = (mode, step = null) => {
     setStepModalData({ mode, step });
     setIsStepModalOpen(true);
@@ -489,6 +504,32 @@ export function usePresentationEditor(presentationId) {
         });
       } catch (e) {
         console.error("Erro de conexão ao deletar passo:", e);
+      }
+    },
+    [router, refetchPresentationData],
+  );
+
+  const deleteElement = useCallback(
+    async (elementId) => {
+      setModalError(null); // Limpa erros do modal
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${elementId}`,
+          { method: "DELETE" },
+        );
+
+        await handleApiResponse({
+          response,
+          router,
+          setError: setModalError, // Mostra o erro no modal
+          onSuccess: () => {
+            refetchPresentationData(); // Recarrega tudo
+            closeElementModal(); // Fecha o modal
+          },
+        });
+      } catch (e) {
+        setModalError("Erro de conexão ao deletar o elemento.");
+        console.error("Erro de conexão ao deletar elemento:", e);
       }
     },
     [router, refetchPresentationData],
@@ -678,6 +719,7 @@ export function usePresentationEditor(presentationId) {
     isEditorMode,
     setIsEditorMode,
     permissions,
+    deleteElement,
     castHook,
     palette: {
       pool,
@@ -693,6 +735,7 @@ export function usePresentationEditor(presentationId) {
       openElement: openElementEditor,
       closeElement: closeElementModal,
       saveElement: saveElement, // Esta é a função "roteadora"
+      deleteElement: deleteElement,
 
       // ... (Modal de Passo)
       isStepOpen: isStepModalOpen,

@@ -56,6 +56,7 @@ export function usePresentation(presentationId) {
 
   return {
     presentation, // Os dados de findDeepById (com .scenes, .elements, etc.)
+    setPresentation,
     isLoading,
     error,
     user, // Passamos o usuário logado para a UI (para a lógica do Destaque)

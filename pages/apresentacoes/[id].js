@@ -173,6 +173,7 @@ export default function PresentationPage() {
           error={modal.elementError}
           onClose={modal.closeElement}
           onSubmit={modal.saveElement}
+          onDelete={modal.deleteElement} // <-- ADICIONADO
         />
       )}
 
