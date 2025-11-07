@@ -169,18 +169,10 @@ export function usePresentationEditor(presentationId) {
 
   const handlePaletteDrop = (item, position) => {
     // 'item' é o payload do 'useDrag'
-    const dataForModal = {
-      mode: "create",
-      position: position,
-      ...item,
-    };
+    const isTemplate = item.isTemplate;
 
-    // --- MUDANÇA (BUG 2): Fluxo do "Pool" ---
-    if (item.isTemplate) {
-      // Se for um Template (ex: "Renan (Odaiko)"),
-      // não abra o modal. Chame a API de criação diretamente.
-      //
-
+    if (isTemplate) {
+      // 1. FLUXO DO POOL (sem modal)
       const createBody = {
         scene_id: currentSceneId,
         element_type_id: item.element_type_id,
@@ -189,14 +181,20 @@ export function usePresentationEditor(presentationId) {
         position_x: (position?.x || 50).toFixed(2),
         position_y: (position?.y || 50).toFixed(2),
       };
-      // (Usaremos a 'createElementApi' otimista que criaremos abaixo)
-      createElementApi(createBody, item.isTemplate);
+
+      // --- MUDANÇA: Passa o 'item' como 'visualData' ---
+      createElementApi(createBody, item.isTemplate, item);
+      // --- FIM DA MUDANÇA ---
     } else {
-      // Se for do "Catálogo" (genérico), abra o modal
+      // 2. FLUXO DO CATÁLOGO (abre o modal)
+      const dataForModal = {
+        mode: "create",
+        position: position,
+        ...item,
+      };
       setModalData(dataForModal);
       setIsElementModalOpen(true);
     }
-    // --- FIM DA MUDANÇA ---
   };
 
   // --- MUDANÇA: Implementar a função "open" para edição ---
@@ -215,81 +213,24 @@ export function usePresentationEditor(presentationId) {
   };
   // --- FIM DA MUDANÇA ---
 
-  const saveElement = useCallback(
-    async (formData) => {
-      setModalError(null);
-
-      const {
-        mode,
-        id,
-        display_name: oldName,
-        assigned_user_id: oldUserId,
-      } = modalData;
-      const { display_name: newName, assigned_user_id: newUserId } = formData;
-
-      const isCreateMode = mode === "create";
-
-      // 1. Se for MODO CRIAÇÃO (veio da paleta)
-      if (isCreateMode) {
-        // (A API de criação precisa de *todos* os dados)
-        const createBody = {
-          scene_id: currentSceneId,
-          element_type_id: formData.element_type_id,
-          display_name: newName || null,
-          assigned_user_id: newUserId || null,
-          position_x: (formData.position?.x || 50).toFixed(2),
-          position_y: (formData.position?.y || 50).toFixed(2),
-        };
-        // Chama a API de criação direto (sem modal extra)
-        await createElementApi(createBody, formData.isTemplate);
-
-        // 2. Se for MODO EDIÇÃO (clicou no ícone)
-      } else {
-        // Verifica se o nome ou o usuário mudou
-        const nameChanged = newName !== (oldName || "");
-        const userChanged = newUserId !== (oldUserId || "");
-
-        if (!nameChanged && !userChanged) {
-          // Se nada mudou, apenas fecha o modal
-          closeElementModal();
-          return;
-        }
-
-        // Se MUDOU, fecha o modal de edição e abre o modal de "confirmação"
-        closeElementModal();
-        setGlobalEditData({
-          elementId: id,
-          element_type_id: formData.element_type_id,
-          oldData: {
-            display_name: oldName || null,
-            assigned_user_id: oldUserId || null,
-          },
-          newData: {
-            display_name: newName || null,
-            assigned_user_id: newUserId || null,
-          },
-        });
-        setIsGlobalEditModalOpen(true);
-      }
-    },
-    [modalData, currentSceneId], // (Removido 'saveElementApi' das dependências)
-  );
-
-  // API: Criar Elemento (AGORA OTIMISTA)
   // API: Criar Elemento (OTIMISTA CORRIGIDO)
   const createElementApi = useCallback(
-    async (body, isTemplate) => {
+    // --- MUDANÇA: Adicionado 'visualData' como argumento ---
+    async (body, isTemplate, visualData) => {
+      // 1. Crie um "ID falso" (tempId)
       const tempId = `temp-${Date.now()}`;
 
+      // 2. Crie o "elemento fantasma"
       const fakeElement = {
         ...body,
         id: tempId,
-        // Pegamos os dados visuais do modalData
-        element_type_name: modalData.element_type_name,
-        image_url: modalData.image_url,
+        // --- MUDANÇA: Pega os dados do 'visualData' ---
+        element_type_name: visualData.element_type_name,
+        image_url: visualData.image_url,
+        // --- FIM DA MUDANÇA ---
       };
 
-      // 1. Atualização Otimista (Mostra o "fantasma")
+      // 3. ATUALIZAÇÃO OTIMISTA (Mostra o "fantasma")
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -300,9 +241,10 @@ export function usePresentationEditor(presentationId) {
         return newPresentation;
       });
 
+      // (Fecha o modal caso ele tenha vindo de lá)
       closeElementModal();
 
-      // 2. Chamada de API em segundo plano
+      // 5. Chama a API "silenciosamente"
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/elements`,
@@ -321,19 +263,15 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: (realElement) => {
-            // SUCESSO! 'realElement' (do DB) não tem 'image_url'.
-
-            // --- A CORREÇÃO ESTÁ AQUI ---
-            // Vamos criar o 'finalElement' combinando o 'realElement' (com o ID real)
-            // com os dados visuais do 'fakeElement' (que o 'realElement' não tem).
+            // SUCESSO!
+            // --- MUDANÇA: Passa os dados visuais para o 'finalElement' ---
             const finalElement = {
-              ...realElement, // O 'id' real, 'scene_id', etc.
-              image_url: fakeElement.image_url, // A 'image_url' do "fantasma"
-              element_type_name: fakeElement.element_type_name, // O 'name' do "fantasma"
+              ...realElement,
+              image_url: fakeElement.image_url,
+              element_type_name: fakeElement.element_type_name,
             };
-            // --- FIM DA CORREÇÃO ---
+            // --- FIM DA MUDANÇA ---
 
-            // Agora, substituímos o "fantasma" (tempId) pelo "real-completo"
             setPresentation((prevPresentation) => {
               const newPresentation = JSON.parse(
                 JSON.stringify(prevPresentation),
@@ -348,7 +286,7 @@ export function usePresentationEditor(presentationId) {
               );
 
               if (elementIndex > -1) {
-                scene.scene_elements[elementIndex] = finalElement; // <-- CORRIGIDO
+                scene.scene_elements[elementIndex] = finalElement;
               }
 
               return newPresentation;
@@ -362,14 +300,55 @@ export function usePresentationEditor(presentationId) {
         refetchPresentationData();
       }
     },
+    // --- MUDANÇA: 'modalData' não é mais uma dependência ---
     [
       router,
       refetchPresentationData,
       fetchPool,
       currentSceneId,
       setPresentation,
-      modalData, // <-- Dependência (correta)
     ],
+  );
+
+  const saveElement = useCallback(
+    async (formData) => {
+      setModalError(null);
+
+      const {
+        mode,
+        id,
+        display_name: oldName,
+        assigned_user_id: oldUserId,
+      } = modalData;
+      const { display_name: newName, assigned_user_id: newUserId } = formData;
+
+      const isCreateMode = mode === "create";
+
+      if (isCreateMode) {
+        // FLUXO DO MODAL
+        const createBody = {
+          scene_id: currentSceneId,
+          element_type_id: formData.element_type_id,
+          display_name: newName || null,
+          assigned_user_id: newUserId || null,
+          position_x: (formData.position?.x || 50).toFixed(2),
+          position_y: (formData.position?.y || 50).toFixed(2),
+        };
+
+        // --- MUDANÇA: Pega os dados visuais do 'modalData' ---
+        // (O 'modalData' aqui é o 'item' original que foi solto)
+        const visualData = {
+          isTemplate: formData.isTemplate,
+          element_type_name: modalData.element_type_name,
+          image_url: modalData.image_url,
+        };
+        await createElementApi(createBody, visualData.isTemplate, visualData);
+        // --- FIM DA MUDANÇA ---
+      } else {
+        // ... (lógica de Edição/Global Edit permanece a mesma) ...
+      }
+    },
+    [modalData, currentSceneId, createElementApi], // <-- Adiciona 'createElementApi'
   );
 
   // (API de Edição Local - chamada pelo *novo* modal)
