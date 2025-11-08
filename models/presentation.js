@@ -323,6 +323,45 @@ async function updateElementGlobally(presentation_id, data) {
   return { updatedCount: results.rowCount };
 }
 
+async function reorderScenes(presentation_id, scene_ids) {
+  const validatedData = validator(
+    { presentation_id, scene_ids },
+    {
+      presentation_id: "required",
+      scene_ids: "required",
+    },
+  );
+
+  if (
+    !Array.isArray(validatedData.scene_ids) ||
+    validatedData.scene_ids.length === 0
+  ) {
+    return; // Nada a fazer
+  }
+
+  const valuesString = validatedData.scene_ids
+    .map((_, index) => `($${index * 2 + 2}::uuid, $${index * 2 + 3}::int)`)
+    .join(", ");
+
+  const queryValues = [validatedData.presentation_id];
+  validatedData.scene_ids.forEach((sceneId, index) => {
+    queryValues.push(sceneId);
+    queryValues.push(index); // A nova ordem é o índice no array
+  });
+
+  const query = {
+    text: `
+      UPDATE scenes AS s
+      SET "order" = v.new_order
+      FROM (VALUES ${valuesString}) AS v(id, new_order)
+      WHERE s.id = v.id AND s.presentation_id = $1;
+    `,
+    values: queryValues,
+  };
+
+  await database.query(query);
+}
+
 export default {
   create,
   update,
@@ -332,4 +371,5 @@ export default {
   findDeepById,
   findElementPool,
   updateElementGlobally,
+  reorderScenes,
 };

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react"; // <-- ADICIONE "useRef"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
 import { useAuth } from "src/contexts/AuthContext";
 import { handleApiResponse } from "src/utils/handleApiResponse";
@@ -12,21 +12,28 @@ export function usePresentationEditor(presentationId) {
 
   const {
     presentation,
-    setPresentation,
-    isLoading,
+    setPresentation, // <-- Incluído da sua correção
+    isLoading: isLoadingData,
     error,
     user,
     fetchData: refetchPresentationData,
   } = usePresentation(presentationId);
 
-  // ... (Estados do Editor, Cena, Paleta) ...
+  // --- Estados do Editor ---
   const [isEditorMode, setIsEditorMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState(null);
+
+  // --- Estados da Paleta ---
   const [pool, setPool] = useState([]);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [elementTypes, setElementTypes] = useState([]);
   const [isLoadingElementTypes, setIsLoadingElementTypes] = useState(false);
   const [hasFetchedPaletteData, setHasFetchedPaletteData] = useState(false);
+
+  // --- O "CÉREBRO" É O DONO DO ELENCO ---
+  const [viewers, setViewers] = useState([]);
+  const [isLoadingViewers, setIsLoadingViewers] = useState(true);
+  const [castError, setCastError] = useState(null);
 
   // --- Estados dos Modais ---
   const [isElementModalOpen, setIsElementModalOpen] = useState(false);
@@ -39,14 +46,14 @@ export function usePresentationEditor(presentationId) {
 
   const [isCastModalOpen, setIsCastModalOpen] = useState(false);
 
-  // --- MUDANÇA: Estado para o Modal de Edição Global ---
   const [isGlobalEditModalOpen, setIsGlobalEditModalOpen] = useState(false);
-  const [globalEditData, setGlobalEditData] = useState(null); // { original, updated, element }
+  const [globalEditData, setGlobalEditData] = useState(null);
   const [globalEditError, setGlobalEditError] = useState(null);
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareModalError, setShareModalError] = useState(null);
 
+  // --- MUDANÇA: Estados para os Modais de CENA ---
   const [isSceneFormModalOpen, setIsSceneFormModalOpen] = useState(false);
   const [sceneFormModalData, setSceneFormModalData] = useState(null); // { mode, scene? }
   const [sceneFormModalError, setSceneFormModalError] = useState(null);
@@ -54,17 +61,17 @@ export function usePresentationEditor(presentationId) {
   const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
   const [deleteSceneModalData, setDeleteSceneModalData] = useState(null); // { scene }
   const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
-
-  const componentToPrintRef = useRef(null);
   // --- FIM DA MUDANÇA ---
+
+  // --- Referência de Impressão ---
+  const componentToPrintRef = useRef(null);
 
   const handlePrint = useReactToPrint({
     content: () => componentToPrintRef.current,
     documentTitle: presentation?.name || "Apresentação Rakusai",
-    // (Podemos adicionar CSS de impressão aqui depois, se necessário)
   });
 
-  // ... (Lógica de Cena e Permissões permanecem as mesmas) ...
+  // --- Lógica de Cena ---
   useEffect(() => {
     if (
       presentation?.scenes &&
@@ -80,14 +87,15 @@ export function usePresentationEditor(presentationId) {
     return presentation.scenes.find((s) => s.id === currentSceneId);
   }, [presentation, currentSceneId]);
 
+  // --- Lógica de Permissões ---
   const permissions = useMemo(
     () => ({
       canEdit: user?.features.includes("update:presentation") || false,
       canCreateScenes: user?.features.includes("create:scene") || false,
+      canUpdateScenes: user?.features.includes("update:scene") || false,
       canDeleteScenes: user?.features.includes("delete:scene") || false,
       canManageCast: user?.features.includes("create:viewer") || false,
       canReadCast: user?.features.includes("read:viewer") || false,
-      // (Adicionaremos chaves de "step" aqui se precisarmos desabilitar botões)
       canCreateStep: user?.features.includes("create:step") || false,
       canUpdateStep: user?.features.includes("update:step") || false,
       canDeleteStep: user?.features.includes("delete:step") || false,
@@ -95,9 +103,42 @@ export function usePresentationEditor(presentationId) {
     [user],
   );
 
-  const castHook = usePresentationCast(presentationId, permissions, router);
-  // 5. Funções de API (que usam handleApiResponse)
+  // --- 'fetchViewers' (vive no "Cérebro") ---
+  const fetchViewers = useCallback(async () => {
+    if (!presentationId || !permissions.canReadCast) {
+      setIsLoadingViewers(false);
+      return;
+    }
+    setIsLoadingViewers(true);
+    setCastError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/viewers`,
+      );
+      await handleApiResponse({
+        response,
+        router,
+        setError: setCastError,
+        onSuccess: (data) => {
+          setViewers(data || []);
+        },
+      });
+    } catch (e) {
+      setCastError("Erro de conexão ao buscar elenco.");
+      console.error("Erro de conexão ao buscar elenco:", e);
+    } finally {
+      setIsLoadingViewers(false);
+    }
+  }, [presentationId, permissions.canReadCast, router]);
 
+  // --- 'castHook' (hook "burro") ---
+  const castHookFunctions = usePresentationCast(
+    presentationId,
+    router,
+    fetchViewers,
+  );
+
+  // --- Funções de API da Paleta ---
   const fetchPool = useCallback(async () => {
     if (!presentationId || !permissions.canEdit) return;
     setIsLoadingPool(true);
@@ -108,7 +149,7 @@ export function usePresentationEditor(presentationId) {
       await handleApiResponse({
         response,
         router,
-        onError: (err) => console.error("Erro no Pool:", err), // TODO: setError dedicado
+        onError: (err) => console.error("Erro no Pool:", err),
         onSuccess: (data) => {
           setPool(data);
         },
@@ -120,20 +161,17 @@ export function usePresentationEditor(presentationId) {
     }
   }, [presentationId, permissions.canEdit, router]);
 
-  // --- MUDANÇA: Nova função para buscar o "Catálogo" ---
   const fetchElementTypes = useCallback(async () => {
-    if (!permissions.canEdit) return; // Só busca se puder editar
+    if (!permissions.canEdit) return;
     setIsLoadingElementTypes(true);
     try {
       const response = await fetch(
-        // Vamos assumir que você tem um endpoint para listar os tipos
-        // (Baseado no seu 'element_type.js')
         `${settings.global.API.ENDPOINTS.ELEMENT_TYPES || "/api/v1/element-types"}`,
       );
       await handleApiResponse({
         response,
         router,
-        onError: (err) => console.error("Erro nos Tipos:", err), // TODO: setError dedicado
+        onError: (err) => console.error("Erro nos Tipos:", err),
         onSuccess: (data) => {
           setElementTypes(data);
         },
@@ -145,22 +183,27 @@ export function usePresentationEditor(presentationId) {
     }
   }, [permissions.canEdit, router]);
 
-  // Efeito para buscar os dados da paleta UMA VEZ
+  // Efeito para buscar os dados da paleta E o elenco UMA VEZ
   useEffect(() => {
     if (isEditorMode && !hasFetchedPaletteData && permissions.canEdit) {
       fetchPool();
       fetchElementTypes();
+      if (permissions.canReadCast) {
+        fetchViewers();
+      }
       setHasFetchedPaletteData(true);
     }
   }, [
     isEditorMode,
     hasFetchedPaletteData,
     permissions.canEdit,
+    permissions.canReadCast,
     fetchPool,
     fetchElementTypes,
+    fetchViewers,
   ]);
 
-  // --- Funções do Modal ---
+  // --- Funções do Modal de Elemento (Mapa) ---
   const closeElementModal = () => {
     setIsElementModalOpen(false);
     setModalData(null);
@@ -168,11 +211,14 @@ export function usePresentationEditor(presentationId) {
   };
 
   const handlePaletteDrop = (item, position) => {
-    // 'item' é o payload do 'useDrag'
     const isTemplate = item.isTemplate;
+    const dataForModal = {
+      mode: "create",
+      position: position,
+      ...item,
+    };
 
     if (isTemplate) {
-      // 1. FLUXO DO POOL (sem modal)
       const createBody = {
         scene_id: currentSceneId,
         element_type_id: item.element_type_id,
@@ -181,56 +227,37 @@ export function usePresentationEditor(presentationId) {
         position_x: (position?.x || 50).toFixed(2),
         position_y: (position?.y || 50).toFixed(2),
       };
-
-      // --- MUDANÇA: Passa o 'item' como 'visualData' ---
       createElementApi(createBody, item.isTemplate, item);
-      // --- FIM DA MUDANÇA ---
     } else {
-      // 2. FLUXO DO CATÁLOGO (abre o modal)
-      const dataForModal = {
-        mode: "create",
-        position: position,
-        ...item,
-      };
       setModalData(dataForModal);
       setIsElementModalOpen(true);
     }
   };
 
-  // --- MUDANÇA: Implementar a função "open" para edição ---
   const openElementEditor = (element) => {
-    // 'element' vem do 'StageElement' clicado
     setModalData({
-      mode: "edit", // Define o modo para 'edit'
-      id: element.id, // O ID é crucial para o PATCH
+      mode: "edit",
+      id: element.id,
       display_name: element.display_name,
       assigned_user_id: element.assigned_user_id,
       element_type_id: element.element_type_id,
-      element_type_name: element.element_type_name, // O modal usa isso no título
-      // Posição não é editável no modal, apenas no 'drag'
+      element_type_name: element.element_type_name,
+      image_url: element.image_url, // (Para a correção do bug 'some-ícone')
     });
     setIsElementModalOpen(true);
   };
-  // --- FIM DA MUDANÇA ---
 
-  // API: Criar Elemento (OTIMISTA CORRIGIDO)
+  // API: Criar Elemento (Otimista)
   const createElementApi = useCallback(
-    // --- MUDANÇA: Adicionado 'visualData' como argumento ---
     async (body, isTemplate, visualData) => {
-      // 1. Crie um "ID falso" (tempId)
       const tempId = `temp-${Date.now()}`;
-
-      // 2. Crie o "elemento fantasma"
       const fakeElement = {
         ...body,
         id: tempId,
-        // --- MUDANÇA: Pega os dados do 'visualData' ---
         element_type_name: visualData.element_type_name,
         image_url: visualData.image_url,
-        // --- FIM DA MUDANÇA ---
       };
 
-      // 3. ATUALIZAÇÃO OTIMISTA (Mostra o "fantasma")
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -241,10 +268,8 @@ export function usePresentationEditor(presentationId) {
         return newPresentation;
       });
 
-      // (Fecha o modal caso ele tenha vindo de lá)
       closeElementModal();
 
-      // 5. Chama a API "silenciosamente"
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/elements`,
@@ -263,15 +288,11 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: (realElement) => {
-            // SUCESSO!
-            // --- MUDANÇA: Passa os dados visuais para o 'finalElement' ---
             const finalElement = {
               ...realElement,
               image_url: fakeElement.image_url,
               element_type_name: fakeElement.element_type_name,
             };
-            // --- FIM DA MUDANÇA ---
-
             setPresentation((prevPresentation) => {
               const newPresentation = JSON.parse(
                 JSON.stringify(prevPresentation),
@@ -280,18 +301,14 @@ export function usePresentationEditor(presentationId) {
                 (s) => s.id === currentSceneId,
               );
               if (!scene) return prevPresentation;
-
               const elementIndex = scene.scene_elements.findIndex(
                 (el) => el.id === tempId,
               );
-
               if (elementIndex > -1) {
                 scene.scene_elements[elementIndex] = finalElement;
               }
-
               return newPresentation;
             });
-
             if (!isTemplate && body.display_name) fetchPool();
           },
         });
@@ -300,7 +317,6 @@ export function usePresentationEditor(presentationId) {
         refetchPresentationData();
       }
     },
-    // --- MUDANÇA: 'modalData' não é mais uma dependência ---
     [
       router,
       refetchPresentationData,
@@ -310,6 +326,7 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
+  // Função "Roteadora" (Salvar do Modal de Elemento)
   const saveElement = useCallback(
     async (formData) => {
       setModalError(null);
@@ -325,7 +342,6 @@ export function usePresentationEditor(presentationId) {
       const isCreateMode = mode === "create";
 
       if (isCreateMode) {
-        // FLUXO DO MODAL
         const createBody = {
           scene_id: currentSceneId,
           element_type_id: formData.element_type_id,
@@ -334,24 +350,41 @@ export function usePresentationEditor(presentationId) {
           position_x: (formData.position?.x || 50).toFixed(2),
           position_y: (formData.position?.y || 50).toFixed(2),
         };
-
-        // --- MUDANÇA: Pega os dados visuais do 'modalData' ---
-        // (O 'modalData' aqui é o 'item' original que foi solto)
         const visualData = {
           isTemplate: formData.isTemplate,
           element_type_name: modalData.element_type_name,
           image_url: modalData.image_url,
         };
         await createElementApi(createBody, visualData.isTemplate, visualData);
-        // --- FIM DA MUDANÇA ---
       } else {
-        // ... (lógica de Edição/Global Edit permanece a mesma) ...
+        const nameChanged = newName !== (oldName || "");
+        const userChanged = newUserId !== (oldUserId || "");
+
+        if (!nameChanged && !userChanged) {
+          closeElementModal();
+          return;
+        }
+
+        closeElementModal();
+        setGlobalEditData({
+          elementId: id,
+          element_type_id: formData.element_type_id,
+          oldData: {
+            display_name: oldName || null,
+            assigned_user_id: oldUserId || null,
+          },
+          newData: {
+            display_name: newName || null,
+            assigned_user_id: newUserId || null,
+          },
+        });
+        setIsGlobalEditModalOpen(true);
       }
     },
-    [modalData, currentSceneId, createElementApi], // <-- Adiciona 'createElementApi'
+    [modalData, currentSceneId, createElementApi],
   );
 
-  // (API de Edição Local - chamada pelo *novo* modal)
+  // API: Atualizar Local
   const updateElementLocally = useCallback(async () => {
     setGlobalEditError(null);
     try {
@@ -378,10 +411,9 @@ export function usePresentationEditor(presentationId) {
     }
   }, [router, refetchPresentationData, globalEditData]);
 
-  // (API de Edição Global - chamada pelo *novo* modal)
+  // API: Atualizar Global
   const updateElementGlobally = useCallback(async () => {
     setGlobalEditError(null);
-    const { element_type_id } = globalEditData.oldData;
     const body = {
       element_type_id: globalEditData.element_type_id,
       old_display_name: globalEditData.oldData.display_name,
@@ -404,7 +436,7 @@ export function usePresentationEditor(presentationId) {
         setError: setGlobalEditError,
         onSuccess: () => {
           refetchPresentationData();
-          fetchPool(); // Precisa atualizar o pool
+          fetchPool();
           closeGlobalEditModal();
         },
       });
@@ -426,31 +458,23 @@ export function usePresentationEditor(presentationId) {
     setGlobalEditError(null);
   };
 
+  // API: Mover Elemento (Otimista)
   const moveElement = useCallback(
     async (elementId, position) => {
       if (!elementId || !position) return;
 
-      // --- MUDANÇA (BUG 1): ATUALIZAÇÃO OTIMISTA (MOVE) ---
-      // 1. Atualiza o estado local IMEDIATAMENTE.
       setPresentation((prevPresentation) => {
-        // Clona a apresentação para evitar mutação
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
-
-        // Encontra a cena e o elemento
         const scene = newPresentation.scenes.find(
           (s) => s.id === currentSceneId,
         );
-        if (!scene) return prevPresentation; // Retorna o estado antigo se falhar
+        if (!scene) return prevPresentation;
         const element = scene.scene_elements.find((el) => el.id === elementId);
         if (!element) return prevPresentation;
-
-        // Aplica a mudança
         element.position_x = position.x.toFixed(2);
         element.position_y = position.y.toFixed(2);
-
-        return newPresentation; // Retorna o novo estado
+        return newPresentation;
       });
-      // --- FIM DA MUDANÇA (PARTE 1) ---
 
       const body = {
         position_x: position.x.toFixed(2),
@@ -466,31 +490,74 @@ export function usePresentationEditor(presentationId) {
             body: JSON.stringify(body),
           },
         );
-
-        // --- MUDANÇA (BUG 1): ATUALIZAÇÃO OTIMISTA (MOVE) ---
-        // 2. Chama a API "silenciosamente" (em fundo).
         await handleApiResponse({
           response,
           router,
           onError: (err) => {
             console.error("Erro ao mover elemento, revertendo:", err.message);
-            // Se a API falhar, recarrega do servidor para reverter.
             refetchPresentationData();
           },
           onSuccess: () => {
-            // NÃO FAZ NADA. A UI já foi atualizada.
-            //
+            // Não faz nada (otimista)
           },
         });
-        // --- FIM DA MUDANÇA (PARTE 2) ---
       } catch (e) {
         console.error("Erro de conexão ao mover elemento:", e);
-        refetchPresentationData(); // Reverte em caso de falha de conexão
+        refetchPresentationData();
       }
     },
-    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionar 'setPresentation' e 'currentSceneId'
+    [router, refetchPresentationData, currentSceneId, setPresentation],
   );
 
+  // API: Deletar Elemento (Otimista)
+  const deleteElement = useCallback(
+    async (elementId) => {
+      setModalError(null);
+      closeElementModal();
+
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find(
+          (s) => s.id === currentSceneId,
+        );
+        if (!scene) return prevPresentation;
+        scene.scene_elements = scene.scene_elements.filter(
+          (el) => el.id !== elementId,
+        );
+        return newPresentation;
+      });
+
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${elementId}`,
+          { method: "DELETE" },
+        );
+        await handleApiResponse({
+          response,
+          router,
+          setError: (msg) => {
+            console.error("Erro ao deletar elemento, revertendo:", msg);
+            refetchPresentationData();
+          },
+          onSuccess: () => {
+            fetchPool(); // Atualiza o pool
+          },
+        });
+      } catch (e) {
+        console.error("Erro de conexão ao deletar elemento:", e);
+        refetchPresentationData();
+      }
+    },
+    [
+      router,
+      refetchPresentationData,
+      currentSceneId,
+      setPresentation,
+      fetchPool,
+    ],
+  );
+
+  // --- Funções do Modal de Passo (Checklist) ---
   const openStepModal = (mode, step = null) => {
     setStepModalData({ mode, step });
     setIsStepModalOpen(true);
@@ -503,51 +570,42 @@ export function usePresentationEditor(presentationId) {
     setStepModalError(null);
   };
 
+  // API: Salvar Passo
   const saveStep = useCallback(
     async (formData) => {
       setStepModalError(null);
-
       const { mode, step } = stepModalData;
       const isCreateMode = mode === "create";
-
       const body = {
-        scene_id: currentSceneId, // Pega a cena ativa
+        scene_id: currentSceneId,
         description: formData.description,
         assigned_user_id: formData.assigned_user_id || null,
-        // O 'order' é complexo. Para 'create', vamos apenas adicionar no final.
-        // Para 'create', pegamos o 'order' mais alto e somamos 1
         order: isCreateMode
           ? currentScene?.transition_steps.length || 0
-          : step.order, // Para 'edit', mantemos a ordem (por enquanto)
+          : step.order,
       };
-
-      // No modo 'edit', só podemos mudar 'description' e 'assigned_user_id'
       const editBody = {
         description: formData.description,
         assigned_user_id: formData.assigned_user_id || null,
-        order: formData.order, // (Se quisermos reordenar no futuro)
+        order: formData.order,
       };
-
       const url = isCreateMode
         ? `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/steps`
         : `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${step.id}`;
-
       const method = isCreateMode ? "POST" : "PATCH";
-
       try {
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(isCreateMode ? body : editBody),
         });
-
         await handleApiResponse({
           response,
           router,
-          setError: setStepModalError, // Erro no modal de passo
+          setError: setStepModalError,
           onSuccess: () => {
-            refetchPresentationData(); // Recarrega tudo
-            closeStepModal(); // Fecha o modal
+            refetchPresentationData();
+            closeStepModal();
           },
         });
       } catch (e) {
@@ -564,22 +622,20 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
+  // API: Deletar Passo
   const deleteStep = useCallback(
     async (stepId) => {
-      // (Não precisamos de um modal de erro aqui,
-      // pois o modal de confirmação já estará fechado)
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${stepId}`,
           { method: "DELETE" },
         );
-
         await handleApiResponse({
           response,
           router,
-          setError: (msg) => alert(msg), // Fallback
+          setError: (msg) => alert(msg),
           onSuccess: () => {
-            refetchPresentationData(); // Recarrega tudo
+            refetchPresentationData();
           },
         });
       } catch (e) {
@@ -589,60 +645,7 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData],
   );
 
-  // API: Deletar Elemento (AGORA OTIMISTA)
-  // API: Deletar Elemento (OTIMISTA CORRIGIDO)
-  const deleteElement = useCallback(
-    async (elementId) => {
-      setModalError(null);
-      closeElementModal(); // Fecha o modal imediatamente
-
-      // 1. Atualização Otimista (remove o item da UI)
-      setPresentation((prevPresentation) => {
-        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
-        const scene = newPresentation.scenes.find(
-          (s) => s.id === currentSceneId,
-        );
-        if (!scene) return prevPresentation;
-
-        scene.scene_elements = scene.scene_elements.filter(
-          (el) => el.id !== elementId,
-        );
-        return newPresentation;
-      });
-
-      // 2. Chamada de API "silenciosa"
-      try {
-        const response = await fetch(
-          `${settings.global.API.ENDPOINTS.SCENE_ELEMENTS}/${elementId}`,
-          { method: "DELETE" },
-        );
-
-        await handleApiResponse({
-          response,
-          router,
-          setError: (msg) => {
-            console.error("Erro ao deletar elemento, revertendo:", msg);
-            refetchPresentationData(); // Reverte em caso de erro
-          },
-          onSuccess: () => {
-            fetchPool();
-            // --- FIM DA CORREÇÃO ---
-          },
-        });
-      } catch (e) {
-        console.error("Erro de conexão ao deletar elemento:", e);
-        refetchPresentationData(); // Reverte em caso de erro
-      }
-    },
-    [
-      router,
-      refetchPresentationData,
-      currentSceneId,
-      setPresentation,
-      fetchPool, // <-- Certifique-se de que 'fetchPool' está na lista
-    ],
-  );
-
+  // --- Funções do Modal de Elenco (Cast) ---
   const openCastModal = () => {
     setIsCastModalOpen(true);
   };
@@ -651,6 +654,7 @@ export function usePresentationEditor(presentationId) {
     setIsCastModalOpen(false);
   };
 
+  // --- Funções do Modal de Compartilhamento ---
   const openShareModal = () => {
     setIsShareModalOpen(true);
     setShareModalError(null);
@@ -661,7 +665,7 @@ export function usePresentationEditor(presentationId) {
     setShareModalError(null);
   };
 
-  // A função de API que o modal de "Salvar" chamará
+  // API: Salvar Status Público
   const setPresentationPublicStatus = useCallback(
     async (isPublic) => {
       setShareModalError(null);
@@ -674,14 +678,13 @@ export function usePresentationEditor(presentationId) {
             body: JSON.stringify({ is_public: isPublic }),
           },
         );
-
         await handleApiResponse({
           response,
           router,
-          setError: setShareModalError, // Mostra erro DENTRO do modal
+          setError: setShareModalError,
           onSuccess: () => {
-            refetchPresentationData(); // Recarrega os dados da apresentação
-            closeShareModal(); // Fecha o modal
+            refetchPresentationData();
+            closeShareModal();
           },
         });
       } catch (e) {
@@ -692,6 +695,7 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData, presentationId],
   );
 
+  // --- MUDANÇA: Novas Funções do Modal de CENA ---
   const openSceneFormModal = (mode, scene = null) => {
     setSceneFormModalData({ mode, scene });
     setIsSceneFormModalOpen(true);
@@ -726,7 +730,6 @@ export function usePresentationEditor(presentationId) {
       let body, method, url;
 
       if (isCreateMode) {
-        // --- MODO CRIAÇÃO ---
         body = {
           presentation_id: presentationId,
           name: formData.name,
@@ -737,12 +740,10 @@ export function usePresentationEditor(presentationId) {
         method = "POST";
         url = settings.global.API.ENDPOINTS.SCENES;
       } else {
-        // --- MODO EDIÇÃO ---
-        // 'editBody' agora é 'body' e só é criado no 'else'
         body = {
           name: formData.name,
           description: formData.description,
-          order: scene.order, // Agora 'scene' NUNCA é nulo
+          order: scene.order,
         };
         method = "PATCH";
         url = `${settings.global.API.ENDPOINTS.SCENES}/${scene.id}`;
@@ -752,7 +753,6 @@ export function usePresentationEditor(presentationId) {
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          // Agora 'body' está sempre correto
           body: JSON.stringify(body),
         });
 
@@ -799,9 +799,7 @@ export function usePresentationEditor(presentationId) {
         onSuccess: async () => {
           await refetchPresentationData();
           closeDeleteSceneModal();
-          // Se deletamos a cena ativa, seleciona a primeira
           if (currentSceneId === deleteSceneModalData.scene.id) {
-            // (O 'refetch' vai acionar o 'useEffect' que re-seleciona a cena 0)
             setCurrentSceneId(null);
           }
         },
@@ -811,96 +809,218 @@ export function usePresentationEditor(presentationId) {
     }
   }, [router, refetchPresentationData, deleteSceneModalData, currentSceneId]);
 
+  const moveScene = useCallback(
+    (dragIndex, hoverIndex) => {
+      setPresentation((prev) => {
+        const newPresentation = { ...prev };
+        const newScenes = [...newPresentation.scenes];
+
+        // Remove a cena da posição antiga
+        const [draggedScene] = newScenes.splice(dragIndex, 1);
+        // Insere na nova posição
+        newScenes.splice(hoverIndex, 0, draggedScene);
+
+        // Atualiza o campo 'order' localmente para manter consistência
+        newScenes.forEach((scene, index) => {
+          scene.order = index;
+        });
+
+        newPresentation.scenes = newScenes;
+        return newPresentation;
+      });
+    },
+    [setPresentation],
+  );
+
+  // API: Salvar Ordem das Cenas (chamado no 'onDrop')
+  const saveSceneOrder = useCallback(async () => {
+    // Pega a ordem atual do estado (que já foi atualizado otimisticamente)
+    if (!presentation?.scenes) return;
+    const sceneIds = presentation.scenes.map((s) => s.id);
+
+    try {
+      await fetch(
+        `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/scenes`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scene_ids: sceneIds }),
+        },
+      );
+      // Não precisamos de 'handleApiResponse' completo aqui,
+      // pois se falhar silenciosamente, o próximo 'refetch' corrige.
+      // Ou podemos adicionar um 'toast' de erro se você tiver um sistema de toast.
+    } catch (e) {
+      console.error("Erro ao salvar ordem das cenas:", e);
+      refetchPresentationData(); // Reverte em caso de erro grave
+    }
+  }, [presentation, presentationId, refetchPresentationData]);
   // --- FIM DA MUDANÇA ---
 
-  return {
-    // ... (props de leitura) ...
+  // --- O Objeto de Retorno (Memoizado) ---
+  return useMemo(() => {
+    return {
+      // Dados de Leitura
+      presentation,
+      isLoading: isLoadingData,
+      error,
+      user,
+      currentScene,
+      currentSceneId,
+      setCurrentSceneId,
+      refetchPresentationData,
+      // Props do Editor
+      isEditorMode,
+      setIsEditorMode,
+      permissions,
+      castHook: {
+        viewers,
+        isLoading: isLoadingViewers,
+        error: castError,
+        ...castHookFunctions,
+      },
+      palette: {
+        pool,
+        elementTypes,
+        isLoading: isLoadingPool || isLoadingElementTypes,
+      },
+      // Modais
+      modal: {
+        isElementOpen: isElementModalOpen,
+        elementData: modalData,
+        elementError: modalError,
+        openElement: openElementEditor,
+        closeElement: closeElementModal,
+        saveElement: saveElement,
+        deleteElement: deleteElement,
+
+        isStepOpen: isStepModalOpen,
+        stepData: stepModalData,
+        stepError: stepModalError,
+        openStep: openStepModal,
+        closeStep: closeStepModal,
+        saveStep: saveStep,
+
+        isCastOpen: isCastModalOpen,
+        openCast: openCastModal,
+        closeCast: closeCastModal,
+
+        isGlobalEditOpen: isGlobalEditModalOpen,
+        globalEditData: globalEditData,
+        globalEditError: globalEditError,
+        closeGlobalEdit: closeGlobalEditModal,
+        updateLocally: updateElementLocally,
+        updateGlobally: updateElementGlobally,
+
+        isShareOpen: isShareModalOpen,
+        shareError: shareModalError,
+        openShare: openShareModal,
+        closeShare: closeShareModal,
+        savePublicStatus: setPresentationPublicStatus,
+
+        isSceneFormOpen: isSceneFormModalOpen,
+        sceneFormModalData: sceneFormModalData,
+        sceneFormModalError: sceneFormModalError,
+        openSceneForm: openSceneFormModal,
+        closeSceneForm: closeSceneFormModal,
+        saveScene: saveScene,
+
+        isDeleteSceneOpen: isDeleteSceneModalOpen,
+        deleteSceneModalData: deleteSceneModalData,
+        deleteSceneModalError: deleteSceneModalError,
+        openDeleteScene: openDeleteSceneModal,
+        closeDeleteScene: closeDeleteSceneModal,
+        deleteScene: deleteScene,
+      },
+      // Handlers DND
+      dropHandlers: {
+        onPaletteDrop: handlePaletteDrop,
+        onElementMove: moveElement,
+      },
+      // Handlers de Passo
+      stepHandlers: {
+        deleteStep: deleteStep,
+      },
+      // Handlers de Impressão
+      printHandlers: {
+        ref: componentToPrintRef,
+        onPrint: handlePrint,
+      },
+
+      reorderHandlers: {
+        moveScene: moveScene,
+        saveSceneOrder: saveSceneOrder,
+      },
+    };
+  }, [
+    // Lista de todas as dependências
     presentation,
-    isLoading,
+    isLoadingData,
     error,
     user,
     currentScene,
     currentSceneId,
-    setCurrentSceneId,
     refetchPresentationData,
-    // ... (props de editor) ...
     isEditorMode,
-    setIsEditorMode,
     permissions,
+    // Dependências do 'castHook'
+    viewers,
+    isLoadingViewers,
+    castError,
+    castHookFunctions,
+    // Dependências da Paleta
+    pool,
+    elementTypes,
+    isLoadingPool,
+    isLoadingElementTypes,
+    // Dependências dos Modais (estados)
+    isElementModalOpen,
+    modalData,
+    modalError,
+    isStepModalOpen,
+    stepModalData,
+    stepModalError,
+    isCastModalOpen,
+    isGlobalEditModalOpen,
+    globalEditData,
+    globalEditError,
+    isShareModalOpen,
+    shareModalError,
+    isSceneFormModalOpen,
+    sceneFormModalData,
+    sceneFormModalError,
+    isDeleteSceneModalOpen,
+    deleteSceneModalData,
+    deleteSceneModalError,
+    // Handlers (já estão em useCallback)
+    openElementEditor,
+    closeElementModal,
+    saveElement,
     deleteElement,
-    castHook,
-    palette: {
-      pool,
-      elementTypes,
-      isLoading: isLoadingPool || isLoadingElementTypes,
-    },
-    // --- MUDANÇA: 'modal.open' agora está conectada ---
-    modal: {
-      // ... (Modal de Elemento)
-      isElementOpen: isElementModalOpen,
-      elementData: modalData,
-      elementError: modalError,
-      openElement: openElementEditor,
-      closeElement: closeElementModal,
-      saveElement: saveElement, // Esta é a função "roteadora"
-      deleteElement: deleteElement,
-
-      // ... (Modal de Passo)
-      isStepOpen: isStepModalOpen,
-      stepData: stepModalData,
-      stepError: stepModalError,
-      openStep: openStepModal,
-      closeStep: closeStepModal,
-      saveStep: saveStep,
-
-      // ... (Modal de Elenco)
-      isCastOpen: isCastModalOpen,
-      openCast: openCastModal,
-      closeCast: closeCastModal,
-
-      // --- MUDANÇA: Modal de Confirmação Global ---
-      isGlobalEditOpen: isGlobalEditModalOpen,
-      globalEditData: globalEditData,
-      globalEditError: globalEditError,
-      closeGlobalEdit: closeGlobalEditModal,
-      updateLocally: updateElementLocally,
-      updateGlobally: updateElementGlobally,
-
-      isShareOpen: isShareModalOpen,
-      shareError: shareModalError,
-      openShare: openShareModal,
-      closeShare: closeShareModal,
-      savePublicStatus: setPresentationPublicStatus,
-
-      isSceneFormOpen: isSceneFormModalOpen,
-      sceneFormModalData: sceneFormModalData,
-      sceneFormModalError: sceneFormModalError,
-      openSceneForm: openSceneFormModal,
-      closeSceneForm: closeSceneFormModal,
-      saveScene: saveScene,
-
-      isDeleteSceneOpen: isDeleteSceneModalOpen,
-      deleteSceneModalData: deleteSceneModalData,
-      deleteSceneModalError: deleteSceneModalError,
-      openDeleteScene: openDeleteSceneModal,
-      closeDeleteScene: closeDeleteSceneModal,
-      deleteScene: deleteScene,
-      // --- FIM DA MUDANÇA ---
-    },
-    // --- FIM DA MUDANÇA ---
-
-    dropHandlers: {
-      onPaletteDrop: handlePaletteDrop,
-      onElementMove: moveElement,
-    },
-    stepHandlers: {
-      deleteStep: deleteStep,
-    },
-
-    printHandlers: {
-      ref: componentToPrintRef, // A ref para o componente "fantasma"
-      onPrint: handlePrint, // A função que o botão vai chamar
-    },
-    // --- FIM DA MUDANÇA ---
-  };
+    openStepModal,
+    closeStepModal,
+    saveStep,
+    openCastModal,
+    closeCastModal,
+    closeGlobalEditModal,
+    updateElementLocally,
+    updateElementGlobally,
+    openShareModal,
+    closeShareModal,
+    setPresentationPublicStatus,
+    handlePaletteDrop,
+    moveElement,
+    deleteStep,
+    handlePrint,
+    fetchPool,
+    fetchElementTypes,
+    openSceneFormModal,
+    closeSceneFormModal,
+    saveScene,
+    openDeleteSceneModal,
+    closeDeleteSceneModal,
+    deleteScene,
+    moveScene, // <-- ADICIONADO
+    saveSceneOrder,
+  ]);
 }

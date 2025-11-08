@@ -624,6 +624,20 @@ const schemas = {
         }),
     }),
 
+  scene_ids: () =>
+    Joi.object({
+      scene_ids: Joi.array()
+        .items(
+          Joi.string().trim().guid({ version: "uuidv4" }), // O item é apenas a string
+        )
+        .min(0)
+        .when("$required.scene_ids", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   element_type_id: () =>
     // Referência ao ID de um tipo de elemento
     Joi.object({

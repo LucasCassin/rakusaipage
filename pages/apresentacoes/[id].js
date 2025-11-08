@@ -46,6 +46,7 @@ export default function PresentationPage() {
     dropHandlers,
     stepHandlers, // Contém .deleteStep
     printHandlers,
+    reorderHandlers,
   } = usePresentationEditor(presentationId);
 
   // ... (código de Loading e Erro permanece o mesmo) ...
@@ -117,6 +118,7 @@ export default function PresentationPage() {
                   onAddScene={() => modal.openSceneForm("create")}
                   onEditScene={(scene) => modal.openSceneForm("edit", scene)}
                   onDeleteScene={modal.openDeleteScene}
+                  reorderHandlers={reorderHandlers} // <-- 2. CONECTADO
                 />
               ) : (
                 <SceneSelector

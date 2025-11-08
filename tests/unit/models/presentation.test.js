@@ -6,11 +6,7 @@ import sceneElement from "models/scene_element.js";
 import elementType from "models/element_type.js";
 import transitionStep from "models/transition_step.js";
 import user from "models/user.js";
-import {
-  ValidationError,
-  ForbiddenError,
-  NotFoundError,
-} from "errors/index.js";
+import { ValidationError } from "errors/index.js";
 
 describe("Presentation Model", () => {
   let adminUser, regularUser;
@@ -31,15 +27,15 @@ describe("Presentation Model", () => {
 
     // Cria os tipos de elementos
     odaikoType = await elementType.create({
-      name: "Odaiko",
+      name: "Odaiko2",
       image_url: "/odaiko.svg",
     });
     shimeType = await elementType.create({
-      name: "Shime",
+      name: "Shime2",
       image_url: "/shime.svg",
     });
     pessoaType = await elementType.create({
-      name: "Pessoa",
+      name: "Pessoa2",
       image_url: "/pessoa.svg",
     });
   });
@@ -178,7 +174,7 @@ describe("Presentation Model", () => {
       expect(deepPres.scenes[0].scene_elements).toHaveLength(1);
       expect(deepPres.scenes[0].scene_elements[0].display_name).toBe("Odaiko");
       expect(deepPres.scenes[0].scene_elements[0].element_type_name).toBe(
-        "Odaiko",
+        "Odaiko2",
       );
       expect(deepPres.scenes[0].transition_steps).toHaveLength(0); // Cena 1 é FORMATION
       expect(deepPres.scenes[1].name).toBe("Transicao 1");
@@ -297,6 +293,66 @@ describe("Presentation Model", () => {
           presentation.updateElementGlobally(pres.id, updateData),
         ).rejects.toThrow(ValidationError);
       });
+    });
+  });
+
+  describe("reorderScenes()", () => {
+    let pres, sceneA, sceneB, sceneC;
+
+    beforeAll(async () => {
+      // Cria uma apresentação e 3 cenas fora de ordem
+      pres = await presentation.create({ name: "Reorder Show" }, adminUser.id);
+      sceneA = await scene.create({
+        presentation_id: pres.id,
+        name: "Scene A",
+        scene_type: "FORMATION",
+        order: 0,
+      });
+      sceneB = await scene.create({
+        presentation_id: pres.id,
+        name: "Scene B",
+        scene_type: "TRANSITION",
+        order: 1,
+      });
+      sceneC = await scene.create({
+        presentation_id: pres.id,
+        name: "Scene C",
+        scene_type: "FORMATION",
+        order: 2,
+      });
+    });
+
+    it("should update the 'order' field of all scenes based on the new array index", async () => {
+      // Ordem inicial: A (0), B (1), C (2)
+      // Nova ordem: C, A, B
+      const newOrderIds = [sceneC.id, sceneA.id, sceneB.id];
+
+      // Chama a nova função
+      await presentation.reorderScenes(pres.id, newOrderIds);
+
+      // Busca a apresentação com todas as cenas (ordenadas por 'order')
+      const updatedPres = await presentation.findDeepById(pres.id);
+
+      expect(updatedPres.scenes).toHaveLength(3);
+      // Verifica a nova ordem
+      expect(updatedPres.scenes[0].name).toBe("Scene C");
+      expect(updatedPres.scenes[0].order).toBe(0);
+      expect(updatedPres.scenes[1].name).toBe("Scene A");
+      expect(updatedPres.scenes[1].order).toBe(1);
+      expect(updatedPres.scenes[2].name).toBe("Scene B");
+      expect(updatedPres.scenes[2].order).toBe(2);
+    });
+
+    it("should not fail if the array is empty", async () => {
+      await expect(
+        presentation.reorderScenes(pres.id, []),
+      ).resolves.not.toThrow();
+    });
+
+    it("should fail validation if scene_ids is not an array", async () => {
+      await expect(
+        presentation.reorderScenes(pres.id, "not-an-array"),
+      ).rejects.toThrow(ValidationError);
     });
   });
 });
