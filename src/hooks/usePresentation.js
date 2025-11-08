@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 import { useAuth } from "src/contexts/AuthContext";

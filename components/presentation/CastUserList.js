@@ -54,6 +54,12 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
     [user.id, scenes],
   );
 
+  const isAssigned = participationCount > 0;
+  const isDisabled = isProcessing || isAssigned;
+  const buttonTitle = isAssigned
+    ? `Este usuário não pode ser removido pois está associado a ${participationCount} item(ns) no mapa.`
+    : "Remover do elenco";
+
   return (
     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
       <div>
@@ -69,7 +75,8 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
         size="small"
         onClick={handleRemove}
         isLoading={isProcessing}
-        disabled={isProcessing}
+        disabled={isDisabled}
+        title={buttonTitle}
       >
         {pendingAction === "delete" ? "Certeza?" : <FiTrash2 />}
       </Button>

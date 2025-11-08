@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
-import { useAuth } from "src/contexts/AuthContext";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 import { usePresentationCast } from "./usePresentationCast";
@@ -61,6 +60,8 @@ export function usePresentationEditor(presentationId) {
   const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
   const [deleteSceneModalData, setDeleteSceneModalData] = useState(null); // { scene }
   const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
+  const [castTrigger, setCastTrigger] = useState(0);
+  const triggerCastRefetch = () => setCastTrigger((v) => v + 1);
   // --- FIM DA MUDANÇA ---
 
   // --- Referência de Impressão ---
@@ -131,11 +132,11 @@ export function usePresentationEditor(presentationId) {
     }
   }, [presentationId, permissions.canReadCast, router]);
 
-  // --- 'castHook' (hook "burro") ---
-  const castHookFunctions = usePresentationCast(
+  const castHook = usePresentationCast(
     presentationId,
+    permissions.canReadCast,
     router,
-    fetchViewers,
+    triggerCastRefetch,
   );
 
   // --- Funções de API da Paleta ---
@@ -202,6 +203,13 @@ export function usePresentationEditor(presentationId) {
     fetchElementTypes,
     fetchViewers,
   ]);
+
+  useEffect(() => {
+    // Não roda na montagem inicial (trigger === 0)
+    if (castTrigger > 0) {
+      fetchViewers();
+    }
+  }, [castTrigger, fetchViewers]);
 
   // --- Funções do Modal de Elemento (Mapa) ---
   const closeElementModal = () => {
@@ -873,12 +881,7 @@ export function usePresentationEditor(presentationId) {
       isEditorMode,
       setIsEditorMode,
       permissions,
-      castHook: {
-        viewers,
-        isLoading: isLoadingViewers,
-        error: castError,
-        ...castHookFunctions,
-      },
+      castHook,
       palette: {
         pool,
         elementTypes,
@@ -967,7 +970,7 @@ export function usePresentationEditor(presentationId) {
     viewers,
     isLoadingViewers,
     castError,
-    castHookFunctions,
+    castHook,
     // Dependências da Paleta
     pool,
     elementTypes,
