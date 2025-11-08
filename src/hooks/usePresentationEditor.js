@@ -621,41 +621,97 @@ export function usePresentationEditor(presentationId) {
       setStepModalError(null);
       const { mode, step } = stepModalData;
       const isCreateMode = mode === "create";
-      const body = {
-        scene_id: currentSceneId,
-        description: formData.description,
-        assigned_user_id: formData.assigned_user_id || null,
-        order: isCreateMode
-          ? currentScene?.transition_steps.length || 0
-          : step.order,
-      };
-      const editBody = {
-        description: formData.description,
-        assigned_user_id: formData.assigned_user_id || null,
-        order: formData.order,
-      };
-      const url = isCreateMode
-        ? `${settings.global.API.ENDPOINTS.SCENES}/${currentSceneId}/steps`
-        : `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${step.id}`;
-      const method = isCreateMode ? "POST" : "PATCH";
+
+      const sceneId = currentSceneId;
+      let tempId = null; // Para o 'create' otimista
+      let optimisticStep; // O "fantasma"
+
+      let body, method, url;
+
+      if (isCreateMode) {
+        tempId = `temp-step-${Date.now()}`;
+        body = {
+          scene_id: sceneId,
+          description: formData.description,
+          assigned_user_id: formData.assigned_user_id || null,
+          order: currentScene?.transition_steps.length || 0,
+        };
+        method = "POST";
+        url = `${settings.global.API.ENDPOINTS.SCENES}/${sceneId}/steps`;
+        optimisticStep = { ...body, id: tempId };
+      } else {
+        // Modo Edição
+        body = {
+          description: formData.description,
+          assigned_user_id: formData.assigned_user_id || null,
+          order: formData.order, // (Vem do estado do formulário)
+        };
+        method = "PATCH";
+        url = `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${step.id}`;
+        optimisticStep = { ...step, ...body };
+      }
+
+      // --- ATUALIZAÇÃO OTIMISTA (LOCAL) ---
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find((s) => s.id === sceneId);
+        if (!scene) return prevPresentation;
+
+        if (isCreateMode) {
+          scene.transition_steps.push(optimisticStep);
+        } else {
+          const stepIndex = scene.transition_steps.findIndex(
+            (s) => s.id === step.id,
+          );
+          if (stepIndex > -1) {
+            scene.transition_steps[stepIndex] = optimisticStep;
+          }
+        }
+        return newPresentation;
+      });
+
+      closeStepModal();
+      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
+
       try {
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(isCreateMode ? body : editBody),
+          body: JSON.stringify(body),
         });
+
         await handleApiResponse({
           response,
           router,
-          setError: setStepModalError,
-          onSuccess: () => {
-            refetchPresentationData();
-            closeStepModal();
+          setError: (msg) => {
+            console.error("Erro ao salvar passo, revertendo:", msg);
+            refetchPresentationData(); // Reverte em caso de erro
+          },
+          onSuccess: (realStep) => {
+            // SUCESSO. Troca o "fantasma" (se for 'create')
+            setPresentation((prevPresentation) => {
+              const newPresentation = JSON.parse(
+                JSON.stringify(prevPresentation),
+              );
+              const scene = newPresentation.scenes.find(
+                (s) => s.id === sceneId,
+              );
+              if (!scene) return prevPresentation;
+
+              const stepIndex = scene.transition_steps.findIndex(
+                (s) => s.id === (isCreateMode ? tempId : step.id),
+              );
+
+              if (stepIndex > -1) {
+                scene.transition_steps[stepIndex] = realStep;
+              }
+              return newPresentation;
+            });
           },
         });
       } catch (e) {
-        setStepModalError("Erro de conexão. Verifique sua internet.");
-        console.error("Erro ao salvar passo:", e);
+        console.error("Erro de conexão ao salvar passo, revertendo:", e);
+        refetchPresentationData();
       }
     },
     [
@@ -664,12 +720,29 @@ export function usePresentationEditor(presentationId) {
       currentSceneId,
       currentScene,
       stepModalData,
+      setPresentation, // <-- Adicionado
     ],
   );
 
-  // API: Deletar Passo
+  // API: Deletar Passo (AGORA OTIMISTA)
   const deleteStep = useCallback(
     async (stepId) => {
+      const sceneId = currentSceneId; // Pega a cena atual
+
+      // --- ATUALIZAÇÃO OTIMISTA (LOCAL) ---
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find((s) => s.id === sceneId);
+        if (!scene) return prevPresentation;
+
+        // Filtra o passo deletado
+        scene.transition_steps = scene.transition_steps.filter(
+          (s) => s.id !== stepId,
+        );
+        return newPresentation;
+      });
+      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
+
       try {
         const response = await fetch(
           `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${stepId}`,
@@ -678,16 +751,20 @@ export function usePresentationEditor(presentationId) {
         await handleApiResponse({
           response,
           router,
-          setError: (msg) => alert(msg),
+          setError: (msg) => {
+            console.error("Erro ao deletar passo, revertendo:", msg);
+            refetchPresentationData(); // Reverte
+          },
           onSuccess: () => {
-            refetchPresentationData();
+            // Não faz nada, a UI já foi atualizada
           },
         });
       } catch (e) {
-        console.error("Erro de conexão ao deletar passo:", e);
+        console.error("Erro de conexão ao deletar passo, revertendo:", e);
+        refetchPresentationData();
       }
     },
-    [router, refetchPresentationData],
+    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionado
   );
 
   // --- Funções do Modal de Elenco (Cast) ---

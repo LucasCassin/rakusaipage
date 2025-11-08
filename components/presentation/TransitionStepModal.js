@@ -1,94 +1,139 @@
 import React, { useState, useEffect } from "react";
-import Button from "components/ui/Button"; //
-import { FiCheck, FiEdit2, FiTrash2 } from "react-icons/fi";
+import Button from "components/ui/Button";
+import FormInput from "components/forms/FormInput";
+import Alert from "components/ui/Alert";
+import { FiX } from "react-icons/fi";
 
 /**
- * Renderiza um único item da "checklist" de transição.
- * Contém a lógica de "Destaque".
- * AGORA também tem botões de edição.
+ * Modal para criar ou editar um TransitionStep (item da checklist).
+ * (Este é o formulário, não o item da lista)
  */
-export default function TransitionStepItem({
-  step,
-  loggedInUser,
-  isEditorMode, // <-- NOVA PROP
-  permissions, // <-- NOVA PROP
-  onEdit, // <-- NOVA PROP (chama modal.openStep)
-  onDelete, // <-- NOVA PROP (chama stepHandlers.deleteStep)
+export default function TransitionStepModal({
+  modalData, // { mode, step? }
+  cast,
+  error,
+  onClose,
+  onSubmit,
 }) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // 'delete'
+  const [formData, setFormData] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Reseta o botão "Certeza?" após 3 segundos
+  const { viewers = [], isLoading: isLoadingCast } = cast;
+  const { mode, step } = modalData || {};
+  const isCreate = mode === "create";
+
   useEffect(() => {
-    if (!pendingAction) return;
-    const timer = setTimeout(() => setPendingAction(null), 3000);
-    return () => clearTimeout(timer);
-  }, [pendingAction]);
-
-  // A "Mágica do Destaque"
-  const isHighlighted =
-    loggedInUser && step.assigned_user_id === loggedInUser.id;
-
-  const highlightClasses = isHighlighted
-    ? "bg-rakusai-pink-light bg-opacity-20 border-l-4 border-rakusai-pink"
-    : "bg-white";
-
-  const handleDelete = async () => {
-    if (pendingAction !== "delete") {
-      setPendingAction("delete");
-      return;
+    if (isCreate) {
+      setFormData({
+        description: "",
+        assigned_user_id: "",
+      });
+    } else if (step) {
+      setFormData({
+        description: step.description || "",
+        assigned_user_id: step.assigned_user_id || "",
+        order: step.order,
+      });
     }
-    setIsProcessing(true);
-    await onDelete(step.id);
-    // Não precisa resetar o estado, o componente será re-renderizado
+  }, [modalData, step, isCreate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onSubmit(formData); // Chama a função 'saveStep' do hook
+    setIsLoading(false);
+  };
+
+  const title = isCreate ? "Adicionar Passo" : "Editar Passo";
+
   return (
-    <div
-      className={`flex items-start p-4 space-x-3 ${highlightClasses} transition-colors duration-300`}
-    >
-      {/* O Número da Ordem */}
-      <span className="flex items-center justify-center w-6 h-6 font-bold text-gray-500 bg-gray-100 rounded-full flex-shrink-0">
-        {step.order + 1}
-      </span>
-
-      {/* A Descrição */}
-      <div className="flex-1">
-        <p className="text-gray-800">{step.description}</p>
-        {isHighlighted && (
-          <span className="text-xs font-semibold text-rakusai-pink">
-            (Sua responsabilidade)
-          </span>
-        )}
-      </div>
-
-      {/* --- MUDANÇA: Botões do Modo Editor --- */}
-      {isEditorMode && (
-        <div className="flex items-center gap-2">
-          {permissions.canUpdateStep && (
-            <Button
-              variant="secondary"
-              size="small"
-              onClick={() => onEdit(step)} // Chama modal.openStep('edit', step)
-              disabled={isProcessing}
-            >
-              <FiEdit2 />
-            </Button>
-          )}
-          {permissions.canDeleteStep && (
-            <Button
-              variant={pendingAction === "delete" ? "warning" : "danger"}
-              size="small"
-              onClick={handleDelete}
-              isLoading={isProcessing}
-              disabled={isProcessing}
-            >
-              {pendingAction === "delete" ? "Certeza?" : <FiTrash2 />}
-            </Button>
-          )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold">{title}</h3>
+          <button onClick={onClose} disabled={isLoading}>
+            <FiX className="h-6 w-6 text-gray-500" />
+          </button>
         </div>
-      )}
-      {/* --- FIM DA MUDANÇA --- */}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Descrição da Tarefa
+            </label>
+            <FormInput
+              id="description"
+              name="description"
+              value={formData.description || ""}
+              onChange={handleChange}
+              placeholder="Ex: Renan entra com okedo"
+              required
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="assigned_user_id"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Associar Usuário (Opcional)
+            </label>
+            <select
+              id="assigned_user_id"
+              name="assigned_user_id"
+              value={formData.assigned_user_id || ""}
+              onChange={handleChange}
+              disabled={isLoadingCast}
+              className="mt-1 py-2 w-full rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+            >
+              {isLoadingCast ? (
+                <option>Carregando elenco...</option>
+              ) : (
+                <>
+                  <option value="">Nenhum</option>
+                  {cast.viewers.map((viewer) => (
+                    <option key={viewer.id} value={viewer.id}>
+                      {viewer.username}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+
+          {error && <Alert type="error">{error}</Alert>}
+
+          <div className="flex justify-between items-center pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isLoading}
+              size="small"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isLoading}
+              disabled={isLoading || isLoadingCast}
+              size="small"
+            >
+              {isCreate ? "Adicionar Passo" : "Salvar Alterações"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
