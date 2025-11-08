@@ -1,44 +1,50 @@
-import React from "react";
+import React, { useEffect } from "react"; // <-- Importar useEffect
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import { FiX, FiUsers } from "react-icons/fi";
-import { usePresentationCast } from "src/hooks/usePresentationCast";
 import CastUserList from "./CastUserList";
 import KPICardSkeleton from "components/ui/KPICardSkeleton";
-
-// --- NOVOS IMPORTS ---
 import { useCastSearch } from "src/hooks/useCastSearch";
 import CastSearch from "./CastSearch";
-// --- FIM DOS NOVOS IMPORTS ---
 
+/**
+ * Modal para gerenciar o Elenco (presentation_viewers).
+ */
 export default function CastManagerModal({
   presentation,
   permissions,
   onClose,
+  castHook,
 }) {
-  // Hook 1: Gerencia o estado do elenco (Viewers)
-  const castHook = usePresentationCast(presentation.id, permissions);
+  // Desestruturação segura (como fizemos antes)
   const {
-    viewers,
-    isLoading: isLoadingCast,
+    viewers = [],
+    isLoading: isLoadingCast = true,
     error: castError,
     addUserToCast,
     removeUserFromCast,
-  } = castHook;
+    fetchViewers, // <-- 1. PEGAR O fetchViewers DO "CÉREBRO"
+  } = castHook || {};
 
-  // --- MUDANÇA: Hook 2: Gerencia o estado da Busca ---
-  // Passa os viewers atuais para o hook de busca saber quem filtrar
-  const searchHook = useCastSearch(viewers);
+  // --- MUDANÇA (Bug do Loading Infinito) ---
+  // 2. Chamar o 'fetchViewers' QUANDO o modal for aberto
+  useEffect(() => {
+    // (O 'fetchViewers' é estável via 'useCallback'
+    // no 'usePE', então o 'eslint-disable' é seguro)
+    if (fetchViewers) {
+      fetchViewers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // <-- Roda UMA VEZ quando o modal é montado
   // --- FIM DA MUDANÇA ---
 
-  // Função que o <CastSearch /> vai chamar
+  const searchHook = useCastSearch(viewers);
+
   const handleAddMultipleUsers = async (userIds) => {
-    // (Poderíamos otimizar isso para um 'Promise.all',
-    // mas por enquanto, um loop sequencial é mais seguro para o 'handleApiResponse')
+    if (!addUserToCast) return;
     for (const userId of userIds) {
       await addUserToCast(userId);
     }
-    // Após adicionar, limpa a busca
     searchHook.clearSearch();
   };
 
@@ -59,11 +65,11 @@ export default function CastManagerModal({
         <div className="p-6 overflow-y-auto space-y-8">
           {castError && <Alert type="error">{castError}</Alert>}
 
-          {/* Seção 1: Elenco Atual */}
           <section>
             <h4 className="text-lg font-semibold text-gray-800 mb-3">
               Elenco Atual ({viewers.length})
             </h4>
+            {/* 3. O 'isLoadingCast' agora será atualizado pelo 'fetchViewers' */}
             {isLoadingCast ? (
               <KPICardSkeleton />
             ) : (
@@ -75,19 +81,16 @@ export default function CastManagerModal({
             )}
           </section>
 
-          {/* --- MUDANÇA: Seção 2: Adicionar Membros (UI Real) --- */}
           <section className="border-t pt-6">
             <h4 className="text-lg font-semibold text-gray-800 mb-3">
               Adicionar Membros
             </h4>
-            {/* Renderiza a UI de Busca Híbrida */}
             <CastSearch
               castHook={castHook}
               searchHook={searchHook}
               onAddUsers={handleAddMultipleUsers}
             />
           </section>
-          {/* --- FIM DA MUDANÇA --- */}
         </div>
 
         {/* Rodapé */}

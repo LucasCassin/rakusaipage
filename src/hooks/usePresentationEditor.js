@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // <-- CORREÇÃO: Usar 'next/navigation'
 import { usePresentation } from "./usePresentation";
+import { useAuth } from "src/contexts/AuthContext";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
-import { usePresentationCast } from "./usePresentationCast";
+// REMOVIDO: import { usePresentationCast } from "./usePresentationCast";
 
 export function usePresentationEditor(presentationId) {
-  const router = useRouter();
+  const router = useRouter(); // <-- CORREÇÃO: Este router é estável
 
   const {
     presentation,
-    setPresentation, // <-- Incluído da sua correção
+    setPresentation,
     isLoading: isLoadingData,
     error,
     user,
@@ -29,7 +30,7 @@ export function usePresentationEditor(presentationId) {
   const [isLoadingElementTypes, setIsLoadingElementTypes] = useState(false);
   const [hasFetchedPaletteData, setHasFetchedPaletteData] = useState(false);
 
-  // --- O "CÉREBRO" É O DONO DO ELENCO ---
+  // --- O "CÉREBRO" É O DONO DO ELENCO (Lógica movida para cá) ---
   const [viewers, setViewers] = useState([]);
   const [isLoadingViewers, setIsLoadingViewers] = useState(true);
   const [castError, setCastError] = useState(null);
@@ -52,21 +53,17 @@ export function usePresentationEditor(presentationId) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareModalError, setShareModalError] = useState(null);
 
-  // --- MUDANÇA: Estados para os Modais de CENA ---
   const [isSceneFormModalOpen, setIsSceneFormModalOpen] = useState(false);
-  const [sceneFormModalData, setSceneFormModalData] = useState(null); // { mode, scene? }
+  const [sceneFormModalData, setSceneFormModalData] = useState(null);
   const [sceneFormModalError, setSceneFormModalError] = useState(null);
 
   const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
-  const [deleteSceneModalData, setDeleteSceneModalData] = useState(null); // { scene }
+  const [deleteSceneModalData, setDeleteSceneModalData] = useState(null);
   const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
-  const [castTrigger, setCastTrigger] = useState(0);
-  const triggerCastRefetch = () => setCastTrigger((v) => v + 1);
-  // --- FIM DA MUDANÇA ---
+  // (os 'castTriggers' não são mais necessários)
 
   // --- Referência de Impressão ---
   const componentToPrintRef = useRef(null);
-
   const handlePrint = useReactToPrint({
     content: () => componentToPrintRef.current,
     documentTitle: presentation?.name || "Apresentação Rakusai",
@@ -104,7 +101,7 @@ export function usePresentationEditor(presentationId) {
     [user],
   );
 
-  // --- 'fetchViewers' (vive no "Cérebro") ---
+  // --- LÓGICA DO ELENCO (Agora vive aqui) ---
   const fetchViewers = useCallback(async () => {
     if (!presentationId || !permissions.canReadCast) {
       setIsLoadingViewers(false);
@@ -126,17 +123,64 @@ export function usePresentationEditor(presentationId) {
       });
     } catch (e) {
       setCastError("Erro de conexão ao buscar elenco.");
-      console.error("Erro de conexão ao buscar elenco:", e);
     } finally {
       setIsLoadingViewers(false);
     }
   }, [presentationId, permissions.canReadCast, router]);
 
-  const castHook = usePresentationCast(
-    presentationId,
-    permissions.canReadCast,
-    router,
-    triggerCastRefetch,
+  const addUserToCast = useCallback(
+    async (userId) => {
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/viewers`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId }),
+          },
+        );
+        await handleApiResponse({
+          response,
+          router,
+          setError: setCastError,
+          onSuccess: async (newViewer) => {
+            if (
+              newViewer &&
+              newViewer.message !== "Usuário já estava no elenco."
+            ) {
+              return true;
+            }
+            return false;
+          },
+        });
+      } catch (e) {
+        setCastError("Erro de conexão ao adicionar usuário.");
+        return false;
+      }
+    },
+    [presentationId, router, fetchViewers],
+  );
+
+  const removeUserFromCast = useCallback(
+    async (userId) => {
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/viewers/${userId}`,
+          { method: "DELETE" },
+        );
+        await handleApiResponse({
+          response,
+          router,
+          setError: setCastError,
+          onSuccess: async () => {
+            await fetchViewers();
+          },
+        });
+      } catch (e) {
+        setCastError("Erro de conexão ao remover usuário.");
+      }
+    },
+    [presentationId, router, fetchViewers],
   );
 
   // --- Funções de API da Paleta ---
@@ -203,13 +247,6 @@ export function usePresentationEditor(presentationId) {
     fetchElementTypes,
     fetchViewers,
   ]);
-
-  useEffect(() => {
-    // Não roda na montagem inicial (trigger === 0)
-    if (castTrigger > 0) {
-      fetchViewers();
-    }
-  }, [castTrigger, fetchViewers]);
 
   // --- Funções do Modal de Elemento (Mapa) ---
   const closeElementModal = () => {
@@ -866,164 +903,99 @@ export function usePresentationEditor(presentationId) {
   // --- FIM DA MUDANÇA ---
 
   // --- O Objeto de Retorno (Memoizado) ---
-  return useMemo(() => {
-    return {
-      // Dados de Leitura
-      presentation,
-      isLoading: isLoadingData,
-      error,
-      user,
-      currentScene,
-      currentSceneId,
-      setCurrentSceneId,
-      refetchPresentationData,
-      // Props do Editor
-      isEditorMode,
-      setIsEditorMode,
-      permissions,
-      castHook,
-      palette: {
-        pool,
-        elementTypes,
-        isLoading: isLoadingPool || isLoadingElementTypes,
-      },
-      // Modais
-      modal: {
-        isElementOpen: isElementModalOpen,
-        elementData: modalData,
-        elementError: modalError,
-        openElement: openElementEditor,
-        closeElement: closeElementModal,
-        saveElement: saveElement,
-        deleteElement: deleteElement,
-
-        isStepOpen: isStepModalOpen,
-        stepData: stepModalData,
-        stepError: stepModalError,
-        openStep: openStepModal,
-        closeStep: closeStepModal,
-        saveStep: saveStep,
-
-        isCastOpen: isCastModalOpen,
-        openCast: openCastModal,
-        closeCast: closeCastModal,
-
-        isGlobalEditOpen: isGlobalEditModalOpen,
-        globalEditData: globalEditData,
-        globalEditError: globalEditError,
-        closeGlobalEdit: closeGlobalEditModal,
-        updateLocally: updateElementLocally,
-        updateGlobally: updateElementGlobally,
-
-        isShareOpen: isShareModalOpen,
-        shareError: shareModalError,
-        openShare: openShareModal,
-        closeShare: closeShareModal,
-        savePublicStatus: setPresentationPublicStatus,
-
-        isSceneFormOpen: isSceneFormModalOpen,
-        sceneFormModalData: sceneFormModalData,
-        sceneFormModalError: sceneFormModalError,
-        openSceneForm: openSceneFormModal,
-        closeSceneForm: closeSceneFormModal,
-        saveScene: saveScene,
-
-        isDeleteSceneOpen: isDeleteSceneModalOpen,
-        deleteSceneModalData: deleteSceneModalData,
-        deleteSceneModalError: deleteSceneModalError,
-        openDeleteScene: openDeleteSceneModal,
-        closeDeleteScene: closeDeleteSceneModal,
-        deleteScene: deleteScene,
-      },
-      // Handlers DND
-      dropHandlers: {
-        onPaletteDrop: handlePaletteDrop,
-        onElementMove: moveElement,
-      },
-      // Handlers de Passo
-      stepHandlers: {
-        deleteStep: deleteStep,
-      },
-      // Handlers de Impressão
-      printHandlers: {
-        ref: componentToPrintRef,
-        onPrint: handlePrint,
-      },
-
-      reorderHandlers: {
-        moveScene: moveScene,
-        saveSceneOrder: saveSceneOrder,
-      },
-    };
-  }, [
-    // Lista de todas as dependências
+  return {
+    // Dados de Leitura
     presentation,
-    isLoadingData,
+    isLoading: isLoadingData,
     error,
     user,
     currentScene,
     currentSceneId,
+    setCurrentSceneId,
     refetchPresentationData,
+    // Props do Editor
     isEditorMode,
+    setIsEditorMode,
     permissions,
-    // Dependências do 'castHook'
-    viewers,
-    isLoadingViewers,
-    castError,
-    castHook,
-    // Dependências da Paleta
-    pool,
-    elementTypes,
-    isLoadingPool,
-    isLoadingElementTypes,
-    // Dependências dos Modais (estados)
-    isElementModalOpen,
-    modalData,
-    modalError,
-    isStepModalOpen,
-    stepModalData,
-    stepModalError,
-    isCastModalOpen,
-    isGlobalEditModalOpen,
-    globalEditData,
-    globalEditError,
-    isShareModalOpen,
-    shareModalError,
-    isSceneFormModalOpen,
-    sceneFormModalData,
-    sceneFormModalError,
-    isDeleteSceneModalOpen,
-    deleteSceneModalData,
-    deleteSceneModalError,
-    // Handlers (já estão em useCallback)
-    openElementEditor,
-    closeElementModal,
-    saveElement,
-    deleteElement,
-    openStepModal,
-    closeStepModal,
-    saveStep,
-    openCastModal,
-    closeCastModal,
-    closeGlobalEditModal,
-    updateElementLocally,
-    updateElementGlobally,
-    openShareModal,
-    closeShareModal,
-    setPresentationPublicStatus,
-    handlePaletteDrop,
-    moveElement,
-    deleteStep,
-    handlePrint,
-    fetchPool,
-    fetchElementTypes,
-    openSceneFormModal,
-    closeSceneFormModal,
-    saveScene,
-    openDeleteSceneModal,
-    closeDeleteSceneModal,
-    deleteScene,
-    moveScene, // <-- ADICIONADO
-    saveSceneOrder,
-  ]);
+    // 'castHook' agora é montado manualmente
+    castHook: {
+      viewers,
+      isLoading: isLoadingViewers,
+      error: castError,
+      fetchViewers,
+      addUserToCast, // Passa a função local
+      removeUserFromCast, // Passa a função local
+    },
+    palette: {
+      pool,
+      elementTypes,
+      isLoading: isLoadingPool || isLoadingElementTypes,
+    },
+    // Modais
+    modal: {
+      isElementOpen: isElementModalOpen,
+      elementData: modalData,
+      elementError: modalError,
+      openElement: openElementEditor,
+      closeElement: closeElementModal,
+      saveElement: saveElement,
+      deleteElement: deleteElement,
+
+      isStepOpen: isStepModalOpen,
+      stepData: stepModalData,
+      stepError: stepModalError,
+      openStep: openStepModal,
+      closeStep: closeStepModal,
+      saveStep: saveStep,
+
+      isCastOpen: isCastModalOpen,
+      openCast: openCastModal,
+      closeCast: closeCastModal,
+
+      isGlobalEditOpen: isGlobalEditModalOpen,
+      globalEditData: globalEditData,
+      globalEditError: globalEditError,
+      closeGlobalEdit: closeGlobalEditModal,
+      updateLocally: updateElementLocally,
+      updateGlobally: updateElementGlobally,
+
+      isShareOpen: isShareModalOpen,
+      shareError: shareModalError,
+      openShare: openShareModal,
+      closeShare: closeShareModal,
+      savePublicStatus: setPresentationPublicStatus,
+
+      isSceneFormOpen: isSceneFormModalOpen,
+      sceneFormModalData: sceneFormModalData,
+      sceneFormModalError: sceneFormModalError,
+      openSceneForm: openSceneFormModal,
+      closeSceneForm: closeSceneFormModal,
+      saveScene: saveScene,
+
+      isDeleteSceneOpen: isDeleteSceneModalOpen,
+      deleteSceneModalData: deleteSceneModalData,
+      deleteSceneModalError: deleteSceneModalError,
+      openDeleteScene: openDeleteSceneModal,
+      closeDeleteScene: closeDeleteSceneModal,
+      deleteScene: deleteScene,
+    },
+    // Handlers DND
+    dropHandlers: {
+      onPaletteDrop: handlePaletteDrop,
+      onElementMove: moveElement,
+    },
+    // Handlers de Passo
+    stepHandlers: {
+      deleteStep: deleteStep,
+    },
+    // Handlers de Impressão
+    printHandlers: {
+      ref: componentToPrintRef,
+      onPrint: handlePrint,
+    },
+    reorderHandlers: {
+      moveScene: moveScene,
+      saveSceneOrder: saveSceneOrder,
+    },
+  };
 }

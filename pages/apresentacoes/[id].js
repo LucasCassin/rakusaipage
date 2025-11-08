@@ -195,7 +195,7 @@ export default function PresentationPage() {
           presentation={presentation}
           permissions={permissions}
           onClose={modal.closeCast}
-          castHook={castHook}
+          castHook={castHook} // <-- Correto. Passa o objeto 'castHook' do 'usePE'
         />
       )}
 
