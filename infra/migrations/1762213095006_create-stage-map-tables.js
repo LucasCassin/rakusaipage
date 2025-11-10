@@ -116,7 +116,9 @@ exports.up = (pgm) => {
       default: pgm.func("gen_random_uuid()"),
     },
     name: { type: "text", notNull: true, unique: true },
-    image_url: { type: "text", notNull: true }, // Caminho para o .svg
+    image_url: { type: "text", notNull: true },
+    image_url_highlight: { type: "text" },
+    scale: { type: "float", notNull: true, default: 1.0 },
   });
 
   // 7. Tabela de Elementos da Cena (O Ponto no Mapa)
