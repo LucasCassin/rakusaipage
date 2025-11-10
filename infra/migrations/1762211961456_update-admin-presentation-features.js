@@ -13,6 +13,7 @@ const featuresToAdd = [
   "create:element",
   "update:element",
   "delete:element",
+  "read:element",
   "create:step",
   "update:step",
   "delete:step",

@@ -214,33 +214,37 @@ async function findDeepById(presentation_id) {
   return presentation;
 }
 
-async function findElementPool(presentation_id) {
+/**
+ * Busca o "pool" de nomes e usuários únicos
+ * associados aos elementos de uma apresentação.
+ * (REFATORADO para usar 'element_groups')
+ */
+async function findElementPool(presentationId) {
   const validatedId = validator(
-    { presentation_id },
+    { presentation_id: presentationId },
     { presentation_id: "required" },
   );
 
+  // Foco da Mudança: A query agora busca em 'element_groups' (eg)
+  // e não mais em 'scene_elements' (se).
   const query = {
     text: `
-      SELECT DISTINCT 
-        se.display_name, 
-        se.assigned_user_id, 
-        se.element_type_id,
-        et.name as element_type_name,
-        et.image_url
+      SELECT 
+        DISTINCT eg.display_name, 
+        eg.assigned_user_id, 
+        u.username 
       FROM 
-        scene_elements se
+        element_groups eg
       JOIN 
-        element_types et ON se.element_type_id = et.id
-      JOIN 
-        scenes s ON se.scene_id = s.id
+        scenes s ON eg.scene_id = s.id
+      LEFT JOIN 
+        users u ON eg.assigned_user_id = u.id
       WHERE 
-        s.presentation_id = $1
-        AND se.display_name IS NOT NULL;
+        s.presentation_id = $1 
+        AND eg.display_name IS NOT NULL;
     `,
     values: [validatedId.presentation_id],
   };
-
   const results = await database.query(query);
   return results.rows;
 }

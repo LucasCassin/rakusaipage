@@ -4,6 +4,7 @@ import session from "models/session.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
 import elementType from "models/element_type.js";
+import database from "infra/database";
 
 describe("Test /api/v1/scenes/[id]/elements routes", () => {
   let adminUser, alunoUser, tocadorUser;
@@ -21,10 +22,10 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
       password: "StrongPassword123@", // Senha de admin
     });
     adminUser = await user.addFeatures(adminUser, [
-      "create:presentation", // Para criar a apresentação
-      "create:scene", // Para criar a cena
+      "create:presentation",
+      "create:scene",
       "create:element", // A feature que estamos testando
-      "manage:element_types", // Para criar o tipo de elemento
+      "manage:element_types",
     ]);
 
     // 2. Criar Aluno (sem features)
@@ -63,14 +64,14 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
   });
 
   describe("POST /api/v1/scenes/[id]/elements", () => {
-    it("should allow an Admin (create:element) to add an element to a scene", async () => {
+    it("should allow an Admin (create:element) to add an element and its group (Transaction)", async () => {
       const newSession = await session.create(adminUser);
       const elementData = {
         element_type_id: odaikoType.id,
         position_x: 50.5,
         position_y: 75,
-        display_name: "Renan",
-        assigned_user_id: tocadorUser.id,
+        display_name: "Renan", // Este dado agora vai para 'element_groups'
+        assigned_user_id: tocadorUser.id, // Este dado agora vai para 'element_groups'
       };
 
       const res = await fetch(
@@ -86,11 +87,27 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
       );
       const resBody = await res.json();
 
+      // 1. Validar a API (status 201)
       expect(res.status).toBe(201);
+
+      // 2. Validar o 'scene_element' retornado
       expect(resBody.scene_id).toBe(testScene.id);
-      expect(resBody.display_name).toBe("Renan");
       expect(resBody.position_x).toBe(50.5);
-      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
+      expect(resBody.group_id).toBeDefined(); // Deve ter retornado o group_id
+      expect(resBody.display_name).toBeUndefined(); // Não deve estar mais aqui
+      expect(resBody.assigned_user_id).toBeUndefined(); // Não deve estar mais aqui
+
+      // 3. Foco em Testes: Validar a transação (checar o 'element_group' no banco)
+      const groupRes = await database.query({
+        text: `SELECT * FROM element_groups WHERE id = $1`,
+        values: [resBody.group_id],
+      });
+
+      expect(groupRes.rowCount).toBe(1);
+      const groupInDb = groupRes.rows[0];
+      expect(groupInDb.display_name).toBe("Renan");
+      expect(groupInDb.assigned_user_id).toBe(tocadorUser.id);
+      expect(groupInDb.scene_id).toBe(testScene.id);
     });
 
     it("should return 400 for invalid data (missing 'position_x')", async () => {
@@ -115,7 +132,7 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
       expect(res.status).toBe(400); // Erro do validator.js
     });
 
-    it("should return 404 for a non-existent scene ID", async () => {
+    it("should return 409 for a non-existent scene ID", async () => {
       const newSession = await session.create(adminUser);
       const randomId = orchestrator.generateRandomUUIDV4();
       const elementData = {
@@ -135,7 +152,6 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
           body: JSON.stringify(elementData),
         },
       );
-
       // O modelo 'sceneElement.create' vai falhar no 'FOREIGN KEY constraint'
       // O 'database.js' deve capturar isso e retornar um erro apropriado (404 ou 400).
       expect(res.status).toBe(409); // Assumindo que o 'database.js' trata 'violates foreign key' como 404.

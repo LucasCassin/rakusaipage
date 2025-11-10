@@ -706,6 +706,45 @@ const schemas = {
         }),
     }),
 
+  group_id: () =>
+    // Referência ao ID de um grupo de elementos
+    Joi.object({
+      group_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.group_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  targetGroupId: () =>
+    // Referência ao ID do grupo alvo
+    Joi.object({
+      targetGroupId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.targetGroupId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  sourceGroupId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      sourceGroupId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.sourceGroupId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   image_url: () =>
     // URL para imagens de ícones
     Joi.object({

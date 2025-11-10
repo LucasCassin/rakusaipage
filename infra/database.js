@@ -64,6 +64,7 @@ async function query(queryObject) {
     return res;
   } catch (err) {
     const specificError = handleDatabaseError(err);
+    console.log(err);
     throw specificError;
   } finally {
     await client?.end();
@@ -87,6 +88,7 @@ async function getNewClient() {
 const database = {
   query,
   getNewClient,
+  handleDatabaseError,
 };
 
 export default database;

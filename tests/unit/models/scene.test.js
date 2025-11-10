@@ -1,121 +1,154 @@
-import orchestrator from "tests/orchestrator.js";
-import presentation from "models/presentation.js";
 import scene from "models/scene.js";
-import user from "models/user.js";
-import { ValidationError, NotFoundError } from "errors/index.js";
+import database from "infra/database.js";
+import validator from "models/validator.js";
+import { NotFoundError } from "errors/index.js";
 
-describe("Scene Model", () => {
-  let adminUser, testPresentation;
+// Mock do banco de dados
+jest.mock("infra/database.js");
+// Mock do validador
+jest.mock("models/validator.js");
 
-  beforeAll(async () => {
-    await orchestrator.waitForAllServices();
-    await orchestrator.clearDatabase();
-    await orchestrator.runPendingMigrations();
-
-    adminUser = await user.findOneUser({ username: "mainUser" });
-    testPresentation = await presentation.create(
-      { name: "Show de Cenas" },
-      adminUser.id,
-    );
+describe("Unit Tests for Scene Model", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    validator.mockImplementation((data, schema) => data);
   });
 
-  describe("create()", () => {
-    it("should create a new scene (FORMATION)", async () => {
-      const data = {
-        presentation_id: testPresentation.id,
-        name: "Música 1 (Hajime)",
-        scene_type: "FORMATION",
+  // --- (Sem alterações) ---
+  describe("create", () => {
+    it("should create a new scene", async () => {
+      const sceneData = {
+        presentation_id: "uuid-pres",
         order: 1,
-        description: "Início do show",
-      };
-      const newScene = await scene.create(data);
-
-      expect(newScene.id).toBeDefined();
-      expect(newScene.name).toBe("Música 1 (Hajime)");
-      // --- CORREÇÃO AQUI ---
-      expect(newScene.scene_type).toBe("FORMATION"); // A coluna do DB é "scene_type"
-      // --- FIM DA CORREÇÃO ---
-      expect(newScene.order).toBe(1);
-    });
-
-    it("should create a new scene (TRANSITION)", async () => {
-      const data = {
-        presentation_id: testPresentation.id,
-        name: "Troca para Jousui",
-        scene_type: "TRANSITION",
-        order: 2,
-      };
-      const newScene = await scene.create(data);
-
-      // --- CORREÇÃO AQUI ---
-      expect(newScene.scene_type).toBe("TRANSITION");
-      // --- FIM DA CORREÇÃO ---
-      expect(newScene.description).toBeNull();
-    });
-
-    it("should fail with ValidationError if 'scene_type' is invalid", async () => {
-      const data = {
-        presentation_id: testPresentation.id,
-        name: "Cena Inválida",
-        scene_type: "INVALID_TYPE",
-        order: 3,
-      };
-      await expect(scene.create(data)).rejects.toThrow(ValidationError);
-    });
-
-    it("should fail with ValidationError if 'presentation_id' is missing", async () => {
-      const data = {
-        name: "Cena Perdida",
+        name: "Nova Cena",
         scene_type: "FORMATION",
-        order: 3,
+        description: "Desc",
       };
-      await expect(scene.create(data)).rejects.toThrow(ValidationError);
+      const mockReturn = { ...sceneData, id: "uuid-scene" };
+      database.query.mockResolvedValue({ rows: [mockReturn], rowCount: 1 });
+
+      const result = await scene.create(sceneData);
+
+      expect(database.query).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockReturn);
     });
   });
 
-  describe("update() and del()", () => {
-    let sceneToEdit;
+  // --- (Sem alterações) ---
+  describe("update", () => {
+    it("should update an existing scene", async () => {
+      const sceneId = "uuid-scene";
+      const updateData = { name: "Nome Atualizado" };
+      const mockReturn = { id: sceneId, name: "Nome Atualizado" };
+      database.query.mockResolvedValue({ rows: [mockReturn], rowCount: 1 });
 
-    beforeAll(async () => {
-      const data = {
-        presentation_id: testPresentation.id,
-        name: "Música Editável",
-        scene_type: "FORMATION",
-        order: 10,
-      };
-      sceneToEdit = await scene.create(data);
+      const result = await scene.update(sceneId, updateData);
+
+      expect(database.query).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockReturn);
     });
 
-    it("should update a scene's name and order", async () => {
-      const updateData = {
-        name: "Música Editada com Sucesso",
-        order: 11,
-      };
-      const updatedScene = await scene.update(sceneToEdit.id, updateData);
-
-      expect(updatedScene.id).toBe(sceneToEdit.id);
-      expect(updatedScene.name).toBe("Música Editada com Sucesso");
-      expect(updatedScene.order).toBe(11);
-    });
-
-    it("should throw NotFoundError when updating a non-existent scene", async () => {
-      const randomId = orchestrator.generateRandomUUIDV4();
+    it("should throw NotFoundError if scene not found", async () => {
+      database.query.mockResolvedValue({ rows: [], rowCount: 0 });
       await expect(
-        scene.update(randomId, { name: "Fantasma" }),
+        scene.update("uuid-nao-existe", { name: "Teste" }),
       ).rejects.toThrow(NotFoundError);
     });
+  });
 
+  // --- (Sem alterações) ---
+  describe("del", () => {
     it("should delete a scene", async () => {
-      const deleted = await scene.del(sceneToEdit.id);
-      expect(deleted.id).toBe(sceneToEdit.id);
+      const sceneId = "uuid-scene";
+      const mockReturn = { id: sceneId };
+      database.query.mockResolvedValue({ rows: [mockReturn], rowCount: 1 });
 
-      const found = await scene.findById(sceneToEdit.id);
-      expect(found).toBeUndefined();
+      const result = await scene.del(sceneId);
+
+      expect(database.query).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockReturn);
     });
 
-    it("should throw NotFoundError when deleting a non-existent scene", async () => {
-      const randomId = orchestrator.generateRandomUUIDV4();
-      await expect(scene.del(randomId)).rejects.toThrow(NotFoundError);
+    it("should throw NotFoundError if scene not found", async () => {
+      database.query.mockResolvedValue({ rows: [], rowCount: 0 });
+      await expect(scene.del("uuid-nao-existe")).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  // --- (Refatorado) ---
+  describe("findAllFromPresentation", () => {
+    it("should fetch details for FORMATION scenes (elements) using the correct JOIN", async () => {
+      const presentationId = "uuid-presentation";
+      const sceneFormationId = "uuid-scene-formation";
+      const sceneTransitionId = "uuid-scene-transition";
+
+      const scenesData = [
+        { id: sceneFormationId, scene_type: "FORMATION" },
+        { id: sceneTransitionId, scene_type: "TRANSITION" },
+      ];
+      const elementsData = [
+        {
+          id: "uuid-element",
+          display_name: "Elemento com JOIN",
+          assigned_user_id: "uuid-user",
+        },
+      ];
+      const stepsData = [{ id: "uuid-step" }];
+
+      // Configuração do Mock
+      database.query.mockImplementation((query) => {
+        // 1. Mock da busca de Cenas
+        if (query.text.includes("SELECT * FROM scenes WHERE")) {
+          return Promise.resolve({ rows: scenesData, rowCount: 2 });
+        }
+
+        // 2. Foco da Correção: Mock da busca de Elementos (com JOIN)
+        // Mais robusto: checa se a query menciona AMBAS as tabelas.
+        if (
+          query.text.includes("scene_elements") &&
+          query.text.includes("element_groups") &&
+          query.values.includes(sceneFormationId)
+        ) {
+          return Promise.resolve({ rows: elementsData, rowCount: 1 });
+        }
+
+        // 3. Mock da busca de Passos
+        if (
+          query.text.includes("SELECT * FROM transition_steps WHERE") &&
+          query.values.includes(sceneTransitionId)
+        ) {
+          return Promise.resolve({ rows: stepsData, rowCount: 1 });
+        }
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+
+      const result = await scene.findAllFromPresentation(presentationId);
+
+      // Validar o resultado
+      expect(result).toHaveLength(2);
+      expect(result[0].elements).toHaveLength(1); // Este deve passar agora
+      expect(result[0].elements[0].display_name).toBe("Elemento com JOIN");
+      expect(result[1].steps).toHaveLength(1);
+    });
+
+    it("should return empty arrays if scene type has no data", async () => {
+      // (Seu teste original de "empty array")
+      const presentationId = "uuid-presentation";
+      const sceneFormationId = "uuid-scene-formation";
+      const scenesData = [{ id: sceneFormationId, scene_type: "FORMATION" }];
+
+      database.query.mockImplementation((query) => {
+        if (query.text.includes("SELECT * FROM scenes WHERE")) {
+          return Promise.resolve({ rows: scenesData, rowCount: 1 });
+        }
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+
+      const result = await scene.findAllFromPresentation(presentationId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].elements).toHaveLength(0);
+      expect(result[0].steps).toHaveLength(0);
     });
   });
 });

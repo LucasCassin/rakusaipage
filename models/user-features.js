@@ -105,6 +105,7 @@ const availableFeatures = new Set([
   "create:element",
   "update:element",
   "delete:element",
+  "read:element",
 
   // Passos de Transição
   "create:step",

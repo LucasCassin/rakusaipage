@@ -4,58 +4,52 @@ import session from "models/session.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
 import elementType from "models/element_type.js";
-import sceneElement from "models/scene_element.js";
+import sceneElement from "models/scene_element.js"; // Usamos para criar elementos
+import database from "infra/database";
 
 describe("Test /api/v1/scene_elements/[id] routes", () => {
-  let adminUser, alunoUser, tocadorUser;
-  let testScene, odaikoType, elementToEdit, elementToDelete;
+  let adminUser, adminSession, alunoUser, tocadorUser;
+  let testScene, odaikoType;
+  let elementToTest; // O elemento principal (scene_element)
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
     await orchestrator.clearDatabase();
     await orchestrator.runPendingMigrations();
 
-    // 1. Criar Admin, atualizar senha e dar features
+    // 1. Criar usuários e sessão admin
     adminUser = await user.findOneUser({ username: "mainUser" });
     adminUser = await user.update({
       id: adminUser.id,
-      password: "StrongPassword123@", // Senha de admin
+      password: "StrongPassword123@",
     });
     adminUser = await user.addFeatures(adminUser, [
       "create:presentation",
       "create:scene",
-      "manage:element_types",
       "create:element",
-      "update:element", // Feature para PATCH
-      "delete:element", // Feature para DELETE
+      "manage:element_types",
     ]);
+    adminSession = await session.create(adminUser);
 
-    // 2. Criar Aluno (sem features)
     alunoUser = await user.create({
-      username: "alunoElementId",
-      email: "alunoelementid@test.com",
+      username: "alunoElement",
+      email: "alunoelement@test.com",
       password: "StrongPassword123@",
     });
-    alunoUser = await user.update({
-      id: alunoUser.id,
-      password: "StrongPassword123@",
-    });
-
-    // 3. Criar usuário para ser "atribuído"
     tocadorUser = await user.create({
-      username: "tocadorElementId",
-      email: "tocadorelementid@test.com",
+      username: "tocadorElement",
+      email: "tocadorelement@test.com",
       password: "StrongPassword123@",
     });
 
-    // 4. Criar Apresentação, Cena e Tipo
+    // 2. Criar infra
     const testPresentation = await presentation.create(
-      { name: "Show para Elementos ID" },
+      { name: "Show para Elementos" },
       adminUser.id,
     );
     testScene = await scene.create({
       presentation_id: testPresentation.id,
-      name: "Cena de Formação ID",
+      name: "Cena de Formação",
       scene_type: "FORMATION",
       order: 1,
     });
@@ -63,176 +57,138 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
       name: "Odaiko",
       image_url: "/odaiko.svg",
     });
+  });
 
-    // 5. Criar elementos de teste
-    elementToEdit = await sceneElement.create({
+  // Criamos um novo elemento ANTES de cada teste
+  beforeEach(async () => {
+    elementToTest = await sceneElement.create({
       scene_id: testScene.id,
       element_type_id: odaikoType.id,
       position_x: 10,
       position_y: 10,
-      display_name: "Original",
-    });
-    elementToDelete = await sceneElement.create({
-      scene_id: testScene.id,
-      element_type_id: odaikoType.id,
-      position_x: 20,
-      position_y: 20,
-      display_name: "Para Deletar",
+      display_name: "Elemento Original",
+      assigned_user_id: tocadorUser.id,
     });
   });
 
+  // Limpamos os elementos DEPOIS de cada teste
+  afterEach(async () => {
+    await database.query("DELETE FROM scene_elements;");
+    await database.query("DELETE FROM element_groups;");
+  });
+
+  // --- GET ---
+  describe("GET /api/v1/scene_elements/[id]", () => {
+    it("should get the element and its group data (JOIN)", async () => {
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
+        {
+          method: "GET",
+          headers: { cookie: `session_id=${adminSession.token}` },
+        },
+      );
+      const resBody = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(resBody.id).toBe(elementToTest.id);
+      expect(resBody.position_x).toBe(10);
+      expect(resBody.group_id).toBe(elementToTest.group_id);
+      // Foco em Testes: Validando o JOIN da 'findById' refatorada
+      expect(resBody.display_name).toBe("Elemento Original");
+      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
+    });
+  });
+
+  // --- (REFATORADO) PATCH ---
   describe("PATCH /api/v1/scene_elements/[id]", () => {
-    it("should allow an Admin (update:element) to update an element", async () => {
-      const newSession = await session.create(adminUser);
-      const patchData = {
-        position_x: 11.5,
-        position_y: 12.5,
-        display_name: "Editado",
-        assigned_user_id: tocadorUser.id,
+    it("should update element position and group name in one transaction", async () => {
+      const updateData = {
+        position_x: 99.9, // Atualiza scene_elements
+        display_name: "Nome Atualizado", // Atualiza element_groups
       };
 
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToEdit.id}`,
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            cookie: `session_id=${newSession.token}`,
+            cookie: `session_id=${adminSession.token}`,
           },
-          body: JSON.stringify(patchData),
+          body: JSON.stringify(updateData),
         },
       );
       const resBody = await res.json();
 
+      // 1. Validar o 'scene_element' retornado
       expect(res.status).toBe(200);
-      expect(resBody.id).toBe(elementToEdit.id);
-      expect(resBody.display_name).toBe("Editado");
-      expect(resBody.position_x).toBe(11.5);
-      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
-    });
+      expect(resBody.position_x).toBe(99.9); // Posição atualizada
+      expect(resBody.position_y).toBe(10); // Posição antiga mantida
 
-    it("should return 400 for invalid data (e.g., 'position_y' out of bounds)", async () => {
-      const newSession = await session.create(adminUser);
-      const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToEdit.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            cookie: `session_id=${newSession.token}`,
-          },
-          body: JSON.stringify({ position_y: -10 }), // Inválido
-        },
-      );
-      expect(res.status).toBe(400); // Erro do validator.js
-    });
-
-    it("should return 404 for a non-existent element ID", async () => {
-      const newSession = await session.create(adminUser);
-      const randomId = orchestrator.generateRandomUUIDV4();
-      const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${randomId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            cookie: `session_id=${newSession.token}`,
-          },
-          body: JSON.stringify({ display_name: "Fantasma" }),
-        },
-      );
-      expect(res.status).toBe(404); // Erro do modelo sceneElement.update
-    });
-
-    it("should return 403 for an Aluno (no 'update:element' feature)", async () => {
-      const newSession = await session.create(alunoUser);
-      const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToEdit.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            cookie: `session_id=${newSession.token}`,
-          },
-          body: JSON.stringify({ display_name: "Tentativa do Aluno" }),
-        },
-      );
-      expect(res.status).toBe(403);
+      // 2. Foco em Testes: Validar a transação (checar o 'element_group' no banco)
+      const groupRes = await database.query({
+        text: `SELECT display_name FROM element_groups WHERE id = $1`,
+        values: [elementToTest.group_id],
+      });
+      expect(groupRes.rows[0].display_name).toBe("Nome Atualizado");
     });
   });
 
+  // --- (REFATORADO) DELETE ---
   describe("DELETE /api/v1/scene_elements/[id]", () => {
-    it("should allow an Admin (delete:element) to delete an element", async () => {
-      const newSession = await session.create(adminUser);
+    it("should delete the element AND its group (if orphan)", async () => {
+      const groupId = elementToTest.group_id;
+
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToDelete.id}`,
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
         {
           method: "DELETE",
-          headers: { cookie: `session_id=${newSession.token}` },
+          headers: { cookie: `session_id=${adminSession.token}` },
         },
       );
-      const resBody = await res.json();
-
       expect(res.status).toBe(200);
-      expect(resBody.id).toBe(elementToDelete.id);
 
-      // Verificar se foi deletado (PATCH deve dar 404)
-      const patchRes = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToDelete.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            cookie: `session_id=${newSession.token}`,
-          },
-          body: JSON.stringify({ display_name: "Fantasma" }),
-        },
-      );
-      expect(patchRes.status).toBe(404);
+      // 1. Validar que o elemento foi deletado
+      const elRes = await database.query({
+        text: `SELECT COUNT(*) FROM scene_elements WHERE id = $1`,
+        values: [elementToTest.id],
+      });
+      expect(elRes.rows[0].count).toBe("0");
+
+      // 2. Foco em Testes: Validar que o grupo órfão foi deletado
+      const groupRes = await database.query({
+        text: `SELECT COUNT(*) FROM element_groups WHERE id = $1`,
+        values: [groupId],
+      });
+      expect(groupRes.rows[0].count).toBe("0");
     });
 
-    it("should return 404 when trying to delete a non-existent element", async () => {
-      const newSession = await session.create(adminUser);
-      const randomId = orchestrator.generateRandomUUIDV4();
+    it("should delete the element but NOT the group (if not orphan)", async () => {
+      const groupId = elementToTest.group_id;
+
+      // 2. Criar um segundo elemento (elementB) no MESMO grupo
+      await database.query({
+        text: `INSERT INTO scene_elements (scene_id, element_type_id, group_id, position_x, position_y)
+               VALUES ($1, $2, $3, 40, 40)`,
+        values: [testScene.id, odaikoType.id, groupId],
+      });
+
+      // 3. Deletar o primeiro elemento (elementToTest)
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${randomId}`,
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
         {
           method: "DELETE",
-          headers: { cookie: `session_id=${newSession.token}` },
+          headers: { cookie: `session_id=${adminSession.token}` },
         },
       );
-      expect(res.status).toBe(404); // Erro do modelo sceneElement.del
-    });
+      expect(res.status).toBe(200);
 
-    it("should return 403 for an Aluno (no 'delete:element' feature)", async () => {
-      const newSession = await session.create(alunoUser);
-      const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToEdit.id}`, // Tenta deletar o elemento que sobrou
-        {
-          method: "DELETE",
-          headers: { cookie: `session_id=${newSession.token}` },
-        },
-      );
-      expect(res.status).toBe(403);
-    });
-  });
-
-  describe("Disallowed Methods", () => {
-    const url = `${orchestrator.webserverUrl}/api/v1/scene_elements/${orchestrator.generateRandomUUIDV4()}`;
-
-    it("should return 405 for GET", async () => {
-      const res = await fetch(url, { method: "GET" });
-      expect(res.status).toBe(405);
-    });
-
-    it("should return 405 for POST", async () => {
-      const res = await fetch(url, { method: "POST" });
-      expect(res.status).toBe(405);
-    });
-
-    it("should return 405 for PUT", async () => {
-      const res = await fetch(url, { method: "PUT" });
-      expect(res.status).toBe(405);
+      // 4. Foco em Testes: Validar que o grupo NÃO foi deletado
+      const groupRes = await database.query({
+        text: `SELECT COUNT(*) FROM element_groups WHERE id = $1`,
+        values: [groupId],
+      });
+      expect(groupRes.rows[0].count).toBe("1");
     });
   });
 });

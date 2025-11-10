@@ -121,7 +121,30 @@ exports.up = (pgm) => {
     scale: { type: "float", notNull: true, default: 1.0 },
   });
 
-  // 7. Tabela de Elementos da Cena (O Ponto no Mapa)
+  // 7. (NOVO) Tabela de Grupos de Elementos
+  // Esta tabela irá conter a lógica de 'display_name' e 'assigned_user_id'
+  pgm.createTable("element_groups", {
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("gen_random_uuid()"),
+    },
+    scene_id: {
+      type: "uuid",
+      notNull: true,
+      references: '"scenes"(id)',
+      onDelete: "CASCADE",
+    },
+    display_name: { type: "text" },
+    assigned_user_id: {
+      type: "uuid",
+      references: '"users"(id)',
+      onDelete: "SET NULL",
+    },
+  });
+
+  // 8. (MODIFICADA) Tabela de Elementos da Cena (O Ponto no Mapa)
+  // Esta tabela agora é 'filha' de 'element_groups'
   pgm.createTable("scene_elements", {
     id: {
       type: "uuid",
@@ -138,16 +161,17 @@ exports.up = (pgm) => {
       type: "uuid",
       notNull: true,
       references: '"element_types"(id)',
-      onDelete: "RESTRICT", // Impede deletar "Odaiko" se estiver em uso
+      onDelete: "RESTRICT",
     },
-    position_x: { type: "float", notNull: true },
-    position_y: { type: "float", notNull: true },
-    display_name: { type: "text" }, // "Renan"
-    assigned_user_id: {
+    // FK para o grupo ao qual este elemento pertence
+    group_id: {
       type: "uuid",
-      references: '"users"(id)',
-      onDelete: "SET NULL", // Mantém o elemento no mapa, mas desvincula o usuário
+      notNull: true,
+      references: '"element_groups"(id)',
+      onDelete: "CASCADE",
     },
+    position_x: { type: "float", notNull: true }, // Mantido
+    position_y: { type: "float", notNull: true }, // Mantido
   });
 };
 
