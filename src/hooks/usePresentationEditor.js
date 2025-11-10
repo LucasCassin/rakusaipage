@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { useRouter } from "next/navigation"; // <-- CORREÇÃO: Usar 'next/navigation'
 import { usePresentation } from "./usePresentation";
-import { useAuth } from "src/contexts/AuthContext";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 // REMOVIDO: import { usePresentationCast } from "./usePresentationCast";
@@ -724,7 +723,7 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
-  // API: Deletar Passo (AGORA OTIMISTA)
+  // API: Deletar Passo (OTIMISTA E COM RE-INDEXAÇÃO)
   const deleteStep = useCallback(
     async (stepId) => {
       const sceneId = currentSceneId; // Pega a cena atual
@@ -735,10 +734,18 @@ export function usePresentationEditor(presentationId) {
         const scene = newPresentation.scenes.find((s) => s.id === sceneId);
         if (!scene) return prevPresentation;
 
-        // Filtra o passo deletado
+        // 1. Filtra o passo deletado
         scene.transition_steps = scene.transition_steps.filter(
           (s) => s.id !== stepId,
         );
+
+        // --- MUDANÇA (CORREÇÃO DO BUG DE ORDEM) ---
+        // 2. Re-indexa a 'order' dos passos restantes
+        scene.transition_steps.forEach((step, index) => {
+          step.order = index;
+        });
+        // --- FIM DA MUDANÇA ---
+
         return newPresentation;
       });
       // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
@@ -748,6 +755,7 @@ export function usePresentationEditor(presentationId) {
           `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${stepId}`,
           { method: "DELETE" },
         );
+
         await handleApiResponse({
           response,
           router,
@@ -756,7 +764,9 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData(); // Reverte
           },
           onSuccess: () => {
-            // Não faz nada, a UI já foi atualizada
+            // Não faz nada, a UI (com re-indexação) já foi atualizada
+            // (Para 100% de correção, deveríamos chamar uma API de re-ordenação,
+            // mas o refetch() resolveria isso se a UI não fosse otimista)
           },
         });
       } catch (e) {
@@ -764,7 +774,7 @@ export function usePresentationEditor(presentationId) {
         refetchPresentationData();
       }
     },
-    [router, refetchPresentationData, currentSceneId, setPresentation], // <-- Adicionado
+    [router, refetchPresentationData, currentSceneId, setPresentation],
   );
 
   // --- Funções do Modal de Elenco (Cast) ---

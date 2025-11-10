@@ -28,7 +28,7 @@ export default function TransitionStepItem({
     loggedInUser && step.assigned_user_id === loggedInUser.id;
 
   const highlightClasses = isHighlighted
-    ? "bg-rakusai-pink-light bg-opacity-20 border-l-4 border-rakusai-pink"
+    ? "bg-rakusai-pink-light bg-opacity-20 border-l-4 !border-rakusai-pink"
     : "bg-white";
 
   const handleDelete = async () => {

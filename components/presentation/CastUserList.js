@@ -10,11 +10,21 @@ function calculateParticipation(userId, scenes) {
   if (!scenes) return 0;
   let count = 0;
   for (const scene of scenes) {
+    // --- MUDANÇA AQUI ---
+    // Pula esta cena se for uma Transição
+    if (scene.scene_type === "TRANSITION") {
+      continue;
+    }
+    // --- FIM DA MUDANÇA ---
+
+    // (O 'transition_steps' nunca será contado,
+    // mas o 'scene_elements' será)
     if (scene.scene_elements) {
       count += scene.scene_elements.filter(
         (el) => el.assigned_user_id === userId,
       ).length;
     }
+    // (Esta parte agora é redundante, mas não faz mal)
     if (scene.transition_steps) {
       count += scene.transition_steps.filter(
         (step) => step.assigned_user_id === userId,
@@ -23,7 +33,6 @@ function calculateParticipation(userId, scenes) {
   }
   return count;
 }
-
 /**
  * Renderiza um único usuário na lista do elenco, com botão de remover.
  */

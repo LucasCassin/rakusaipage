@@ -18,7 +18,7 @@ export default function StageElement({
 
   const iconUrl = element.image_url || "/favicon.svg";
   // --- MUDANÇA (BUG 4): Ícone maior ---
-  const iconSize = 64;
+  const iconSize = 24;
   // --- FIM DA MUDANÇA ---
 
   const [{ isDragging }, drag] = useDrag(
