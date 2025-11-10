@@ -50,7 +50,7 @@ export default function PresentationPage() {
   } = usePresentationEditor(presentationId);
 
   // ... (código de Loading e Erro permanece o mesmo) ...
-  if (isLoading) {
+  if (isLoading || !router.isReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <InitialLoading message="Carregando apresentação..." />
@@ -63,6 +63,22 @@ export default function PresentationPage() {
       <ErrorPage
         title="Acesso Negado"
         message={error || "Você não tem permissão para ver esta apresentação."}
+        buttons={[
+          {
+            text: texts.errorPages.notFound.button,
+            onClick: () => router.push("/"),
+            variant: "primary",
+          },
+        ]}
+      />
+    );
+  }
+
+  if (!presentation) {
+    return (
+      <ErrorPage
+        title="Apresentação Não Encontrada"
+        message="A apresentação que você está procurando não existe ou o ID é inválido."
         buttons={[
           {
             text: texts.errorPages.notFound.button,
