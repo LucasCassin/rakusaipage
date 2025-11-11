@@ -64,7 +64,6 @@ async function query(queryObject) {
     return res;
   } catch (err) {
     const specificError = handleDatabaseError(err);
-    console.log(err);
     throw specificError;
   } finally {
     await client?.end();

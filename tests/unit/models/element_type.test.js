@@ -12,12 +12,12 @@ describe("Element Type Model", () => {
   describe("create()", () => {
     it("should create a new element type (e.g., Odaiko)", async () => {
       const data = {
-        name: "Odaiko",
+        name: "Odaiko2",
         image_url: "/icons/odaiko.svg",
       };
       const newType = await elementType.create(data);
       expect(newType.id).toBeDefined();
-      expect(newType.name).toBe("Odaiko");
+      expect(newType.name).toBe("Odaiko2");
       expect(newType.image_url).toBe("/icons/odaiko.svg");
     });
 

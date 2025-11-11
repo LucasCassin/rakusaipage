@@ -45,7 +45,7 @@ describe("Test /api/v1/element_groups/merge routes", () => {
       order: 1,
     });
     odaikoType = await elementType.create({
-      name: "Odaiko",
+      name: "Odaiko9",
       image_url: "/odaiko.svg",
     });
   });

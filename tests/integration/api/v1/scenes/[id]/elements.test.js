@@ -58,7 +58,7 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
       order: 1,
     });
     odaikoType = await elementType.create({
-      name: "Odaiko",
+      name: "Odaiko3",
       image_url: "/odaiko.svg",
     });
   });
@@ -93,9 +93,9 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
       // 2. Validar o 'scene_element' retornado
       expect(resBody.scene_id).toBe(testScene.id);
       expect(resBody.position_x).toBe(50.5);
-      expect(resBody.group_id).toBeDefined(); // Deve ter retornado o group_id
-      expect(resBody.display_name).toBeUndefined(); // Não deve estar mais aqui
-      expect(resBody.assigned_user_id).toBeUndefined(); // Não deve estar mais aqui
+      expect(resBody.group_id).toBeDefined();
+      expect(resBody.display_name).toBe("Renan");
+      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
 
       // 3. Foco em Testes: Validar a transação (checar o 'element_group' no banco)
       const groupRes = await database.query({

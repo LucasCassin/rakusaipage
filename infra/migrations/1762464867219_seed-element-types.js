@@ -1,28 +1,77 @@
-//
-const ICONS_PATH = "/images"; // Caminho base na pasta 'public'
-
+// 1. Definição do Array (como solicitado)
+// Adicionamos 'scale' e 'image_url_highlight'
 const elementTypes = [
-  { name: "Ōdaiko", image_url: `${ICONS_PATH}/Odaiko.svg` },
-  { name: "Shime-daiko", image_url: `${ICONS_PATH}/Shime.svg` },
-  { name: "Okedo", image_url: `${ICONS_PATH}/Okedo.svg` },
-  { name: "Pessoa", image_url: `${ICONS_PATH}/Person.svg` },
-  { name: "Katsugi", image_url: `${ICONS_PATH}/Katsugi.svg` },
-  { name: "Ippon", image_url: `${ICONS_PATH}/Ippon.svg` },
-  { name: "Shinobue", image_url: `${ICONS_PATH}/Shinobue.svg` },
-  { name: "Chappa", image_url: `${ICONS_PATH}/Chappa.svg` },
-  { name: "Palco", image_url: `${ICONS_PATH}/stage-line.svg` },
+  {
+    name: "Odaiko",
+    image_url: "/images/Okedo.svg",
+    scale: 1.3,
+    image_url_highlight: "/images/Shime.svg",
+  },
+  {
+    name: "Shime",
+    image_url: "/images/Okedo.svg",
+    scale: 0.7,
+    image_url_highlight: "/images/Shime.svg",
+  },
+  {
+    name: "Okedo",
+    image_url: "/images/Okedo.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/Shime.svg",
+  },
+  {
+    name: "Katsugi",
+    image_url: "/images/Katsugi.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/Katsugi.svg",
+  },
+  {
+    name: "Chappa",
+    image_url: "/images/Chappa.svg",
+    scale: 0.6,
+    image_url_highlight: "/images/Chappa.svg",
+  },
+  {
+    name: "Shinobue",
+    image_url: "/images/Shinobue.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/Shinobue.svg",
+  },
+  {
+    name: "Ippon",
+    image_url: "/images/Ippon.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/Ippon.svg",
+  },
+  {
+    name: "Person",
+    image_url: "/images/Person.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/Person.svg",
+  },
 ];
 
-exports.up = async (pgm) => {
-  // Usamos 'pgm.db.query' para um controle mais fácil do 'INSERT'
-  for (const type of elementTypes) {
-    await pgm.db.query(
-      `INSERT INTO element_types (name, image_url) VALUES ($1, $2)
-       ON CONFLICT (name) DO NOTHING;`, // Evita duplicatas se a migration rodar 2x
-      [type.name, type.image_url],
-    );
-  }
+exports.up = (pgm) => {
+  // 2. Mapear o array para a string de VALUES
+  const values = elementTypes
+    .map((type) => {
+      // Trata o 'null' para 'image_url_highlight'
+      const highlight = type.image_url_highlight
+        ? `'${type.image_url_highlight}'`
+        : "null";
+
+      return `('${type.name}', '${type.image_url}', ${type.scale}, ${highlight})`;
+    })
+    .join(",\n");
+
+  // 3. Executar o SQL
+  pgm.sql(`
+    INSERT INTO element_types 
+      (name, image_url, scale, image_url_highlight) 
+    VALUES
+      ${values}
+    ON CONFLICT (name) DO NOTHING;
+  `);
 };
 
-// Não há 'down' para um 'seed', pois não queremos deletar os ícones.
 exports.down = false;

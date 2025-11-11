@@ -166,12 +166,19 @@ async function findDeepById(presentation_id) {
   };
 
   // 3. Busca todos os elementos (de todas as cenas)
+  // --- (QUERY CORRIGIDA) ---
   const elementsQuery = {
     text: `
-      SELECT el.*, et.name as element_type_name, et.image_url
+      SELECT 
+        el.*, 
+        et.name as element_type_name, 
+        et.image_url,
+        eg.display_name,        -- (Dado do JOIN)
+        eg.assigned_user_id     -- (Dado do JOIN)
       FROM scene_elements el
       JOIN scenes s ON el.scene_id = s.id
       JOIN element_types et ON el.element_type_id = et.id
+      JOIN element_groups eg ON el.group_id = eg.id   -- (O JOIN que faltava)
       WHERE s.presentation_id = $1;
     `,
     values: [validatedId.presentation_id],
@@ -205,6 +212,8 @@ async function findDeepById(presentation_id) {
   const allSteps = stepsResult.rows;
 
   // 5. Junta o JSON (Nesting)
+  // (Esta lógica não precisa mudar, pois 'allElements' agora contém
+  // 'display_name' e 'assigned_user_id' graças ao JOIN)
   presentation.scenes = scenesResult.rows.map((scene) => {
     scene.scene_elements = allElements.filter((el) => el.scene_id === scene.id);
     scene.transition_steps = allSteps.filter((st) => st.scene_id === scene.id);
@@ -225,20 +234,28 @@ async function findElementPool(presentationId) {
     { presentation_id: "required" },
   );
 
-  // Foco da Mudança: A query agora busca em 'element_groups' (eg)
-  // e não mais em 'scene_elements' (se).
+  // --- (QUERY CORRIGIDA) ---
+  // Agora faz o JOIN com scene_elements e element_types
+  // para buscar o nome do tipo (ex: "Odaiko")
   const query = {
     text: `
       SELECT 
-        DISTINCT eg.display_name, 
+        DISTINCT 
+        eg.display_name, 
         eg.assigned_user_id, 
-        u.username 
+        u.username,
+        et.id AS element_type_id,
+        et.name AS element_type_name
       FROM 
         element_groups eg
       JOIN 
         scenes s ON eg.scene_id = s.id
       LEFT JOIN 
         users u ON eg.assigned_user_id = u.id
+      JOIN 
+        scene_elements se ON se.group_id = eg.id
+      JOIN 
+        element_types et ON se.element_type_id = et.id
       WHERE 
         s.presentation_id = $1 
         AND eg.display_name IS NOT NULL;
@@ -249,6 +266,11 @@ async function findElementPool(presentationId) {
   return results.rows;
 }
 
+/**
+ * Atualiza nomes/usuários globalmente
+ * (Esta função estava correta na última refatoração e
+ * depende da lógica Nome + Tipo de Instrumento)
+ */
 async function updateElementGlobally(presentation_id, data) {
   // Valida os IDs de contexto
   const validatedIds = validator(
@@ -262,7 +284,7 @@ async function updateElementGlobally(presentation_id, data) {
     },
   );
 
-  // Valida os dados (nomes) individualmente usando as regras do 'validator.js'
+  // Valida os dados (nomes)
   const validatedOldName = validator(
     { display_name: data.old_display_name },
     {
@@ -284,42 +306,53 @@ async function updateElementGlobally(presentation_id, data) {
     },
   );
 
-  // Encontra todos os scene_elements IDs que correspondem
+  // Encontra todos os 'element_groups' IDs que correspondem
+  // (Esta query está correta, pois filtra por display_name E element_type_id)
   const findQuery = {
     text: `
-      SELECT se.id FROM scene_elements se
-      JOIN scenes s ON se.scene_id = s.id
-      WHERE s.presentation_id = $1
-        AND se.element_type_id = $2
-        AND se.display_name = $3;
+      SELECT 
+        eg.id 
+      FROM 
+        element_groups eg
+      JOIN 
+        scenes s ON eg.scene_id = s.id
+      WHERE 
+        s.presentation_id = $1
+        AND eg.display_name = $2
+        AND EXISTS (
+          SELECT 1 
+          FROM scene_elements se 
+          WHERE se.group_id = eg.id 
+            AND se.element_type_id = $3
+        );
     `,
     values: [
       validatedIds.presentation_id,
+      validatedOldName.display_name,
       validatedIds.element_type_id,
-      validatedOldName.display_name, // Usa o valor validado
     ],
   };
 
-  const elementsToUpdate = await database.query(findQuery);
-  const elementIds = elementsToUpdate.rows.map((row) => row.id);
+  const groupsToUpdate = await database.query(findQuery);
+  const groupIds = groupsToUpdate.rows.map((row) => row.id);
 
-  if (elementIds.length === 0) {
+  if (groupIds.length === 0) {
     return { updatedCount: 0 };
   }
 
-  // Executa o update em massa
+  // Executa o update em massa na tabela 'element_groups'
   const updateQuery = {
     text: `
-      UPDATE scene_elements
+      UPDATE element_groups
       SET 
         display_name = $1,
         assigned_user_id = $2
       WHERE id = ANY($3::uuid[]);
     `,
     values: [
-      validatedNewName.display_name, // Usa o valor validado
-      validatedNewUserId.assigned_user_id || null, // Usa o valor validado
-      elementIds,
+      validatedNewName.display_name,
+      validatedNewUserId.assigned_user_id || null,
+      groupIds,
     ],
   };
 

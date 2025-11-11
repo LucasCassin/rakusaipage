@@ -43,7 +43,7 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
 
     // 4. Criar Tipos de Elementos
     odaikoType = await elementType.create({
-      name: "Odaiko",
+      name: "Odaiko5",
       image_url: "/odaiko.svg",
     });
 

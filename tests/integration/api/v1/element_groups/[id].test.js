@@ -53,7 +53,7 @@ describe("Test /api/v1/element_groups/[id] routes", () => {
       order: 1,
     });
     odaikoType = await elementType.create({
-      name: "Odaiko",
+      name: "Odaiko8",
       image_url: "/odaiko.svg",
     });
   });
