@@ -143,12 +143,21 @@ export function usePresentationEditor(presentationId) {
           router,
           setError: setCastError,
           onSuccess: async (newViewer) => {
+            // --- INÍCIO DA CORREÇÃO (Bug 5 - Confirmado pelo usuário) ---
             if (
               newViewer &&
               newViewer.message !== "Usuário já estava no elenco."
             ) {
+              // Como o 'newViewer' não tem 'username',
+              // devemos chamar 'fetchViewers()' para recarregar a lista
+              // (como você sugeriu).
+              await fetchViewers();
               return true;
             }
+            // (Opcional) Se o usuário já estava, também recarregamos
+            // para garantir que o estado está 100% sincronizado.
+            await fetchViewers();
+            // --- FIM DA CORREÇÃO ---
             return false;
           },
         });
@@ -157,7 +166,7 @@ export function usePresentationEditor(presentationId) {
         return false;
       }
     },
-    [presentationId, router, fetchViewers],
+    [presentationId, router, fetchViewers], // 'fetchViewers' já está nas dependências
   );
 
   const removeUserFromCast = useCallback(
