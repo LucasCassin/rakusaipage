@@ -82,6 +82,10 @@ export default function PresentationPage() {
 
   const { presentation, currentScene, currentSceneId, permissions } = editor;
 
+  const mainColumnClasses = editor.isEditorMode
+    ? "lg:col-span-2"
+    : "lg:col-span-3";
+
   return (
     <PageLayout
       title={presentation?.name || "Apresentação"}
@@ -101,7 +105,7 @@ export default function PresentationPage() {
         {/* --- 4. MUDANÇA PARA GRID RESPONSIVO --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
           {/* Coluna Principal (Conteúdo) */}
-          <div className="lg:col-span-2">
+          <div className={mainColumnClasses}>
             {/* Barra de Ferramentas (Admin) */}
             <AdminToolbar
               isEditorMode={editor.isEditorMode}
