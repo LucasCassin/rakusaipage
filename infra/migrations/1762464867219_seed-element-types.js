@@ -49,6 +49,12 @@ const elementTypes = [
     scale: 1.0,
     image_url_highlight: "/images/Person.svg",
   },
+  {
+    name: "Palco",
+    image_url: "/images/stage-line.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/stage-line.svg",
+  },
 ];
 
 exports.up = (pgm) => {
@@ -74,4 +80,9 @@ exports.up = (pgm) => {
   `);
 };
 
-exports.down = false;
+exports.down = (pgm) => {
+  pgm.sql(`
+    DELETE FROM element_types 
+    WHERE name IN (${elementTypes.map((type) => `'${type.name}'`).join(", ")});
+  `);
+};

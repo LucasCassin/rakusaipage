@@ -1,56 +1,44 @@
+import React, { useState } from "react"; // 1. IMPORTAR useState
 import { useRouter } from "next/router";
-import { useMemo } from "react";
-import { usePresentationEditor } from "src/hooks/usePresentationEditor";
-
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-
-import PageLayout from "components/layouts/PageLayout";
-import InitialLoading from "components/InitialLoading";
-import ErrorPage from "components/ui/ErrorPage";
+import { usePresentationEditor } from "src/hooks/usePresentationEditor"; //
+import PageLayout from "components/layouts/PageLayout"; //
+import ErrorPage from "components/ui/ErrorPage"; //
 import { texts } from "src/utils/texts";
+import InitialLoading from "components/InitialLoading";
+// Imports dos Componentes da Página
+import AdminToolbar from "components/presentation/AdminToolbar"; //
+import SceneSelector from "components/presentation/SceneSelector"; //
+import SceneListEditor from "components/presentation/SceneListEditor"; //
+import StageView from "components/presentation/StageView"; //
+import EditorPalette from "components/presentation/EditorPalette"; //
+import PrintablePresentation from "components/presentation/PrintablePresentation"; //
+// Imports dos Modais
+import SceneElementModal from "components/presentation/SceneElementModal"; //
+import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal"; //
+import CastManagerModal from "components/presentation/CastManagerModal"; //
+import ShareModal from "components/presentation/ShareModal"; //
+import SceneFormModal from "components/presentation/SceneFormModal"; //
+import DeleteSceneModal from "components/presentation/DeleteSceneModal"; //
+import TransitionStepModal from "components/presentation/TransitionStepModal"; //
+// 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
+import { FiChevronsUp, FiChevronsDown } from "react-icons/fi";
 
-import SceneSelector from "components/presentation/SceneSelector";
-import StageView from "components/presentation/StageView";
-import AdminToolbar from "components/presentation/AdminToolbar";
-import EditorPalette from "components/presentation/EditorPalette";
-import SceneElementModal from "components/presentation/SceneElementModal";
-
-import TransitionStepModal from "components/presentation/TransitionStepModal";
-import CastManagerModal from "components/presentation/CastManagerModal";
-import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal";
-import ShareModal from "components/presentation/ShareModal";
-import PrintablePresentation from "components/presentation/PrintablePresentation";
-import SceneListEditor from "components/presentation/SceneListEditor";
-import SceneFormModal from "components/presentation/SceneFormModal";
-import DeleteSceneModal from "components/presentation/DeleteSceneModal";
-
+/**
+ * A PÁGINA PRINCIPAL DO EDITOR DE MAPA DE PALCO
+ * (Refatorada para Layout Mobile-First)
+ */
 export default function PresentationPage() {
   const router = useRouter();
   const { id: presentationId } = router.query;
 
-  const {
-    presentation,
-    isLoading,
-    error,
-    user,
-    currentScene,
-    currentSceneId,
-    setCurrentSceneId,
-    isEditorMode,
-    setIsEditorMode,
-    permissions, // Contém as "chaves" (canCreateStep, etc.)
-    palette,
-    castHook,
-    modal, // Contém .openElement, .openStep, .saveStep, etc.
-    dropHandlers,
-    stepHandlers, // Contém .deleteStep
-    printHandlers,
-    reorderHandlers,
-  } = usePresentationEditor(presentationId);
+  const editor = usePresentationEditor(presentationId);
 
-  // ... (código de Loading e Erro permanece o mesmo) ...
-  if (isLoading || !router.isReady) {
+  // --- 3. ADICIONAR ESTADO PARA A GAVETA MOBILE ---
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const togglePalette = () => setIsPaletteOpen((prev) => !prev);
+  // --- FIM DA ADIÇÃO ---
+
+  if (editor.isLoading || !router.isReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <InitialLoading message="Carregando apresentação..." />
@@ -58,11 +46,13 @@ export default function PresentationPage() {
     );
   }
 
-  if (error) {
+  if (editor.error) {
     return (
       <ErrorPage
         title="Acesso Negado"
-        message={error || "Você não tem permissão para ver esta apresentação."}
+        message={
+          editor.error || "Você não tem permissão para ver esta apresentação."
+        }
         buttons={[
           {
             text: texts.errorPages.notFound.button,
@@ -74,7 +64,7 @@ export default function PresentationPage() {
     );
   }
 
-  if (!presentation) {
+  if (!editor.presentation) {
     return (
       <ErrorPage
         title="Apresentação Não Encontrada"
@@ -90,168 +80,174 @@ export default function PresentationPage() {
     );
   }
 
-  // 3. Estado de Sucesso
+  const { presentation, currentScene, currentSceneId, permissions } = editor;
+
   return (
-    // O DndProvider DEVE envolver TUDO
-    <DndProvider backend={HTML5Backend}>
-      <PageLayout
-        title={presentation?.name || "Apresentação"}
-        description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
-        maxWidth="max-w-7xl"
-      >
-        <div className="p-4">
-          <AdminToolbar
-            isEditorMode={isEditorMode}
-            onToggleEditorMode={() => setIsEditorMode(!isEditorMode)}
-            permissions={permissions}
-            onOpenCastModal={modal.openCast}
-            onOpenShareModal={modal.openShare}
-            onPrint={printHandlers.onPrint}
-          />
+    <PageLayout>
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Título (permanece igual) */}
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {presentation.name}
+        </h1>
+        <p className="text-lg text-gray-600 mb-6">
+          {presentation.description ||
+            "Use o editor abaixo para construir o mapa de palco."}
+        </p>
 
-          <div
-            className={`mt-6 grid grid-cols-1 ${
-              isEditorMode ? "lg:grid-cols-3" : "lg:grid-cols-1"
-            } gap-6`}
-          >
-            {/* O 'div' abaixo agora será 'lg:col-span-3' (full-width)
-              quando o editor estiver desligado, centralizando o conteúdo.
-            */}
-            <div className={isEditorMode ? "lg:col-span-2" : "lg:col-span-3"}>
-              <h1 className="text-3xl font-bold mb-2">
-                {presentation?.name || "Apresentação"}
-              </h1>
-              <p className="text-gray-600 mb-6">
-                {presentation?.description || null}
-              </p>
+        {/* --- 4. MUDANÇA PARA GRID RESPONSIVO --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
+          {/* Coluna Principal (Conteúdo) */}
+          <div className="lg:col-span-2">
+            {/* Barra de Ferramentas (Admin) */}
+            <AdminToolbar
+              isEditorMode={editor.isEditorMode}
+              onToggleEditorMode={() =>
+                editor.setIsEditorMode(!editor.isEditorMode)
+              }
+              permissions={permissions}
+              onOpenCastModal={editor.modal.openCast}
+              onOpenShareModal={editor.modal.openShare}
+              onPrint={editor.printHandlers.onPrint}
+            />
 
-              {isEditorMode ? (
-                <SceneListEditor
-                  scenes={presentation.scenes}
-                  currentSceneId={currentSceneId}
-                  permissions={permissions}
-                  onSelectScene={setCurrentSceneId}
-                  onAddScene={() => modal.openSceneForm("create")}
-                  onEditScene={(scene) => modal.openSceneForm("edit", scene)}
-                  onDeleteScene={modal.openDeleteScene}
-                  reorderHandlers={reorderHandlers} // <-- 2. CONECTADO
-                />
-              ) : (
-                <SceneSelector
-                  scenes={presentation.scenes}
-                  currentSceneId={currentSceneId}
-                  onSelectScene={setCurrentSceneId}
-                />
-              )}
-
-              <StageView
-                scene={currentScene}
-                loggedInUser={user}
-                isEditorMode={isEditorMode}
+            {/* Seletor de Cenas (Roteiro) */}
+            {editor.isEditorMode ? (
+              <SceneListEditor
+                scenes={presentation.scenes}
+                currentSceneId={currentSceneId}
                 permissions={permissions}
-                onPaletteDrop={dropHandlers.onPaletteDrop}
-                onElementMove={dropHandlers.onElementMove}
-                onElementClick={modal.openElement}
-                onAddStep={() => modal.openStep("create")}
-                onEditStep={(step) => modal.openStep("edit", step)}
-                onDeleteStep={stepHandlers.deleteStep}
-                onElementDelete={modal.deleteElement}
+                onSelectScene={editor.setCurrentSceneId}
+                onAddScene={() => editor.modal.openSceneForm("create")}
+                onEditScene={(scene) =>
+                  editor.modal.openSceneForm("edit", scene)
+                }
+                onDeleteScene={editor.modal.openDeleteScene}
+                reorderHandlers={editor.reorderHandlers}
               />
-            </div>
-
-            {isEditorMode && (
-              <aside className="lg:col-span-1">
-                <div className="sticky top-4">
-                  <h3 className="text-xl font-bold mb-4">
-                    Paleta de Elementos
-                  </h3>
-                  <EditorPalette palette={palette} />
-                </div>
-              </aside>
+            ) : (
+              <SceneSelector
+                scenes={presentation.scenes}
+                currentSceneId={currentSceneId}
+                onSelectScene={editor.setCurrentSceneId}
+              />
             )}
+
+            {/* O Palco (Mapa ou Checklist) */}
+            <StageView
+              scene={currentScene}
+              loggedInUser={editor.user}
+              isEditorMode={editor.isEditorMode}
+              permissions={permissions}
+              // Handlers do Mapa
+              onPaletteDrop={editor.dropHandlers.onPaletteDrop}
+              onElementMove={editor.dropHandlers.onElementMove}
+              onElementClick={editor.modal.openElement}
+              onElementDelete={editor.modal.deleteElement}
+              onElementMerge={editor.dropHandlers.onElementMerge}
+              // Handlers da Checklist
+              onAddStep={() => editor.modal.openStep("create")}
+              onEditStep={(step) => editor.modal.openStep("edit", step)}
+              onDeleteStep={editor.stepHandlers.deleteStep}
+            />
           </div>
+
+          {/* Coluna da Paleta (Desktop) / Gaveta (Mobile) */}
+          {/* 5. PASSAR AS NOVAS PROPS PARA A PALETA */}
+          {editor.isEditorMode && (
+            <EditorPalette
+              palette={editor.palette}
+              isPaletteOpen={isPaletteOpen}
+              onTogglePalette={togglePalette}
+            />
+          )}
         </div>
+        {/* --- FIM DA MUDANÇA PARA GRID --- */}
+      </div>
 
-        {/* O componente "fantasma" de impressão PODE ficar aqui dentro,
-          pois ele não é um overlay.
-        */}
-        <PrintablePresentation
-          ref={printHandlers.ref}
-          presentation={presentation}
-        />
-      </PageLayout>
+      {/* --- 6. BOTÃO FLUTUANTE (FAB) PARA A GAVETA MOBILE --- */}
+      {editor.isEditorMode && (
+        <button
+          type="button"
+          onClick={togglePalette}
+          className="lg:hidden fixed bottom-4 right-4 z-50 flex items-center justify-center w-16 h-16 bg-rakusai-purple rounded-full shadow-lg text-white"
+          aria-label={isPaletteOpen ? "Fechar Paleta" : "Abrir Paleta"}
+        >
+          {isPaletteOpen ? (
+            <FiChevronsDown className="w-8 h-8" />
+          ) : (
+            <FiChevronsUp className="w-8 h-8" />
+          )}
+        </button>
+      )}
+      {/* --- FIM DO BOTÃO FLUTUANTE --- */}
 
-      {/* --- MUDANÇA: MODAIS MOVIDOS PARA FORA DO PageLayout --- */}
-      {/* Isso corrige o bug do backdrop (Bug 1) e
-        também ajuda a previnir loops de renderização (como o de antes)
-      */}
-      {modal.isElementOpen && (
+      {/* Modais (Renderização Condicional) */}
+      {editor.modal.isElementOpen && (
         <SceneElementModal
-          modalData={modal.elementData}
-          cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
-          error={modal.elementError}
-          onClose={modal.closeElement}
-          onSubmit={modal.saveElement}
-          onDelete={modal.deleteElement} // <-- ADICIONADO
+          modalData={editor.modal.elementData}
+          cast={editor.castHook}
+          error={editor.modal.elementError}
+          onClose={editor.modal.closeElement}
+          onSubmit={editor.modal.saveElement}
+          onDelete={editor.modal.deleteElement}
         />
       )}
-
-      {modal.isStepOpen && (
-        <TransitionStepModal
-          modalData={modal.stepData}
-          cast={{ viewers: castHook.viewers, isLoading: castHook.isLoading }}
-          error={modal.stepError}
-          onClose={modal.closeStep}
-          onSubmit={modal.saveStep}
+      {editor.modal.isGlobalEditOpen && (
+        <ConfirmGlobalEditModal
+          modalData={editor.modal.globalEditData}
+          error={editor.modal.globalEditError}
+          onClose={editor.modal.closeGlobalEdit}
+          onUpdateLocal={editor.modal.updateLocally}
+          onUpdateGlobal={editor.modal.updateGlobally}
         />
       )}
-
-      {modal.isCastOpen && (
+      {editor.modal.isCastOpen && (
         <CastManagerModal
           presentation={presentation}
           permissions={permissions}
-          onClose={modal.closeCast}
-          castHook={castHook} // <-- Correto. Passa o objeto 'castHook' do 'usePE'
+          onClose={editor.modal.closeCast}
+          castHook={editor.castHook}
         />
       )}
-
-      {modal.isGlobalEditOpen && (
-        <ConfirmGlobalEditModal
-          modalData={modal.globalEditData}
-          error={modal.globalEditError}
-          onClose={modal.closeGlobalEdit}
-          onUpdateLocal={modal.updateLocally}
-          onUpdateGlobal={modal.updateGlobally}
-        />
-      )}
-
-      {modal.isShareOpen && (
+      {editor.modal.isShareOpen && (
         <ShareModal
           presentation={presentation}
-          error={modal.shareError}
-          onClose={modal.closeShare}
-          onSubmit={modal.savePublicStatus}
+          error={editor.modal.shareError}
+          onClose={editor.modal.closeShare}
+          onSubmit={editor.modal.savePublicStatus}
         />
       )}
-
-      {modal.isSceneFormOpen && (
+      {editor.modal.isSceneFormOpen && (
         <SceneFormModal
-          modalData={modal.sceneFormModalData}
-          error={modal.sceneFormModalError}
-          onClose={modal.closeSceneForm}
-          onSubmit={modal.saveScene}
+          modalData={editor.modal.sceneFormModalData}
+          error={editor.modal.sceneFormModalError}
+          onClose={editor.modal.closeSceneForm}
+          onSubmit={editor.modal.saveScene}
+        />
+      )}
+      {editor.modal.isDeleteSceneOpen && (
+        <DeleteSceneModal
+          scene={editor.modal.deleteSceneModalData?.scene}
+          error={editor.modal.deleteSceneModalError}
+          onClose={editor.modal.closeDeleteScene}
+          onDelete={editor.modal.deleteScene}
+        />
+      )}
+      {editor.modal.isStepOpen && (
+        <TransitionStepModal
+          modalData={editor.modal.stepData}
+          cast={editor.castHook}
+          error={editor.modal.stepError}
+          onClose={editor.modal.closeStep}
+          onSubmit={editor.modal.saveStep}
         />
       )}
 
-      {modal.isDeleteSceneOpen && (
-        <DeleteSceneModal
-          scene={modal.deleteSceneModalData?.scene}
-          error={modal.deleteSceneModalError}
-          onClose={modal.closeDeleteScene}
-          onDelete={modal.deleteScene}
-        />
-      )}
-      {/* --- FIM DA MUDANÇA --- */}
-    </DndProvider>
+      {/* Componente de Impressão (Escondido) */}
+      <PrintablePresentation
+        ref={editor.printHandlers.ref}
+        presentation={presentation}
+      />
+    </PageLayout>
   );
 }

@@ -175,4 +175,15 @@ exports.up = (pgm) => {
   });
 };
 
-exports.down = false;
+exports.down = (pgm) => {
+  pgm.dropTable("presentation_viewers");
+
+  pgm.dropTable("transition_steps");
+
+  pgm.dropTable("scene_elements");
+  pgm.dropTable("element_groups");
+  pgm.dropTable("element_types");
+  pgm.dropTable("scenes");
+  pgm.dropTable("presentations");
+  pgm.dropType("scene_type_enum");
+};
