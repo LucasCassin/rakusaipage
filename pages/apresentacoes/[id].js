@@ -83,7 +83,11 @@ export default function PresentationPage() {
   const { presentation, currentScene, currentSceneId, permissions } = editor;
 
   return (
-    <PageLayout>
+    <PageLayout
+      title={presentation?.name || "Apresentação"}
+      description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
+      maxWidth="max-w-7xl"
+    >
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Título (permanece igual) */}
         <h1 className="text-3xl font-bold text-gray-900 mb-2">

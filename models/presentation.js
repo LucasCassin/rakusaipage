@@ -236,9 +236,6 @@ async function findElementPool(presentationId) {
     { presentation_id: "required" },
   );
 
-  // --- (QUERY CORRIGIDA) ---
-  // Agora faz o JOIN com scene_elements e element_types
-  // para buscar o nome do tipo (ex: "Odaiko")
   const query = {
     text: `
       SELECT 
@@ -247,7 +244,11 @@ async function findElementPool(presentationId) {
         eg.assigned_user_id, 
         u.username,
         et.id AS element_type_id,
-        et.name AS element_type_name
+        et.name AS element_type_name,
+        et.image_url,
+        et.scale,
+        et.image_url_highlight
+
       FROM 
         element_groups eg
       JOIN 
