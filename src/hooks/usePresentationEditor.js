@@ -304,11 +304,22 @@ export function usePresentationEditor(presentationId) {
   const createElementApi = useCallback(
     async (body, isTemplate, visualData) => {
       const tempId = `temp-${Date.now()}`;
-      const fakeElement = {
+
+      // --- CORREÇÃO (Bug 1): Usar parseFloat ---
+      const optimisticBody = {
         ...body,
+        position_x: parseFloat(body.position_x),
+        position_y: parseFloat(body.position_y),
+      };
+      // --- FIM DA CORREÇÃO ---
+
+      const fakeElement = {
+        ...optimisticBody, // Usa o body corrigido
         id: tempId,
         element_type_name: visualData.element_type_name,
         image_url: visualData.image_url,
+        scale: visualData.scale,
+        image_url_highlight: visualData.image_url_highlight,
       };
 
       setPresentation((prevPresentation) => {
@@ -317,6 +328,9 @@ export function usePresentationEditor(presentationId) {
           (s) => s.id === currentSceneId,
         );
         if (!scene) return prevPresentation;
+        if (!scene.scene_elements) {
+          scene.scene_elements = [];
+        }
         scene.scene_elements.push(fakeElement);
         return newPresentation;
       });
@@ -329,7 +343,7 @@ export function usePresentationEditor(presentationId) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+            body: JSON.stringify(body), // Envia o 'body' original (com strings) para a API
           },
         );
 
@@ -341,10 +355,13 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: (realElement) => {
+            // A API retorna números, mas os dados visuais estão no fakeElement
             const finalElement = {
               ...realElement,
               image_url: fakeElement.image_url,
               element_type_name: fakeElement.element_type_name,
+              scale: fakeElement.scale,
+              image_url_highlight: fakeElement.image_url_highlight,
             };
             setPresentation((prevPresentation) => {
               const newPresentation = JSON.parse(
@@ -516,6 +533,13 @@ export function usePresentationEditor(presentationId) {
     async (elementId, position) => {
       if (!elementId || !position) return;
 
+      // --- CORREÇÃO (Bug 1): Usar parseFloat ---
+      const numericPosition = {
+        x: parseFloat(position.x.toFixed(2)),
+        y: parseFloat(position.y.toFixed(2)),
+      };
+      // --- FIM DA CORREÇÃO ---
+
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -524,14 +548,16 @@ export function usePresentationEditor(presentationId) {
         if (!scene) return prevPresentation;
         const element = scene.scene_elements.find((el) => el.id === elementId);
         if (!element) return prevPresentation;
-        element.position_x = position.x.toFixed(2);
-        element.position_y = position.y.toFixed(2);
+
+        // Salva como NÚMERO
+        element.position_x = numericPosition.x;
+        element.position_y = numericPosition.y;
         return newPresentation;
       });
 
       const body = {
-        position_x: position.x.toFixed(2),
-        position_y: position.y.toFixed(2),
+        position_x: numericPosition.x, // Envia o número (API aceita)
+        position_y: numericPosition.y,
       };
 
       try {

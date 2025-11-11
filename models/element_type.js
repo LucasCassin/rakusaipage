@@ -5,11 +5,18 @@ async function create(data) {
   const validatedData = validator(data, {
     name: "required",
     image_url: "required",
+    scale: "required",
+    image_url_highlight: "optional",
   });
 
   const query = {
-    text: `INSERT INTO element_types (name, image_url) VALUES ($1, $2) RETURNING *;`,
-    values: [validatedData.name, validatedData.image_url],
+    text: `INSERT INTO element_types (name, image_url, scale, image_url_highlight) VALUES ($1, $2) RETURNING *;`,
+    values: [
+      validatedData.name,
+      validatedData.image_url,
+      validatedData.scale,
+      validatedData.image_url_highlight || validatedData.image_url,
+    ],
   };
   const results = await database.query(query);
   return results.rows[0];

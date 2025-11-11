@@ -173,8 +173,10 @@ async function findDeepById(presentation_id) {
         el.*, 
         et.name as element_type_name, 
         et.image_url,
-        eg.display_name,        -- (Dado do JOIN)
-        eg.assigned_user_id     -- (Dado do JOIN)
+        et.scale,
+        et.image_url_highlight,
+        eg.display_name,        
+        eg.assigned_user_id
       FROM scene_elements el
       JOIN scenes s ON el.scene_id = s.id
       JOIN element_types et ON el.element_type_id = et.id

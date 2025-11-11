@@ -745,7 +745,31 @@ const schemas = {
         }),
     }),
 
+  scale: () =>
+    // Para escala
+    Joi.object({
+      scale: Joi.number().precision(2).min(0).max(100).when("$required.scale", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   image_url: () =>
+    // URL para imagens de ícones
+    Joi.object({
+      image_url: Joi.string()
+        .trim()
+        .min(5)
+        .max(500)
+        .when("$required.image_url", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  image_url_highlight: () =>
     // URL para imagens de ícones
     Joi.object({
       image_url: Joi.string()

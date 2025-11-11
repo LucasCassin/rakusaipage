@@ -1,13 +1,12 @@
 import React from "react";
 import Image from "next/image";
-// 1. IMPORTAR 'useDrop'
 import { useDrag, useDrop } from "react-dnd";
 import { ItemTypes } from "./ItemTypes";
 
 /**
- * Renderiza um único elemento (ícone + nome) no mapa de palco.
+ * Renderiza um único elemento (ícone) no mapa de palco.
  * ATUALIZADO:
- * 1. Usa 'scale' e 'image_url_highlight'.
+ * 1. Não renderiza mais o 'display_name'. (Isso agora é feito pelo FormationMap)
  * 2. É um 'useDrag' (para mover).
  * 3. É um 'useDrop' (para fundir/agrupar).
  */
@@ -16,7 +15,7 @@ export default function StageElement({
   loggedInUser,
   isEditorMode,
   onClick,
-  onElementMerge, // <-- 2. RECEBER A PROP DE MERGE
+  onElementMerge,
 }) {
   const isHighlighted =
     loggedInUser && element.assigned_user_id === loggedInUser.id;
@@ -35,7 +34,7 @@ export default function StageElement({
       item: {
         type: ItemTypes.STAGE_ELEMENT,
         id: element.id,
-        group_id: element.group_id, // Passa o group_id
+        group_id: element.group_id,
         x: element.position_x,
         y: element.position_y,
       },
@@ -53,18 +52,15 @@ export default function StageElement({
     ],
   );
 
-  // --- 3. ADICIONAR O 'useDrop' PARA FUNDIR ---
   const [{ isOver }, drop] = useDrop(
     () => ({
-      accept: ItemTypes.STAGE_ELEMENT, // Só aceita outros elementos do palco
+      accept: ItemTypes.STAGE_ELEMENT,
       drop: (droppedItem, monitor) => {
-        // 'droppedItem' é o item que está sendo arrastado (dragged)
-        // 'element' é o item que está recebendo (target)
         if (onElementMerge && element.id !== droppedItem.id) {
           onElementMerge(element, droppedItem); // (target, dragged)
         }
       },
-      canDrop: (droppedItem) => isEditorMode && element.id !== droppedItem.id, // Não pode dropar em si mesmo
+      canDrop: (droppedItem) => isEditorMode && element.id !== droppedItem.id,
       collect: (monitor) => ({
         isOver:
           isEditorMode &&
@@ -72,9 +68,8 @@ export default function StageElement({
           !!monitor.isOver({ shallow: true }),
       }),
     }),
-    [isEditorMode, onElementMerge, element], // Adicionar 'element' e 'onElementMerge'
+    [isEditorMode, onElementMerge, element],
   );
-  // --- FIM DA ADIÇÃO ---
 
   const handleClick = (e) => {
     if (isDragging) {
@@ -86,14 +81,13 @@ export default function StageElement({
     }
   };
 
-  // Feedback visual quando um item está prestes a ser agrupado
   const mergeHoverClasses =
     isOver && !isDragging
-      ? "ring-8 ring-rakusai-purple ring-inset animate-pulse" // Anel roxo para merge
+      ? "ring-8 ring-rakusai-purple ring-inset animate-pulse"
       : "";
 
   return (
-    // 4. COMBINAR OS REFS 'drag' E 'drop'
+    // O 'div' principal agora combina 'drag' e 'drop'
     <div
       ref={(node) => drag(drop(node))}
       onClick={handleClick}
@@ -101,7 +95,7 @@ export default function StageElement({
         ${isEditorMode ? "cursor-move" : ""}
         ${isDragging ? "opacity-30" : "opacity-100"}
         ${isEditorMode && !isDragging ? "hover:scale-110 transition-transform hover:cursor-pointer" : ""} 
-        ${mergeHoverClasses} // Adiciona o feedback de merge
+        ${mergeHoverClasses}
       `}
       style={{
         left: `${element.position_x}%`,
@@ -122,15 +116,10 @@ export default function StageElement({
         />
       </div>
 
-      {element.display_name && (
-        <span
-          className={`mt-2 px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow ${
-            isHighlighted ? "bg-rakusai-pink" : "bg-gray-800 bg-opacity-80"
-          }`}
-        >
-          {element.display_name}
-        </span>
-      )}
+      {/* --- (REMOÇÃO) ---
+      A lógica de 'display_name' foi removida daqui
+      e movida para o 'FormationMap'.
+      --- (FIM DA REMOÇÃO) --- */}
     </div>
   );
 }
