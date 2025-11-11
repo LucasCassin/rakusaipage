@@ -987,9 +987,81 @@ export function usePresentationEditor(presentationId) {
       refetchPresentationData(); // Reverte em caso de erro grave
     }
   }, [presentation, presentationId, refetchPresentationData]);
-  // --- FIM DA MUDANÇA ---
 
-  // --- O Objeto de Retorno (Memoizado) ---
+  const mergeElements = useCallback(
+    async (targetElement, draggedElement) => {
+      // Impede a fusão de um item nele mesmo
+      if (
+        !targetElement ||
+        !draggedElement ||
+        targetElement.group_id === draggedElement.group_id
+      ) {
+        return;
+      }
+
+      const payload = {
+        targetGroupId: targetElement.group_id,
+        sourceGroupId: draggedElement.group_id,
+      };
+
+      // --- ATUALIZAÇÃO OTIMISTA ---
+      // Remove o elemento arrastado (draggedElement) da cena localmente,
+      // pois ele foi "absorvido".
+      setPresentation((prevPresentation) => {
+        const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
+        const scene = newPresentation.scenes.find(
+          (s) => s.id === currentSceneId,
+        );
+        if (!scene) return prevPresentation;
+
+        scene.scene_elements = scene.scene_elements.filter(
+          (el) => el.id !== draggedElement.id,
+        );
+        return newPresentation;
+      });
+      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
+
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.ELEMENT_GROUPS}/merge`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        // O 'handleApiResponse' cuidará de erros (4xx, 5xx)
+        // Usamos 'refetchPresentationData' em AMBOS os casos (sucesso ou erro)
+        // para garantir que a UI reflita 100% o estado do banco.
+        // (O 'onSuccess' poderia ser mais otimista, mas 'refetch' é mais seguro
+        // para garantir que o pool de nomes seja atualizado).
+        await handleApiResponse({
+          response,
+          router,
+          setError: (msg) => {
+            console.error("Erro ao fundir elementos, revertendo:", msg);
+            refetchPresentationData();
+          },
+          onSuccess: () => {
+            refetchPresentationData(); // Busca o estado final do backend
+            fetchPool(); // Atualiza o pool (pois o nome do grupo pode ter mudado)
+          },
+        });
+      } catch (e) {
+        console.error("Erro de conexão ao fundir elementos:", e);
+        refetchPresentationData(); // Reverte
+      }
+    },
+    [
+      router,
+      refetchPresentationData,
+      currentSceneId,
+      setPresentation,
+      fetchPool,
+    ],
+  );
+
   return {
     // Dados de Leitura
     presentation,
@@ -1070,6 +1142,7 @@ export function usePresentationEditor(presentationId) {
     dropHandlers: {
       onPaletteDrop: handlePaletteDrop,
       onElementMove: moveElement,
+      onElementMerge: mergeElements,
     },
     // Handlers de Passo
     stepHandlers: {

@@ -10,16 +10,17 @@ export default function StageView({
   scene,
   loggedInUser,
   isEditorMode,
-  permissions, // <-- 1. NOVA PROP
+  permissions,
   // Props do Mapa (Formação)
   onPaletteDrop,
   onElementMove,
   onElementClick,
   onElementDelete,
+  onElementMerge, // <-- 1. ADICIONAR NOVA PROP AQUI
   // Props da Checklist (Transição)
-  onAddStep, // <-- 2. NOVA PROP (chama modal.openStep)
-  onEditStep, // <-- 3. NOVA PROP (chama modal.openStep)
-  onDeleteStep, // <-- 4. NOVA PROP (chama stepHandlers.deleteStep)
+  onAddStep,
+  onEditStep,
+  onDeleteStep,
 }) {
   // Estado de segurança caso 'scene' ainda não esteja carregada
   if (!scene) {
@@ -41,7 +42,7 @@ export default function StageView({
           onElementMove={onElementMove}
           onElementClick={onElementClick}
           onElementDelete={onElementDelete}
-          // (permissions não é necessário no mapa, pois os handlers já vêm do hook)
+          onElementMerge={onElementMerge} // <-- 2. PASSAR A PROP PARA O MAPA
         />
       )}
 
@@ -49,11 +50,11 @@ export default function StageView({
         <TransitionChecklist
           steps={scene.transition_steps}
           loggedInUser={loggedInUser}
-          isEditorMode={isEditorMode} // <-- PASSAR PROP
-          permissions={permissions} // <-- PASSAR PROP
-          onAddStep={onAddStep} // <-- PASSAR PROP
-          onEditStep={onEditStep} // <-- PASSAR PROP
-          onDeleteStep={onDeleteStep} // <-- PASSAR PROP
+          isEditorMode={isEditorMode}
+          permissions={permissions}
+          onAddStep={onAddStep}
+          onEditStep={onEditStep}
+          onDeleteStep={onDeleteStep}
         />
       )}
     </div>

@@ -30,6 +30,7 @@ export const settings = {
         SCENE_ELEMENTS: "/api/v1/scene_elements",
         TRANSITION_STEPS: "/api/v1/transition_steps",
         ELEMENT_TYPES: "/api/v1/element-types",
+        ELEMENT_GROUPS: "/api/v1/element_groups",
       },
     },
     REDIRECTS: {

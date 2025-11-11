@@ -15,45 +15,37 @@ export default function FormationMap({
   onElementMove,
   onElementClick,
   onElementDelete,
+  onElementMerge, // <-- 1. RECEBER A NOVA PROP
   isEditorMode,
 }) {
   const mapRef = useRef(null);
 
-  // --- 2. ATUALIZAR O useDrop ---
   const [{ isOver }, drop] = useDrop(
     () => ({
-      // Aceita AMBOS os tipos
       accept: [ItemTypes.PALETTE_ITEM, ItemTypes.STAGE_ELEMENT],
-
       drop: (item, monitor) => {
         if (!isEditorMode || !mapRef.current) return;
 
-        // Calcula a posição x/y (mesma lógica)
         const offset = monitor.getClientOffset();
         const mapRect = mapRef.current.getBoundingClientRect();
         const x = ((offset.x - mapRect.left) / mapRect.width) * 100;
         const y = ((offset.y - mapRect.top) / mapRect.height) * 100;
 
-        // --- Lógica de Roteamento ---
         const itemType = monitor.getItemType();
 
         if (itemType === ItemTypes.PALETTE_ITEM && onPaletteDrop) {
-          // Soltou um item NOVO da paleta
           onPaletteDrop(item, { x, y });
         } else if (itemType === ItemTypes.STAGE_ELEMENT && onElementMove) {
-          // Moveu um item QUE JÁ ESTAVA no palco
           onElementMove(item.id, { x, y });
         }
       },
-
       canDrop: () => isEditorMode,
       collect: (monitor) => ({
         isOver: !!monitor.isOver() && isEditorMode,
       }),
     }),
     [isEditorMode, onPaletteDrop, onElementMove],
-  ); // <-- 3. ADICIONAR DEPENDÊNCIA
-  // --- FIM DA ATUALIZAÇÃO ---
+  );
 
   const combinedRef = (node) => {
     mapRef.current = node;
@@ -63,7 +55,6 @@ export default function FormationMap({
   return (
     <div
       ref={combinedRef}
-      // --- MUDANÇA: Estilos do Fundo ---
       className={`relative w-full min-h-[500px] h-full
         bg-white
         border border-gray-300
@@ -72,7 +63,6 @@ export default function FormationMap({
         ${isEditorMode ? "cursor-move" : ""}
         ${isOver ? "ring-4 ring-rakusai-pink-light ring-inset" : ""} 
       `}
-      // --- FIM DA MUDANÇA ---
     >
       {elements.map((element) => {
         if (element.element_type_name === "Palco") {
@@ -94,6 +84,7 @@ export default function FormationMap({
             loggedInUser={loggedInUser}
             isEditorMode={isEditorMode}
             onClick={onElementClick}
+            onElementMerge={onElementMerge} // <-- 2. PASSAR A PROP PARA O ELEMENTO
           />
         );
       })}
