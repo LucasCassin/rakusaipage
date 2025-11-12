@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { useRouter } from "next/navigation"; // <-- CORREÇÃO: Usar 'next/navigation'
+import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
-// REMOVIDO: import { usePresentationCast } from "./usePresentationCast";
 
 export function usePresentationEditor(presentationId) {
-  const router = useRouter(); // <-- CORREÇÃO: Este router é estável
+  const router = useRouter();
 
   const {
     presentation,
@@ -18,23 +17,19 @@ export function usePresentationEditor(presentationId) {
     fetchData: refetchPresentationData,
   } = usePresentation(presentationId);
 
-  // --- Estados do Editor ---
   const [isEditorMode, setIsEditorMode] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState(null);
 
-  // --- Estados da Paleta ---
   const [pool, setPool] = useState([]);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [elementTypes, setElementTypes] = useState([]);
   const [isLoadingElementTypes, setIsLoadingElementTypes] = useState(false);
   const [hasFetchedPaletteData, setHasFetchedPaletteData] = useState(false);
 
-  // --- O "CÉREBRO" É O DONO DO ELENCO (Lógica movida para cá) ---
   const [viewers, setViewers] = useState([]);
   const [isLoadingViewers, setIsLoadingViewers] = useState(true);
   const [castError, setCastError] = useState(null);
 
-  // --- Estados dos Modais ---
   const [isElementModalOpen, setIsElementModalOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [modalError, setModalError] = useState(null);
@@ -59,16 +54,13 @@ export function usePresentationEditor(presentationId) {
   const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
   const [deleteSceneModalData, setDeleteSceneModalData] = useState(null);
   const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
-  // (os 'castTriggers' não são mais necessários)
 
-  // --- Referência de Impressão ---
   const componentToPrintRef = useRef(null);
   const handlePrint = useReactToPrint({
     content: () => componentToPrintRef.current,
     documentTitle: presentation?.name || "Apresentação Rakusai",
   });
 
-  // --- Lógica de Cena ---
   useEffect(() => {
     if (
       presentation?.scenes &&
@@ -84,7 +76,6 @@ export function usePresentationEditor(presentationId) {
     return presentation.scenes.find((s) => s.id === currentSceneId);
   }, [presentation, currentSceneId]);
 
-  // --- Lógica de Permissões ---
   const permissions = useMemo(
     () => ({
       canEdit: user?.features.includes("update:presentation") || false,
@@ -100,7 +91,6 @@ export function usePresentationEditor(presentationId) {
     [user],
   );
 
-  // --- LÓGICA DO ELENCO (Agora vive aqui) ---
   const fetchViewers = useCallback(async () => {
     if (!presentationId || !permissions.canReadCast) {
       setIsLoadingViewers(false);
@@ -143,21 +133,16 @@ export function usePresentationEditor(presentationId) {
           router,
           setError: setCastError,
           onSuccess: async (newViewer) => {
-            // --- INÍCIO DA CORREÇÃO (Bug 5 - Confirmado pelo usuário) ---
             if (
               newViewer &&
               newViewer.message !== "Usuário já estava no elenco."
             ) {
-              // Como o 'newViewer' não tem 'username',
-              // devemos chamar 'fetchViewers()' para recarregar a lista
-              // (como você sugeriu).
               await fetchViewers();
               return true;
             }
-            // (Opcional) Se o usuário já estava, também recarregamos
-            // para garantir que o estado está 100% sincronizado.
+
             await fetchViewers();
-            // --- FIM DA CORREÇÃO ---
+
             return false;
           },
         });
@@ -166,7 +151,7 @@ export function usePresentationEditor(presentationId) {
         return false;
       }
     },
-    [presentationId, router, fetchViewers], // 'fetchViewers' já está nas dependências
+    [presentationId, router, fetchViewers],
   );
 
   const removeUserFromCast = useCallback(
@@ -191,7 +176,6 @@ export function usePresentationEditor(presentationId) {
     [presentationId, router, fetchViewers],
   );
 
-  // --- Funções de API da Paleta ---
   const fetchPool = useCallback(async () => {
     if (!presentationId || !permissions.canEdit) return;
     setIsLoadingPool(true);
@@ -236,7 +220,6 @@ export function usePresentationEditor(presentationId) {
     }
   }, [permissions.canEdit, router]);
 
-  // Efeito para buscar os dados da paleta E o elenco UMA VEZ
   useEffect(() => {
     if (isEditorMode && !hasFetchedPaletteData && permissions.canEdit) {
       fetchPool();
@@ -256,7 +239,6 @@ export function usePresentationEditor(presentationId) {
     fetchViewers,
   ]);
 
-  // --- Funções do Modal de Elemento (Mapa) ---
   const closeElementModal = () => {
     setIsElementModalOpen(false);
     setModalData(null);
@@ -295,26 +277,23 @@ export function usePresentationEditor(presentationId) {
       assigned_user_id: element.assigned_user_id,
       element_type_id: element.element_type_id,
       element_type_name: element.element_type_name,
-      image_url: element.image_url, // (Para a correção do bug 'some-ícone')
+      image_url: element.image_url,
     });
     setIsElementModalOpen(true);
   };
 
-  // API: Criar Elemento (Otimista)
   const createElementApi = useCallback(
     async (body, isTemplate, visualData) => {
       const tempId = `temp-${Date.now()}`;
 
-      // --- CORREÇÃO (Bug 1): Usar parseFloat ---
       const optimisticBody = {
         ...body,
         position_x: parseFloat(body.position_x),
         position_y: parseFloat(body.position_y),
       };
-      // --- FIM DA CORREÇÃO ---
 
       const fakeElement = {
-        ...optimisticBody, // Usa o body corrigido
+        ...optimisticBody,
         id: tempId,
         element_type_name: visualData.element_type_name,
         image_url: visualData.image_url,
@@ -343,7 +322,7 @@ export function usePresentationEditor(presentationId) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body), // Envia o 'body' original (com strings) para a API
+            body: JSON.stringify(body),
           },
         );
 
@@ -355,7 +334,6 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: (realElement) => {
-            // A API retorna números, mas os dados visuais estão no fakeElement
             const finalElement = {
               ...realElement,
               image_url: fakeElement.image_url,
@@ -396,7 +374,6 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
-  // Função "Roteadora" (Salvar do Modal de Elemento)
   const saveElement = useCallback(
     async (formData) => {
       setModalError(null);
@@ -417,8 +394,8 @@ export function usePresentationEditor(presentationId) {
           element_type_id: formData.element_type_id,
           display_name: newName || null,
           assigned_user_id: newUserId || null,
-          position_x: (formData.position?.x || 50).toFixed(2),
-          position_y: (formData.position?.y || 50).toFixed(2),
+          position_x: (formData.position?.x || 50).toFixed(4),
+          position_y: (formData.position?.y || 50).toFixed(4),
         };
         const visualData = {
           isTemplate: formData.isTemplate,
@@ -454,7 +431,6 @@ export function usePresentationEditor(presentationId) {
     [modalData, currentSceneId, createElementApi],
   );
 
-  // API: Atualizar Local
   const updateElementLocally = useCallback(async () => {
     setGlobalEditError(null);
     try {
@@ -481,7 +457,6 @@ export function usePresentationEditor(presentationId) {
     }
   }, [router, refetchPresentationData, globalEditData]);
 
-  // API: Atualizar Global
   const updateElementGlobally = useCallback(async () => {
     setGlobalEditError(null);
     const body = {
@@ -528,17 +503,14 @@ export function usePresentationEditor(presentationId) {
     setGlobalEditError(null);
   };
 
-  // API: Mover Elemento (Otimista)
   const moveElement = useCallback(
     async (elementId, position) => {
       if (!elementId || !position) return;
 
-      // --- CORREÇÃO (Bug 1): Usar parseFloat ---
       const numericPosition = {
-        x: parseFloat(position.x.toFixed(2)),
-        y: parseFloat(position.y.toFixed(2)),
+        x: parseFloat(position.x.toFixed(4)),
+        y: parseFloat(position.y.toFixed(4)),
       };
-      // --- FIM DA CORREÇÃO ---
 
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
@@ -549,14 +521,13 @@ export function usePresentationEditor(presentationId) {
         const element = scene.scene_elements.find((el) => el.id === elementId);
         if (!element) return prevPresentation;
 
-        // Salva como NÚMERO
         element.position_x = numericPosition.x;
         element.position_y = numericPosition.y;
         return newPresentation;
       });
 
       const body = {
-        position_x: numericPosition.x, // Envia o número (API aceita)
+        position_x: numericPosition.x,
         position_y: numericPosition.y,
       };
 
@@ -576,9 +547,7 @@ export function usePresentationEditor(presentationId) {
             console.error("Erro ao mover elemento, revertendo:", err.message);
             refetchPresentationData();
           },
-          onSuccess: () => {
-            // Não faz nada (otimista)
-          },
+          onSuccess: () => {},
         });
       } catch (e) {
         console.error("Erro de conexão ao mover elemento:", e);
@@ -588,7 +557,6 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData, currentSceneId, setPresentation],
   );
 
-  // API: Deletar Elemento (Otimista)
   const deleteElement = useCallback(
     async (elementId) => {
       setModalError(null);
@@ -619,7 +587,7 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: () => {
-            fetchPool(); // Atualiza o pool
+            fetchPool();
           },
         });
       } catch (e) {
@@ -636,7 +604,6 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
-  // --- Funções do Modal de Passo (Checklist) ---
   const openStepModal = (mode, step = null) => {
     setStepModalData({ mode, step });
     setIsStepModalOpen(true);
@@ -649,7 +616,6 @@ export function usePresentationEditor(presentationId) {
     setStepModalError(null);
   };
 
-  // API: Salvar Passo
   const saveStep = useCallback(
     async (formData) => {
       setStepModalError(null);
@@ -657,8 +623,8 @@ export function usePresentationEditor(presentationId) {
       const isCreateMode = mode === "create";
 
       const sceneId = currentSceneId;
-      let tempId = null; // Para o 'create' otimista
-      let optimisticStep; // O "fantasma"
+      let tempId = null;
+      let optimisticStep;
 
       let body, method, url;
 
@@ -674,18 +640,16 @@ export function usePresentationEditor(presentationId) {
         url = `${settings.global.API.ENDPOINTS.SCENES}/${sceneId}/steps`;
         optimisticStep = { ...body, id: tempId };
       } else {
-        // Modo Edição
         body = {
           description: formData.description,
           assigned_user_id: formData.assigned_user_id || null,
-          order: formData.order, // (Vem do estado do formulário)
+          order: formData.order,
         };
         method = "PATCH";
         url = `${settings.global.API.ENDPOINTS.TRANSITION_STEPS}/${step.id}`;
         optimisticStep = { ...step, ...body };
       }
 
-      // --- ATUALIZAÇÃO OTIMISTA (LOCAL) ---
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find((s) => s.id === sceneId);
@@ -705,7 +669,6 @@ export function usePresentationEditor(presentationId) {
       });
 
       closeStepModal();
-      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
 
       try {
         const response = await fetch(url, {
@@ -719,10 +682,9 @@ export function usePresentationEditor(presentationId) {
           router,
           setError: (msg) => {
             console.error("Erro ao salvar passo, revertendo:", msg);
-            refetchPresentationData(); // Reverte em caso de erro
+            refetchPresentationData();
           },
           onSuccess: (realStep) => {
-            // SUCESSO. Troca o "fantasma" (se for 'create')
             setPresentation((prevPresentation) => {
               const newPresentation = JSON.parse(
                 JSON.stringify(prevPresentation),
@@ -754,36 +716,29 @@ export function usePresentationEditor(presentationId) {
       currentSceneId,
       currentScene,
       stepModalData,
-      setPresentation, // <-- Adicionado
+      setPresentation,
     ],
   );
 
-  // API: Deletar Passo (OTIMISTA E COM RE-INDEXAÇÃO)
   const deleteStep = useCallback(
     async (stepId) => {
-      const sceneId = currentSceneId; // Pega a cena atual
+      const sceneId = currentSceneId;
 
-      // --- ATUALIZAÇÃO OTIMISTA (LOCAL) ---
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find((s) => s.id === sceneId);
         if (!scene) return prevPresentation;
 
-        // 1. Filtra o passo deletado
         scene.transition_steps = scene.transition_steps.filter(
           (s) => s.id !== stepId,
         );
 
-        // --- MUDANÇA (CORREÇÃO DO BUG DE ORDEM) ---
-        // 2. Re-indexa a 'order' dos passos restantes
         scene.transition_steps.forEach((step, index) => {
           step.order = index;
         });
-        // --- FIM DA MUDANÇA ---
 
         return newPresentation;
       });
-      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
 
       try {
         const response = await fetch(
@@ -796,13 +751,9 @@ export function usePresentationEditor(presentationId) {
           router,
           setError: (msg) => {
             console.error("Erro ao deletar passo, revertendo:", msg);
-            refetchPresentationData(); // Reverte
+            refetchPresentationData();
           },
-          onSuccess: () => {
-            // Não faz nada, a UI (com re-indexação) já foi atualizada
-            // (Para 100% de correção, deveríamos chamar uma API de re-ordenação,
-            // mas o refetch() resolveria isso se a UI não fosse otimista)
-          },
+          onSuccess: () => {},
         });
       } catch (e) {
         console.error("Erro de conexão ao deletar passo, revertendo:", e);
@@ -812,7 +763,6 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData, currentSceneId, setPresentation],
   );
 
-  // --- Funções do Modal de Elenco (Cast) ---
   const openCastModal = () => {
     setIsCastModalOpen(true);
   };
@@ -821,7 +771,6 @@ export function usePresentationEditor(presentationId) {
     setIsCastModalOpen(false);
   };
 
-  // --- Funções do Modal de Compartilhamento ---
   const openShareModal = () => {
     setIsShareModalOpen(true);
     setShareModalError(null);
@@ -832,7 +781,6 @@ export function usePresentationEditor(presentationId) {
     setShareModalError(null);
   };
 
-  // API: Salvar Status Público
   const setPresentationPublicStatus = useCallback(
     async (isPublic) => {
       setShareModalError(null);
@@ -862,7 +810,6 @@ export function usePresentationEditor(presentationId) {
     [router, refetchPresentationData, presentationId],
   );
 
-  // --- MUDANÇA: Novas Funções do Modal de CENA ---
   const openSceneFormModal = (mode, scene = null) => {
     setSceneFormModalData({ mode, scene });
     setIsSceneFormModalOpen(true);
@@ -887,7 +834,6 @@ export function usePresentationEditor(presentationId) {
     setDeleteSceneModalError(null);
   };
 
-  // API: Salvar Cena (Criar/Atualizar)
   const saveScene = useCallback(
     async (formData) => {
       setSceneFormModalError(null);
@@ -948,7 +894,6 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
-  // API: Deletar Cena
   const deleteScene = useCallback(async () => {
     if (!deleteSceneModalData?.scene) return;
     setDeleteSceneModalError(null);
@@ -982,12 +927,10 @@ export function usePresentationEditor(presentationId) {
         const newPresentation = { ...prev };
         const newScenes = [...newPresentation.scenes];
 
-        // Remove a cena da posição antiga
         const [draggedScene] = newScenes.splice(dragIndex, 1);
-        // Insere na nova posição
+
         newScenes.splice(hoverIndex, 0, draggedScene);
 
-        // Atualiza o campo 'order' localmente para manter consistência
         newScenes.forEach((scene, index) => {
           scene.order = index;
         });
@@ -999,9 +942,7 @@ export function usePresentationEditor(presentationId) {
     [setPresentation],
   );
 
-  // API: Salvar Ordem das Cenas (chamado no 'onDrop')
   const saveSceneOrder = useCallback(async () => {
-    // Pega a ordem atual do estado (que já foi atualizado otimisticamente)
     if (!presentation?.scenes) return;
     const sceneIds = presentation.scenes.map((s) => s.id);
 
@@ -1014,18 +955,14 @@ export function usePresentationEditor(presentationId) {
           body: JSON.stringify({ scene_ids: sceneIds }),
         },
       );
-      // Não precisamos de 'handleApiResponse' completo aqui,
-      // pois se falhar silenciosamente, o próximo 'refetch' corrige.
-      // Ou podemos adicionar um 'toast' de erro se você tiver um sistema de toast.
     } catch (e) {
       console.error("Erro ao salvar ordem das cenas:", e);
-      refetchPresentationData(); // Reverte em caso de erro grave
+      refetchPresentationData();
     }
   }, [presentation, presentationId, refetchPresentationData]);
 
   const mergeElements = useCallback(
     async (targetElement, draggedElement) => {
-      // Impede a fusão de um item nele mesmo
       if (
         !targetElement ||
         !draggedElement ||
@@ -1039,9 +976,6 @@ export function usePresentationEditor(presentationId) {
         sourceGroupId: draggedElement.group_id,
       };
 
-      // --- ATUALIZAÇÃO OTIMISTA ---
-      // Remove o elemento arrastado (draggedElement) da cena localmente,
-      // pois ele foi "absorvido".
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -1054,7 +988,6 @@ export function usePresentationEditor(presentationId) {
         );
         return newPresentation;
       });
-      // --- FIM DA ATUALIZAÇÃO OTIMISTA ---
 
       try {
         const response = await fetch(
@@ -1066,11 +999,6 @@ export function usePresentationEditor(presentationId) {
           },
         );
 
-        // O 'handleApiResponse' cuidará de erros (4xx, 5xx)
-        // Usamos 'refetchPresentationData' em AMBOS os casos (sucesso ou erro)
-        // para garantir que a UI reflita 100% o estado do banco.
-        // (O 'onSuccess' poderia ser mais otimista, mas 'refetch' é mais seguro
-        // para garantir que o pool de nomes seja atualizado).
         await handleApiResponse({
           response,
           router,
@@ -1079,13 +1007,13 @@ export function usePresentationEditor(presentationId) {
             refetchPresentationData();
           },
           onSuccess: () => {
-            refetchPresentationData(); // Busca o estado final do backend
-            fetchPool(); // Atualiza o pool (pois o nome do grupo pode ter mudado)
+            refetchPresentationData();
+            fetchPool();
           },
         });
       } catch (e) {
         console.error("Erro de conexão ao fundir elementos:", e);
-        refetchPresentationData(); // Reverte
+        refetchPresentationData();
       }
     },
     [
@@ -1098,7 +1026,6 @@ export function usePresentationEditor(presentationId) {
   );
 
   return {
-    // Dados de Leitura
     presentation,
     isLoading: isLoadingData,
     error,
@@ -1107,25 +1034,25 @@ export function usePresentationEditor(presentationId) {
     currentSceneId,
     setCurrentSceneId,
     refetchPresentationData,
-    // Props do Editor
+
     isEditorMode,
     setIsEditorMode,
     permissions,
-    // 'castHook' agora é montado manualmente
+
     castHook: {
       viewers,
       isLoading: isLoadingViewers,
       error: castError,
       fetchViewers,
-      addUserToCast, // Passa a função local
-      removeUserFromCast, // Passa a função local
+      addUserToCast,
+      removeUserFromCast,
     },
     palette: {
       pool,
       elementTypes,
       isLoading: isLoadingPool || isLoadingElementTypes,
     },
-    // Modais
+
     modal: {
       isElementOpen: isElementModalOpen,
       elementData: modalData,
@@ -1173,17 +1100,17 @@ export function usePresentationEditor(presentationId) {
       closeDeleteScene: closeDeleteSceneModal,
       deleteScene: deleteScene,
     },
-    // Handlers DND
+
     dropHandlers: {
       onPaletteDrop: handlePaletteDrop,
       onElementMove: moveElement,
       onElementMerge: mergeElements,
     },
-    // Handlers de Passo
+
     stepHandlers: {
       deleteStep: deleteStep,
     },
-    // Handlers de Impressão
+
     printHandlers: {
       ref: componentToPrintRef,
       onPrint: handlePrint,

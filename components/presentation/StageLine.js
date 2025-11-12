@@ -10,6 +10,7 @@ export default function StageLine({
   element,
   isEditorMode,
   onDelete, // <-- 1. NOVA PROP (vem do 'deleteElement')
+  globalScale,
 }) {
   const [{ isDragging }, drag] = useDrag(
     () => ({
@@ -38,40 +39,31 @@ export default function StageLine({
       style={{
         left: "0",
         top: `${element.position_y}%`,
-        transform: "translateY(-50%)",
+        transform: `translateY(-50%) scale(${globalScale})`,
+        transformOrigin: "top center",
       }}
     >
-      {/* A linha visível */}
       <div
-        // --- MUDANÇA (BUG 3): Visível no modo de leitura ---
-        className={`w-full h-0.5
-        ${
-          isEditorMode
-            ? "bg-rakusai-yellow-dark" // Amarelo no modo editor
-            : "bg-gray-500" // Cinza escuro (visível no branco)
-        }`}
-        // --- FIM DA MUDANÇA ---
+        className={`w-full h-px
+        ${isEditorMode ? "bg-rakusai-yellow-dark" : "bg-gray-500"}`}
       ></div>
 
-      {/* "Alça" de arraste (só visível no modo editor) */}
       {isEditorMode && (
         <div className="absolute px-2 py-0.5 bg-rakusai-yellow-dark text-black text-xs font-bold rounded-full">
-          PALCO
+          Palco
         </div>
       )}
 
-      {/* --- MUDANÇA (BUG 2): Botão de Deletar --- */}
       {isEditorMode && (
         <button
           type="button"
-          onClick={() => onDelete(element.id)} // Chama 'deleteElement'
+          onClick={() => onDelete(element.id)}
           className="absolute right-0 flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 focus:outline-none"
           aria-label="Deletar Linha do Palco"
         >
           <FiX className="h-4 w-4" />
         </button>
       )}
-      {/* --- FIM DA MUDANÇA --- */}
     </div>
   );
 }

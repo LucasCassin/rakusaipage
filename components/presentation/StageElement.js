@@ -5,7 +5,6 @@ import { ItemTypes } from "./ItemTypes";
 
 /**
  * Renderiza um único elemento (ícone) no mapa de palco.
- * ATUALIZADO:
  * 1. Não renderiza mais o 'display_name'. (Isso agora é feito pelo FormationMap)
  * 2. É um 'useDrag' (para mover).
  * 3. É um 'useDrop' (para fundir/agrupar).
@@ -16,6 +15,7 @@ export default function StageElement({
   isEditorMode,
   onClick,
   onElementMerge,
+  globalScale,
 }) {
   const isHighlighted =
     loggedInUser && element.assigned_user_id === loggedInUser.id;
@@ -25,8 +25,9 @@ export default function StageElement({
       ? element.image_url_highlight
       : element.image_url || "/favicon.svg";
 
-  const scale = element.scale || 1.0;
-  const iconSize = 24;
+  const individualScale = element.scale || 1.0;
+  const finalScale = individualScale * globalScale;
+  const baseIconSize = 48;
 
   const [{ isDragging }, drag] = useDrag(
     () => ({
@@ -55,9 +56,9 @@ export default function StageElement({
   const [{ isOver }, drop] = useDrop(
     () => ({
       accept: ItemTypes.STAGE_ELEMENT,
-      drop: (droppedItem, monitor) => {
+      drop: (droppedItem, _) => {
         if (onElementMerge && element.id !== droppedItem.id) {
-          onElementMerge(element, droppedItem); // (target, dragged)
+          onElementMerge(element, droppedItem);
         }
       },
       canDrop: (droppedItem) => isEditorMode && element.id !== droppedItem.id,
@@ -87,7 +88,6 @@ export default function StageElement({
       : "";
 
   return (
-    // O 'div' principal agora combina 'drag' e 'drop'
     <div
       ref={(node) => drag(drop(node))}
       onClick={handleClick}
@@ -100,26 +100,21 @@ export default function StageElement({
       style={{
         left: `${element.position_x}%`,
         top: `${element.position_y}%`,
-        transform: "translate(-50%, -50%)",
+        transform: `translate(-50%, -50%) scale(${finalScale})`,
+        width: `${baseIconSize}px`,
+        height: `${baseIconSize}px`,
       }}
     >
       <div
-        className={`relative flex items-center justify-center w-auto h-auto`}
+        className={`relative flex items-center justify-center w-full h-full`}
       >
         <Image
           src={iconUrl}
           alt={element.element_type_name || ""}
-          width={iconSize}
-          height={iconSize}
+          fill={true}
           className={`object-contain transition-all duration-300`}
-          style={{ transform: `scale(${scale})` }}
         />
       </div>
-
-      {/* --- (REMOÇÃO) ---
-      A lógica de 'display_name' foi removida daqui
-      e movida para o 'FormationMap'.
-      --- (FIM DA REMOÇÃO) --- */}
     </div>
   );
 }
