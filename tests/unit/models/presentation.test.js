@@ -29,14 +29,17 @@ describe("Presentation Model", () => {
     odaikoType = await elementType.create({
       name: "Odaiko2",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
     shimeType = await elementType.create({
       name: "Shime2",
       image_url: "/shime.svg",
+      scale: 1.0,
     });
     pessoaType = await elementType.create({
       name: "Pessoa2",
       image_url: "/pessoa.svg",
+      scale: 1.0,
     });
   });
 

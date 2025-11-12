@@ -37,6 +37,7 @@ describe("Scene Element Model", () => {
     odaikoType = await elementType.create({
       name: "Odaiko12",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
   });
 

@@ -14,6 +14,7 @@ describe("Element Type Model", () => {
       const data = {
         name: "Odaiko2",
         image_url: "/icons/odaiko.svg",
+        scale: 1.0,
       };
       const newType = await elementType.create(data);
       expect(newType.id).toBeDefined();
@@ -22,12 +23,12 @@ describe("Element Type Model", () => {
     });
 
     it("should fail validation if 'name' is missing", async () => {
-      const data = { image_url: "/icons/fail.svg" };
+      const data = { image_url: "/icons/fail.svg", scale: 1.0 };
       await expect(elementType.create(data)).rejects.toThrow(ValidationError);
     });
 
     it("should fail validation if 'image_url' is missing", async () => {
-      const data = { name: "Shime" };
+      const data = { name: "Shime", scale: 1.0 };
       await expect(elementType.create(data)).rejects.toThrow(ValidationError);
     });
 
@@ -35,6 +36,7 @@ describe("Element Type Model", () => {
       const data = {
         name: "Odaiko", // Já foi criado no primeiro teste
         image_url: "/icons/odaiko2.svg",
+        scale: 1.0,
       };
       // O banco de dados (Unique constraint) deve rejeitar
       await expect(elementType.create(data)).rejects.toThrow();
@@ -50,10 +52,12 @@ describe("Element Type Model", () => {
       await elementType.create({
         name: "Shime",
         image_url: "/icons/shime.svg",
+        scale: 1.0,
       });
       await elementType.create({
         name: "Pessoa",
         image_url: "/icons/pessoa.svg",
+        scale: 1.0,
       });
     });
 

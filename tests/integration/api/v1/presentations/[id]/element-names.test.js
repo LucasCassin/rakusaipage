@@ -45,6 +45,7 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
     odaikoType = await elementType.create({
       name: "Odaiko5",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
 
     // 5. Setup da Apresentação (baseado no seu 'presentation.test.js')

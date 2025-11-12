@@ -47,6 +47,7 @@ describe("Test /api/v1/element_groups/merge routes", () => {
     odaikoType = await elementType.create({
       name: "Odaiko9",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
   });
 

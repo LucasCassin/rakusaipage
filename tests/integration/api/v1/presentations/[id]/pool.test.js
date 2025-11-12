@@ -9,7 +9,7 @@ import sceneElement from "models/scene_element.js";
 describe("Test /api/v1/presentations/[id]/pool routes", () => {
   let adminUser, adminSession, alunoUser, alunoSession, tocadorUser;
   let testPresentation, presentationEmpty, sceneFormation, sceneTransition;
-  let elementA;
+  let elementA, elementB, elementC;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -27,7 +27,7 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       "create:scene",
       "create:element",
       "read:presentation",
-      "read:presentation:admin", // <-- CORREÇÃO (Insight do Usuário)
+      "read:presentation:admin",
       "manage:element_types",
     ]);
     adminSession = await session.create(adminUser);
@@ -88,10 +88,35 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       display_name: "Elemento do Pool",
       assigned_user_id: tocadorUser.id,
     });
+
+    const shimeType = await elementType.create({
+      name: "Shime Test Pool",
+      image_url: "/shime.svg",
+      scale: 0.8,
+    });
+
+    // 6.2. Adicionar o Elemento B (o segundo item do pool)
+    elementB = await sceneElement.create({
+      scene_id: sceneFormation.id,
+      element_type_id: shimeType.id,
+      position_x: 20,
+      position_y: 20,
+      display_name: "Elemento do Pool 2",
+      assigned_user_id: null,
+    });
+
+    // 6.3. Adicionar o Elemento C (sem nome, não deve ir para o pool)
+    elementC = await sceneElement.create({
+      scene_id: sceneFormation.id,
+      element_type_id: odaikoType.id,
+      position_x: 80,
+      position_y: 80,
+      display_name: null,
+      assigned_user_id: null,
+    });
   });
 
   describe("GET /api/v1/presentations/[id]/pool", () => {
-    // --- Teste de Segurança (404) ---
     it("should return 404 for a presentation that doesn't exist", async () => {
       const randomId = orchestrator.generateRandomUUIDV4();
       const res = await fetch(
@@ -101,11 +126,9 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
           headers: { cookie: `session_id=${adminSession.token}` },
         },
       );
-      // CORREÇÃO: Esperar 404, que agora será retornado pelo handler corrigido.
       expect(res.status).toBe(404);
     });
 
-    // --- Teste de Segurança (403) ---
     it("should return 403 for an Aluno (no 'read:presentation' feature)", async () => {
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations/${testPresentation.id}/pool`,
@@ -117,18 +140,15 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       expect(res.status).toBe(403);
     });
 
-    // --- Teste de Segurança (403) ---
     it("should return 403 for an unauthenticated user", async () => {
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations/${testPresentation.id}/pool`,
         { method: "GET" },
       );
-      // CORREÇÃO: Manter 403, pois 'authorization.js' retorna Forbidden.
       expect(res.status).toBe(403);
     });
 
-    // --- Teste de Sucesso (Refatorado) ---
-    it("should return the full data pool (presentation, scenes, elements with JOIN, steps)", async () => {
+    it("should return the presentation's element pool array (distinct named elements)", async () => {
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations/${testPresentation.id}/pool`,
         {
@@ -138,31 +158,33 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       );
       const resBody = await res.json();
       expect(res.status).toBe(200);
-      // CORREÇÃO: Com a feature 'read:presentation:admin', 'resBody.presentation'
-      // não será 'undefined'.
-      expect(resBody.presentation.id).toBe(testPresentation.id);
-      expect(resBody.scenes).toHaveLength(2);
 
-      const formationScene = resBody.scenes[0];
-      const transitionScene = resBody.scenes[1];
+      // 1. Deve retornar um ARRAY
+      expect(Array.isArray(resBody)).toBe(true);
 
-      // Foco em Testes (JOIN): Validar 'scene_elements'
-      expect(formationScene.name).toBe("Cena de Formação (Pool)");
-      expect(formationScene.elements).toHaveLength(1);
-      const elementInPool = formationScene.elements[0];
+      // 2. AGORA o setup tem 2 elementos nomeados (A e B).
+      // O 'findElementPool' deve retornar os 2.
+      expect(resBody).toHaveLength(2); // (Esta linha agora passará)
 
-      expect(elementInPool.id).toBe(elementA.id);
-      expect(elementInPool.group_id).toBe(elementA.group_id);
-      expect(elementInPool.display_name).toBe("Elemento do Pool");
-      expect(elementInPool.assigned_user_id).toBe(tocadorUser.id);
-
-      // Validar 'transition_steps'
-      expect(transitionScene.name).toBe("Cena de Transição (Pool)");
-      expect(transitionScene.steps).toHaveLength(0);
+      // 3. Verifica o conteúdo do pool
+      expect(resBody).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            display_name: "Elemento do Pool",
+            assigned_user_id: tocadorUser.id,
+            element_type_name: "Odaiko Test Pool",
+          }),
+          expect.objectContaining({
+            display_name: "Elemento do Pool 2",
+            assigned_user_id: null,
+            element_type_name: "Shime Test Pool",
+          }),
+        ]),
+      );
     });
 
-    // --- Teste de Caso de Borda (Empty Array) ---
-    it("should return an empty 'scenes' array if presentation has no scenes", async () => {
+    // --- CORREÇÃO DO TESTE 2 ---
+    it("should return an empty array if presentation has no named elements (pool)", async () => {
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations/${presentationEmpty.id}/pool`,
         {
@@ -173,9 +195,10 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       const resBody = await res.json();
 
       expect(res.status).toBe(200);
-      // CORREÇÃO: Também válido aqui, 'presentation' não será 'undefined'.
-      expect(resBody.presentation.id).toBe(presentationEmpty.id);
-      expect(resBody.scenes).toHaveLength(0); // Este é o teste
+      // 1. Deve retornar um ARRAY
+      expect(Array.isArray(resBody)).toBe(true);
+      // 2. Deve ser um array VAZIO
+      expect(resBody).toHaveLength(0);
     });
   });
 

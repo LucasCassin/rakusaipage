@@ -60,6 +60,7 @@ describe("Test /api/v1/scenes/[id]/elements routes", () => {
     odaikoType = await elementType.create({
       name: "Odaiko3",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
   });
 
