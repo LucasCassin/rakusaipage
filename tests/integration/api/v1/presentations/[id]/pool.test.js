@@ -77,6 +77,7 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
     const odaikoType = await elementType.create({
       name: "Odaiko Test Pool",
       image_url: "/odaiko.svg",
+      scale: 1.0,
     });
 
     elementA = await sceneElement.create({

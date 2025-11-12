@@ -10,7 +10,7 @@ async function create(data) {
   });
 
   const query = {
-    text: `INSERT INTO element_types (name, image_url, scale, image_url_highlight) VALUES ($1, $2) RETURNING *;`,
+    text: `INSERT INTO element_types (name, image_url, scale, image_url_highlight) VALUES ($1, $2, $3, $4) RETURNING *;`,
     values: [
       validatedData.name,
       validatedData.image_url,
