@@ -45,6 +45,12 @@ export const settings = {
       MIGRATIONS: "/migrations",
       STATUS: "/status",
     },
+    STAGE_MAP_SNAP: {
+      SNAP_Y_THRESHOLD: 5,
+      SNAP_X_THRESHOLD: 5,
+      SNAP_MAX_DISTANCE_PERCENT: 10,
+      BASE_ICON_SIZE_PX: 48,
+    },
   },
 
   // Configurações de login

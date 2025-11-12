@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { useDrag, useDrop } from "react-dnd";
 import { ItemTypes } from "./ItemTypes";
+import { settings } from "config/settings.js";
 
 /**
  * Renderiza um único elemento (ícone) no mapa de palco.
@@ -27,7 +28,7 @@ export default function StageElement({
 
   const individualScale = element.scale || 1.0;
   const finalScale = individualScale * globalScale;
-  const baseIconSize = 48;
+  const baseIconSize = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
 
   const [{ isDragging }, drag] = useDrag(
     () => ({
@@ -38,6 +39,7 @@ export default function StageElement({
         group_id: element.group_id,
         x: element.position_x,
         y: element.position_y,
+        scale: element.scale || 1.0,
       },
       canDrag: () => isEditorMode,
       collect: (monitor) => ({
@@ -50,6 +52,7 @@ export default function StageElement({
       element.position_x,
       element.position_y,
       element.group_id,
+      element.scale,
     ],
   );
 
