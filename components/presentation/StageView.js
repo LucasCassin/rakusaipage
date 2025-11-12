@@ -1,6 +1,6 @@
 import React from "react";
-import FormationMap from "./FormationMap"; //
-import TransitionChecklist from "./TransitionChecklist"; //
+import FormationMap from "./FormationMap";
+import TransitionChecklist from "./TransitionChecklist";
 
 /**
  * Componente "controlador" que renderiza ou o Mapa de Palco (FORMATION)
@@ -11,18 +11,17 @@ export default function StageView({
   loggedInUser,
   isEditorMode,
   permissions,
-  // Props do Mapa (Formação)
+
   onPaletteDrop,
   onElementMove,
   onElementClick,
   onElementDelete,
-  onElementMerge, // <-- 1. ADICIONAR NOVA PROP AQUI
-  // Props da Checklist (Transição)
+  onElementMerge,
+
   onAddStep,
   onEditStep,
   onDeleteStep,
 }) {
-  // Estado de segurança caso 'scene' ainda não esteja carregada
   if (!scene) {
     return (
       <div className="flex items-center justify-center min-h-[500px] bg-gray-100 rounded-lg shadow-inner">
@@ -31,8 +30,13 @@ export default function StageView({
     );
   }
 
+  const containerClasses =
+    scene.scene_type === "FORMATION" ? "aspect-[4/3]" : "min-h-[500px]";
+
   return (
-    <div className="mt-4 bg-white rounded-lg shadow-lg border border-gray-200 min-h-[500px] overflow-hidden">
+    <div
+      className={`mt-4 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden ${containerClasses}`}
+    >
       {scene.scene_type === "FORMATION" && (
         <FormationMap
           elements={scene.scene_elements}
@@ -42,7 +46,7 @@ export default function StageView({
           onElementMove={onElementMove}
           onElementClick={onElementClick}
           onElementDelete={onElementDelete}
-          onElementMerge={onElementMerge} // <-- 2. PASSAR A PROP PARA O MAPA
+          onElementMerge={onElementMerge}
         />
       )}
 
