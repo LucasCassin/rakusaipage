@@ -5,6 +5,7 @@ import PageLayout from "components/layouts/PageLayout";
 import ErrorPage from "components/ui/ErrorPage";
 import { texts } from "src/utils/texts";
 import InitialLoading from "components/InitialLoading";
+import Link from "next/link";
 // Imports dos Componentes da Página
 import AdminToolbar from "components/presentation/AdminToolbar";
 import SceneSelector from "components/presentation/SceneSelector";
@@ -21,7 +22,7 @@ import SceneFormModal from "components/presentation/SceneFormModal";
 import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 import TransitionStepModal from "components/presentation/TransitionStepModal";
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
-import { FiChevronsUp, FiChevronsDown } from "react-icons/fi";
+import { FiChevronsUp, FiChevronsDown, FiArrowLeft } from "react-icons/fi";
 
 /**
  * A PÁGINA PRINCIPAL DO EDITOR DE MAPA DE PALCO
@@ -92,6 +93,15 @@ export default function PresentationPage() {
         maxWidth="max-w-7xl"
       >
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-4">
+            <Link
+              href="/apresentacoes"
+              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900"
+            >
+              <FiArrowLeft className="mr-2 h-4 w-4" />
+              Voltar para Apresentações
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {presentation.name}
           </h1>
