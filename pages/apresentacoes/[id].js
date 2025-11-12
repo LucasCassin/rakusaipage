@@ -22,7 +22,15 @@ import SceneFormModal from "components/presentation/SceneFormModal";
 import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 import TransitionStepModal from "components/presentation/TransitionStepModal";
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
-import { FiChevronsUp, FiChevronsDown, FiArrowLeft } from "react-icons/fi";
+import {
+  FiChevronsUp,
+  FiChevronsDown,
+  FiCalendar,
+  FiMapPin,
+  FiClock,
+  FiNavigation,
+  FiArrowLeft,
+} from "react-icons/fi";
 
 /**
  * A PÁGINA PRINCIPAL DO EDITOR DE MAPA DE PALCO
@@ -85,6 +93,25 @@ export default function PresentationPage() {
     ? "lg:col-span-2"
     : "lg:col-span-3";
 
+  const formattedDate = presentation.date
+    ? new Date(presentation.date).toLocaleDateString("pt-BR", {
+        timeZone: "UTC",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : null;
+
+  const formattedMeetTime = presentation.meet_time
+    ? new Date(presentation.meet_time).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo", // Usar fuso local para hora de encontro
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
     <>
       <PageLayout
@@ -109,6 +136,66 @@ export default function PresentationPage() {
             {presentation.description ||
               "Use o editor abaixo para construir o mapa de palco."}
           </p>
+
+          {(formattedDate ||
+            presentation.location ||
+            formattedMeetTime ||
+            presentation.meet_location) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              {/* Data do Evento */}
+              {formattedDate && (
+                <div className="flex items-start gap-2 text-sm">
+                  <FiCalendar className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-gray-700 block">
+                      Data do Evento
+                    </span>
+                    <span className="text-gray-600">{formattedDate}</span>
+                  </div>
+                </div>
+              )}
+              {/* Local do Evento */}
+              {presentation.location && (
+                <div className="flex items-start gap-2 text-sm">
+                  <FiMapPin className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-gray-700 block">
+                      Local do Evento
+                    </span>
+                    <span className="text-gray-600">
+                      {presentation.location}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {/* Horário de Encontro */}
+              {formattedMeetTime && (
+                <div className="flex items-start gap-2 text-sm">
+                  <FiClock className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-gray-700 block">
+                      Encontro (Data e Hora)
+                    </span>
+                    <span className="text-gray-600">{formattedMeetTime}</span>
+                  </div>
+                </div>
+              )}
+              {/* Local de Encontro */}
+              {presentation.meet_location && (
+                <div className="flex items-start gap-2 text-sm">
+                  <FiNavigation className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-gray-700 block">
+                      Local de Encontro
+                    </span>
+                    <span className="text-gray-600">
+                      {presentation.meet_location}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
             <div className={mainColumnClasses}>
