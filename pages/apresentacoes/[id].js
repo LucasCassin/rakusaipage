@@ -1,25 +1,25 @@
-import React, { useState } from "react"; // 1. IMPORTAR useState
+import React, { useState } from "react";
 import { useRouter } from "next/router";
-import { usePresentationEditor } from "src/hooks/usePresentationEditor"; //
-import PageLayout from "components/layouts/PageLayout"; //
-import ErrorPage from "components/ui/ErrorPage"; //
+import { usePresentationEditor } from "src/hooks/usePresentationEditor";
+import PageLayout from "components/layouts/PageLayout";
+import ErrorPage from "components/ui/ErrorPage";
 import { texts } from "src/utils/texts";
 import InitialLoading from "components/InitialLoading";
 // Imports dos Componentes da Página
-import AdminToolbar from "components/presentation/AdminToolbar"; //
-import SceneSelector from "components/presentation/SceneSelector"; //
-import SceneListEditor from "components/presentation/SceneListEditor"; //
-import StageView from "components/presentation/StageView"; //
-import EditorPalette from "components/presentation/EditorPalette"; //
-import PrintablePresentation from "components/presentation/PrintablePresentation"; //
+import AdminToolbar from "components/presentation/AdminToolbar";
+import SceneSelector from "components/presentation/SceneSelector";
+import SceneListEditor from "components/presentation/SceneListEditor";
+import StageView from "components/presentation/StageView";
+import EditorPalette from "components/presentation/EditorPalette";
+import PrintablePresentation from "components/presentation/PrintablePresentation";
 // Imports dos Modais
-import SceneElementModal from "components/presentation/SceneElementModal"; //
-import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal"; //
-import CastManagerModal from "components/presentation/CastManagerModal"; //
-import ShareModal from "components/presentation/ShareModal"; //
-import SceneFormModal from "components/presentation/SceneFormModal"; //
-import DeleteSceneModal from "components/presentation/DeleteSceneModal"; //
-import TransitionStepModal from "components/presentation/TransitionStepModal"; //
+import SceneElementModal from "components/presentation/SceneElementModal";
+import ConfirmGlobalEditModal from "components/presentation/ConfirmGlobalEditModal";
+import CastManagerModal from "components/presentation/CastManagerModal";
+import ShareModal from "components/presentation/ShareModal";
+import SceneFormModal from "components/presentation/SceneFormModal";
+import DeleteSceneModal from "components/presentation/DeleteSceneModal";
+import TransitionStepModal from "components/presentation/TransitionStepModal";
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
 import { FiChevronsUp, FiChevronsDown } from "react-icons/fi";
 
@@ -33,10 +33,8 @@ export default function PresentationPage() {
 
   const editor = usePresentationEditor(presentationId);
 
-  // --- 3. ADICIONAR ESTADO PARA A GAVETA MOBILE ---
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const togglePalette = () => setIsPaletteOpen((prev) => !prev);
-  // --- FIM DA ADIÇÃO ---
 
   if (editor.isLoading || !router.isReady) {
     return (
@@ -87,92 +85,81 @@ export default function PresentationPage() {
     : "lg:col-span-3";
 
   return (
-    <PageLayout
-      title={presentation?.name || "Apresentação"}
-      description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
-      maxWidth="max-w-7xl"
-    >
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {/* Título (permanece igual) */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {presentation.name}
-        </h1>
-        <p className="text-lg text-gray-600 mb-6">
-          {presentation.description ||
-            "Use o editor abaixo para construir o mapa de palco."}
-        </p>
+    <>
+      <PageLayout
+        title={presentation?.name || "Apresentação"}
+        description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
+        maxWidth="max-w-7xl"
+      >
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {presentation.name}
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            {presentation.description ||
+              "Use o editor abaixo para construir o mapa de palco."}
+          </p>
 
-        {/* --- 4. MUDANÇA PARA GRID RESPONSIVO --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-          {/* Coluna Principal (Conteúdo) */}
-          <div className={mainColumnClasses}>
-            {/* Barra de Ferramentas (Admin) */}
-            <AdminToolbar
-              isEditorMode={editor.isEditorMode}
-              onToggleEditorMode={() =>
-                editor.setIsEditorMode(!editor.isEditorMode)
-              }
-              permissions={permissions}
-              onOpenCastModal={editor.modal.openCast}
-              onOpenShareModal={editor.modal.openShare}
-              onPrint={editor.printHandlers.onPrint}
-            />
-
-            {/* Seletor de Cenas (Roteiro) */}
-            {editor.isEditorMode ? (
-              <SceneListEditor
-                scenes={presentation.scenes}
-                currentSceneId={currentSceneId}
-                permissions={permissions}
-                onSelectScene={editor.setCurrentSceneId}
-                onAddScene={() => editor.modal.openSceneForm("create")}
-                onEditScene={(scene) =>
-                  editor.modal.openSceneForm("edit", scene)
+          <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
+            <div className={mainColumnClasses}>
+              <AdminToolbar
+                isEditorMode={editor.isEditorMode}
+                onToggleEditorMode={() =>
+                  editor.setIsEditorMode(!editor.isEditorMode)
                 }
-                onDeleteScene={editor.modal.openDeleteScene}
-                reorderHandlers={editor.reorderHandlers}
+                permissions={permissions}
+                onOpenCastModal={editor.modal.openCast}
+                onOpenShareModal={editor.modal.openShare}
+                onPrint={editor.printHandlers.onPrint}
               />
-            ) : (
-              <SceneSelector
-                scenes={presentation.scenes}
-                currentSceneId={currentSceneId}
-                onSelectScene={editor.setCurrentSceneId}
+
+              {editor.isEditorMode ? (
+                <SceneListEditor
+                  scenes={presentation.scenes}
+                  currentSceneId={currentSceneId}
+                  permissions={permissions}
+                  onSelectScene={editor.setCurrentSceneId}
+                  onAddScene={() => editor.modal.openSceneForm("create")}
+                  onEditScene={(scene) =>
+                    editor.modal.openSceneForm("edit", scene)
+                  }
+                  onDeleteScene={editor.modal.openDeleteScene}
+                  reorderHandlers={editor.reorderHandlers}
+                />
+              ) : (
+                <SceneSelector
+                  scenes={presentation.scenes}
+                  currentSceneId={currentSceneId}
+                  onSelectScene={editor.setCurrentSceneId}
+                />
+              )}
+
+              <StageView
+                scene={currentScene}
+                loggedInUser={editor.user}
+                isEditorMode={editor.isEditorMode}
+                permissions={permissions}
+                onPaletteDrop={editor.dropHandlers.onPaletteDrop}
+                onElementMove={editor.dropHandlers.onElementMove}
+                onElementClick={editor.modal.openElement}
+                onElementDelete={editor.modal.deleteElement}
+                onElementMerge={editor.dropHandlers.onElementMerge}
+                onAddStep={() => editor.modal.openStep("create")}
+                onEditStep={(step) => editor.modal.openStep("edit", step)}
+                onDeleteStep={editor.stepHandlers.deleteStep}
+              />
+            </div>
+
+            {editor.isEditorMode && (
+              <EditorPalette
+                palette={editor.palette}
+                isPaletteOpen={isPaletteOpen}
+                onTogglePalette={togglePalette}
               />
             )}
-
-            {/* O Palco (Mapa ou Checklist) */}
-            <StageView
-              scene={currentScene}
-              loggedInUser={editor.user}
-              isEditorMode={editor.isEditorMode}
-              permissions={permissions}
-              // Handlers do Mapa
-              onPaletteDrop={editor.dropHandlers.onPaletteDrop}
-              onElementMove={editor.dropHandlers.onElementMove}
-              onElementClick={editor.modal.openElement}
-              onElementDelete={editor.modal.deleteElement}
-              onElementMerge={editor.dropHandlers.onElementMerge}
-              // Handlers da Checklist
-              onAddStep={() => editor.modal.openStep("create")}
-              onEditStep={(step) => editor.modal.openStep("edit", step)}
-              onDeleteStep={editor.stepHandlers.deleteStep}
-            />
           </div>
-
-          {/* Coluna da Paleta (Desktop) / Gaveta (Mobile) */}
-          {/* 5. PASSAR AS NOVAS PROPS PARA A PALETA */}
-          {editor.isEditorMode && (
-            <EditorPalette
-              palette={editor.palette}
-              isPaletteOpen={isPaletteOpen}
-              onTogglePalette={togglePalette}
-            />
-          )}
         </div>
-        {/* --- FIM DA MUDANÇA PARA GRID --- */}
-      </div>
-
-      {/* --- 6. BOTÃO FLUTUANTE (FAB) PARA A GAVETA MOBILE --- */}
+      </PageLayout>
       {editor.isEditorMode && (
         <button
           type="button"
@@ -187,9 +174,7 @@ export default function PresentationPage() {
           )}
         </button>
       )}
-      {/* --- FIM DO BOTÃO FLUTUANTE --- */}
 
-      {/* Modais (Renderização Condicional) */}
       {editor.modal.isElementOpen && (
         <SceneElementModal
           modalData={editor.modal.elementData}
@@ -251,11 +236,10 @@ export default function PresentationPage() {
         />
       )}
 
-      {/* Componente de Impressão (Escondido) */}
       <PrintablePresentation
         ref={editor.printHandlers.ref}
         presentation={presentation}
       />
-    </PageLayout>
+    </>
   );
 }
