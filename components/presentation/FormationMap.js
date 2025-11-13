@@ -97,6 +97,7 @@ export default function FormationMap({
     newPosition, // {x, y} - percentual
     elementToIgnoreId = null,
     draggedItemScale = 1.0, // (Escala do item sendo arrastado)
+    globalScale = 1.0, // (Escala global)
   ) {
     const { STAGE_MAP_SNAP } = settings.global;
     if (
@@ -153,25 +154,32 @@ export default function FormationMap({
 
     // Calcular Meias-Dimensões (Considerando Escala Individual - Feedback 1)
     const newIconHalfWidthPercent =
-      ((BASE_ICON_SIZE_PX * draggedScale) / 2 / actualWidth) * 100;
+      ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
+        2 /
+        dimensions.width) *
+      100;
     const targetIconHalfWidthPercent =
-      ((BASE_ICON_SIZE_PX * targetScale) / 2 / actualWidth) * 100;
+      ((BASE_ICON_SIZE_PX * targetScale * globalScale) / 2 / dimensions.width) *
+      100;
     const newIconHalfHeightPercent =
-      ((BASE_ICON_SIZE_PX * draggedScale) / 2 / actualHeight) * 100;
+      ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
+        2 /
+        dimensions.height) *
+      100;
     const targetIconHalfHeightPercent =
-      ((BASE_ICON_SIZE_PX * targetScale) / 2 / actualHeight) * 100;
-
+      ((BASE_ICON_SIZE_PX * targetScale * globalScale) /
+        2 /
+        dimensions.height) *
+      100;
     // A. LÓGICA Y (Alinhamento Horizontal - Centro a Centro)
     const yDiff = Math.abs(newPosition.y - elY);
     if (yDiff < snapYThreshold) {
-      console.log("Logica Y");
       snappedY = elY;
     }
 
     // B. LÓGICA X (Alinhamento Vertical - Centro a Centro)
     const xDiff = Math.abs(newPosition.x - elX);
     if (xDiff < snapXThreshold) {
-      console.log("Logica X");
       snappedX = elX;
     }
 
@@ -179,10 +187,9 @@ export default function FormationMap({
     // Alvo: Lado DIREITO do 'closestElement'
     const targetRight = elX + targetIconHalfWidthPercent;
     const xDiffRight = Math.abs(
-      newPosition.x - (targetRight + newIconHalfWidthPercent),
+      newPosition.x - newIconHalfWidthPercent - targetRight,
     );
     if (xDiffRight < snapXThreshold) {
-      console.log("Logica X Direita");
       snappedX = targetRight + newIconHalfWidthPercent;
     }
 
@@ -192,7 +199,6 @@ export default function FormationMap({
       newPosition.x - (targetLeft - newIconHalfWidthPercent),
     );
     if (xDiffLeft < snapXThreshold) {
-      console.log("Logica X Esquerda");
       snappedX = targetLeft - newIconHalfWidthPercent;
     }
 
@@ -203,7 +209,6 @@ export default function FormationMap({
       newPosition.y - (targetBottom + newIconHalfHeightPercent),
     );
     if (yDiffBottom < snapYThreshold) {
-      console.log("Logica Y Inferior");
       snappedY = targetBottom + newIconHalfHeightPercent;
     }
 
@@ -213,7 +218,6 @@ export default function FormationMap({
       newPosition.y - (targetTop - newIconHalfHeightPercent),
     );
     if (yDiffTop < snapYThreshold) {
-      console.log("Logica Y Superior");
       snappedY = targetTop - newIconHalfHeightPercent;
     }
 
@@ -250,6 +254,7 @@ export default function FormationMap({
             initialPosition,
             null,
             draggedItemScale,
+            globalScale,
           );
           onPaletteDrop(item, snappedPosition);
         } else if (itemType === ItemTypes.STAGE_ELEMENT && onElementMove) {
@@ -257,6 +262,7 @@ export default function FormationMap({
             initialPosition,
             item.id,
             draggedItemScale,
+            globalScale,
           );
           onElementMove(item.id, snappedPosition);
         }

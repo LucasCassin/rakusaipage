@@ -3,21 +3,21 @@
 const elementTypes = [
   {
     name: "Odaiko",
-    image_url: "/images/Okedo.svg",
-    scale: 1.3,
-    image_url_highlight: "/images/Shime.svg",
+    image_url: "/images/circulo-preto.svg",
+    scale: 1.5,
+    image_url_highlight: "/images/circulo-rosa.svg",
   },
   {
     name: "Shime",
-    image_url: "/images/Okedo.svg",
+    image_url: "/images/circulo-preto.svg",
     scale: 0.7,
-    image_url_highlight: "/images/Shime.svg",
+    image_url_highlight: "/images/circulo-rosa.svg",
   },
   {
     name: "Okedo",
-    image_url: "/images/Okedo.svg",
+    image_url: "/images/circulo-preto.svg",
     scale: 1.0,
-    image_url_highlight: "/images/Shime.svg",
+    image_url_highlight: "/images/circulo-rosa.svg",
   },
   {
     name: "Katsugi",
