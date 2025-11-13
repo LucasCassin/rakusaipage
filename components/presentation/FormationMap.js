@@ -395,6 +395,72 @@ export default function FormationMap({
         ${isOver ? "ring-4 ring-rakusai-pink-light ring-inset" : ""} 
       `}
     >
+      {isEditorMode && (
+        <div className="absolute inset-4 pointer-events-none">
+          {/* Linhas Verticais (X-axis) */}
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-300 border-dashed"
+            style={{ left: "50%" }}
+          />
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-200 border-dashed"
+            style={{ left: "25%" }}
+          />
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-200 border-dashed"
+            style={{ left: "75%" }}
+          />
+          {/* Novas Linhas (Mais fracas) */}
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-100 border-dashed"
+            style={{ left: "12.5%" }}
+          />
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-100 border-dashed"
+            style={{ left: "37.5%" }}
+          />
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-100 border-dashed"
+            style={{ left: "62.5%" }}
+          />
+          <div
+            className="absolute top-0 bottom-0 border-l border-gray-100 border-dashed"
+            style={{ left: "87.5%" }}
+          />
+
+          {/* Linhas Horizontais (Y-axis) */}
+          <div
+            className="absolute left-0 right-0 border-t border-gray-300 border-dashed"
+            style={{ top: "50%" }}
+          />
+          <div
+            className="absolute left-0 right-0 border-t border-gray-200 border-dashed"
+            style={{ top: "25%" }}
+          />
+          <div
+            className="absolute left-0 right-0 border-t border-gray-200 border-dashed"
+            style={{ top: "75%" }}
+          />
+          {/* Novas Linhas (Mais fracas) */}
+          <div
+            className="absolute left-0 right-0 border-t border-gray-100 border-dashed"
+            style={{ top: "12.5%" }}
+          />
+          <div
+            className="absolute left-0 right-0 border-t border-gray-100 border-dashed"
+            style={{ top: "37.5%" }}
+          />
+          <div
+            className="absolute left-0 right-0 border-t border-gray-100 border-dashed"
+            style={{ top: "62.5%" }}
+          />
+          <div
+            className="absolute left-0 right-0 border-t border-gray-100 border-dashed"
+            style={{ top: "87.5%" }}
+          />
+        </div>
+      )}
+
       {/* Loop de Renderização (Passando globalScale e snapAnchors) */}
       {processedGroups.map((group) => (
         <React.Fragment key={group.group_id}>
