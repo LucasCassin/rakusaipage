@@ -17,6 +17,7 @@ export default function StageElement({
   onClick,
   onElementMerge,
   globalScale,
+  snapAnchors,
 }) {
   const isHighlighted =
     loggedInUser && element.assigned_user_id === loggedInUser.id;
@@ -85,6 +86,9 @@ export default function StageElement({
     }
   };
 
+  const isSnapAnchor =
+    snapAnchors?.x === element.id || snapAnchors?.y === element.id;
+
   const mergeHoverClasses =
     isOver && !isDragging
       ? "ring-8 ring-rakusai-purple ring-inset animate-pulse"
@@ -94,11 +98,21 @@ export default function StageElement({
     <div
       ref={(node) => drag(drop(node))}
       onClick={handleClick}
+      // 3. APLICAR CLASSE DE DESTAQUE
       className={`absolute flex flex-col items-center
         ${isEditorMode ? "cursor-move" : ""}
         ${isDragging ? "opacity-30" : "opacity-100"}
-        ${isEditorMode && !isDragging ? "hover:scale-110 transition-transform hover:cursor-pointer" : ""} 
+        ${
+          isEditorMode && !isDragging
+            ? "hover:scale-110 transition-transform hover:cursor-pointer"
+            : ""
+        } 
         ${mergeHoverClasses}
+        ${
+          isSnapAnchor // (A lógica de destaque que implementamos)
+            ? "ring-4 ring-rakusai-pink-light ring-inset animate-pulse"
+            : ""
+        } 
       `}
       style={{
         left: `${element.position_x}%`,

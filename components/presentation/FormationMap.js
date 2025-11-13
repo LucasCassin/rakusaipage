@@ -3,17 +3,16 @@ import { useDrop } from "react-dnd";
 import { ItemTypes } from "./ItemTypes";
 import StageElement from "./StageElement";
 import StageLine from "./StageLine";
-import { settings } from "config/settings.js"; // Importa as configs
+import { settings } from "config/settings.js";
 
 const VIRTUAL_WIDTH = 1000;
 const BASE_ICON_SIZE_PX = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
+// (Bug 2) Distância base em pixels do centro do ícone até o topo do label
 const BASE_LABEL_MARGIN_PX = 3;
 
 /**
  * (Componente interno) GroupLabel
- * ATUALIZADO:
- * 1. Recebe 'scale' (individual) para o marginTop.
- * 2. Corrige o 'transform' (remove * 1.5).
+ * ATUALIZADO (Bug 2): Recebe 'scale' individual para 'marginTop'.
  */
 const GroupLabel = ({
   label,
@@ -21,7 +20,7 @@ const GroupLabel = ({
   y,
   isHighlighted,
   globalScale = 1.0,
-  scale = 1.0,
+  scale = 1.0, // Escala individual do elemento mais baixo
 }) => {
   if (!label) return null;
 
@@ -29,10 +28,9 @@ const GroupLabel = ({
     ? "bg-rakusai-pink"
     : "bg-gray-800 bg-opacity-80";
 
-  // --- (Correção do Bug do Label) ---
+  // --- (Correção Bug 2: Posição do Label) ---
   const baseIconHalfHeight = (BASE_ICON_SIZE_PX * scale * globalScale) / 2;
   const marginOffset = baseIconHalfHeight + BASE_LABEL_MARGIN_PX;
-  // --- FIM DA CORREÇÃO ---
 
   return (
     <div
@@ -40,14 +38,16 @@ const GroupLabel = ({
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        transform: `translateX(-50%) scale(${globalScale})`, // (Correção: * 1.5 removido)
+        // --- CORREÇÃO: Removido o '* 1.5' que estava no arquivo base ---
+        transform: `translateX(-50%) scale(${globalScale})`,
         transformOrigin: "top center",
         pointerEvents: "none",
         width: "150px",
-        marginTop: `${marginOffset}px`, // (Correção: marginTop dinâmico)
+        marginTop: `${marginOffset}px`, // (marginTop dinâmico)
       }}
     >
       <span
+        // ('mt-4' removido do original, agora controlado pelo style)
         className={`px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow text-center ${highlightClasses}`}
       >
         {label}
@@ -58,7 +58,10 @@ const GroupLabel = ({
 
 /**
  * Renderiza o "Palco".
- * (Lógica de Snap e Escala)
+ * REVISADO:
+ * 1. Lógica de Snap Desacoplada (Nova Lógica).
+ * 2. Adiciona Guias Visuais (Feature 1).
+ * 3. Corrige Posição do Label (Bug 2).
  */
 export default function FormationMap({
   elements = [],
@@ -77,12 +80,16 @@ export default function FormationMap({
     width: VIRTUAL_WIDTH,
     height: VIRTUAL_WIDTH * (3 / 4),
   });
-  const [snapGuides, setSnapGuides] = useState(null); // { x: number|null, y: number|null }
+
+  // --- INÍCIO DA MUDANÇA (Feature 1 / Nova Lógica) ---
+  const [snapGuides, setSnapGuides] = useState(null); // Para linhas centrais
+  const [snapAnchors, setSnapAnchors] = useState(null); // Para destaque (objeto {x, y})
+  // --- FIM DA MUDANÇA ---
 
   useLayoutEffect(() => {
+    // ... (Lógica do ResizeObserver - permanece a mesma)
     const element = mapRef.current;
     if (!element) return;
-
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries[0]) {
         setDimensions({
@@ -92,12 +99,10 @@ export default function FormationMap({
       }
     });
     resizeObserver.observe(element);
-
     const rect = element.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
       setDimensions({ width: rect.width, height: rect.height });
     }
-
     return () => resizeObserver.unobserve(element);
   }, []);
 
@@ -106,15 +111,12 @@ export default function FormationMap({
   const actualHeight = dimensions.height;
   // --- Fim da Lógica de Escala ---
 
-  // --- Lógica de Alinhamento (Snap) ---
+  // --- Lógica de Alinhamento (Snap) REVISADA (Nova Lógica Desacoplada) ---
   function getSnappedPosition(
     newPosition,
     elementToIgnoreId = null,
     draggedItemScale = 1.0,
   ) {
-    let xGuide = null;
-    let yGuide = null;
-
     const { STAGE_MAP_SNAP } = settings.global;
     if (
       !STAGE_MAP_SNAP ||
@@ -123,131 +125,145 @@ export default function FormationMap({
       actualWidth === 0 ||
       actualHeight === 0
     ) {
-      return { snappedPosition: newPosition, guides: { x: null, y: null } };
+      return {
+        snappedPosition: newPosition,
+        guides: { x: null, y: null },
+        anchors: { x: null, y: null },
+      };
     }
 
     const otherElements = elements.filter((el) => el.id !== elementToIgnoreId);
 
     if (otherElements.length === 0) {
-      return { snappedPosition: newPosition, guides: { x: null, y: null } };
+      return {
+        snappedPosition: newPosition,
+        guides: { x: null, y: null },
+        anchors: { x: null, y: null },
+      };
     }
 
-    // 1. Encontrar o elemento mais próximo (Distância Manhattan)
-    let closestElement = null;
-    let minDistance = Infinity;
-
-    for (const element of otherElements) {
-      const elX = parseFloat(element.position_x);
-      const elY = parseFloat(element.position_y);
-      const distance =
-        Math.abs(newPosition.x - elX) + Math.abs(newPosition.y - elY);
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestElement = element;
-      }
-    }
-
-    // 2. Verificar se está dentro do 'Max Distance'
-    if (
-      !closestElement ||
-      minDistance > STAGE_MAP_SNAP.SNAP_MAX_DISTANCE_PERCENT
-    ) {
-      return { snappedPosition: newPosition, guides: { x: null, y: null } };
-    }
-
-    // 3. Executar Lógica de Snap (Apenas no 'closestElement')
+    // 1. Inicializa
     let snappedX = newPosition.x;
     let snappedY = newPosition.y;
-
-    const elX = parseFloat(closestElement.position_x);
-    const elY = parseFloat(closestElement.position_y);
-    const targetScale = closestElement.scale || 1.0;
-    const draggedScale = draggedItemScale || 1.0;
 
     const snapXThreshold = STAGE_MAP_SNAP.SNAP_X_THRESHOLD;
     const snapYThreshold = STAGE_MAP_SNAP.SNAP_Y_THRESHOLD;
 
-    // Calcular Meias-Dimensões (Usando a fórmula validada)
-    const newIconHalfWidthPercent =
-      ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
-        2 /
-        dimensions.width) *
-      100;
-    const targetIconHalfWidthPercent =
-      ((BASE_ICON_SIZE_PX * targetScale * globalScale) / 2 / dimensions.width) *
-      100;
-    const newIconHalfHeightPercent =
-      ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
-        2 /
-        dimensions.height) *
-      100;
-    const targetIconHalfHeightPercent =
-      ((BASE_ICON_SIZE_PX * targetScale * globalScale) /
-        2 /
-        dimensions.height) *
-      100;
+    let minXDiff = snapXThreshold;
+    let minYDiff = snapYThreshold;
 
-    // A. LÓGICA Y (Centro a Centro)
-    const yDiff = Math.abs(newPosition.y - elY);
-    if (yDiff < snapYThreshold) {
-      snappedY = elY;
-      yGuide = elY;
+    let xGuide = null;
+    let yGuide = null;
+    let anchorXId = null;
+    let anchorYId = null;
+
+    const draggedScale = draggedItemScale || 1.0;
+
+    // 2. Loop por TODOS os elementos para checar *todos* os alinhamentos
+    for (const element of otherElements) {
+      const elX = parseFloat(element.position_x);
+      const elY = parseFloat(element.position_y);
+      const targetScale = element.scale || 1.0;
+
+      // Calcular Meias-Dimensões (Usando a fórmula validada)
+      const newIconHalfWidthPercent =
+        ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
+          2 /
+          dimensions.width) *
+        100;
+      const targetIconHalfWidthPercent =
+        ((BASE_ICON_SIZE_PX * targetScale * globalScale) /
+          2 /
+          dimensions.width) *
+        100;
+      const newIconHalfHeightPercent =
+        ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
+          2 /
+          dimensions.height) *
+        100;
+      const targetIconHalfHeightPercent =
+        ((BASE_ICON_SIZE_PX * targetScale * globalScale) /
+          2 /
+          dimensions.height) *
+        100;
+
+      // --- Verificações do Eixo Y (Independente) ---
+      let yDiff = Math.abs(newPosition.y - elY);
+      if (yDiff < minYDiff) {
+        minYDiff = yDiff;
+        snappedY = elY;
+        yGuide = elY;
+        anchorYId = element.id;
+      }
+
+      const targetBottom = elY + targetIconHalfHeightPercent;
+      yDiff = Math.abs(
+        newPosition.y - (targetBottom + newIconHalfHeightPercent),
+      );
+      if (yDiff < minYDiff) {
+        minYDiff = yDiff;
+        snappedY = targetBottom + newIconHalfHeightPercent;
+        yGuide = null; // Borda
+        anchorYId = element.id;
+      }
+
+      const targetTop = elY - targetIconHalfHeightPercent;
+      yDiff = Math.abs(newPosition.y - (targetTop - newIconHalfHeightPercent));
+      if (yDiff < minYDiff) {
+        minYDiff = yDiff;
+        snappedY = targetTop - newIconHalfHeightPercent;
+        yGuide = null; // Borda
+        anchorYId = element.id;
+      }
+
+      // --- Verificações do Eixo X (Independente) ---
+      let xDiff = Math.abs(newPosition.x - elX);
+      if (xDiff < minXDiff) {
+        minXDiff = xDiff;
+        snappedX = elX;
+        xGuide = elX;
+        anchorXId = element.id;
+      }
+
+      const targetRight = elX + targetIconHalfWidthPercent;
+      xDiff = Math.abs(newPosition.x - (targetRight + newIconHalfWidthPercent));
+      if (xDiff < minXDiff) {
+        minXDiff = xDiff;
+        snappedX = targetRight + newIconHalfWidthPercent;
+        xGuide = null; // Borda
+        anchorXId = element.id;
+      }
+
+      const targetLeft = elX - targetIconHalfWidthPercent;
+      xDiff = Math.abs(newPosition.x - (targetLeft - newIconHalfWidthPercent));
+      if (xDiff < minXDiff) {
+        minXDiff = xDiff;
+        snappedX = targetLeft - newIconHalfWidthPercent;
+        xGuide = null; // Borda
+        anchorXId = element.id;
+      }
     }
 
-    // B. LÓGICA X (Centro a Centro)
-    const xDiff = Math.abs(newPosition.x - elX);
-    if (xDiff < snapXThreshold) {
-      snappedX = elX;
-      xGuide = elX;
-    }
-
-    // C. LÓGICA X (Lado a Lado - Borda a Borda)
-    const targetRight = elX + targetIconHalfWidthPercent;
-    const xDiffRight = Math.abs(
-      newPosition.x - (targetRight + newIconHalfWidthPercent),
-    );
-    if (xDiffRight < snapXThreshold) {
-      snappedX = targetRight + newIconHalfWidthPercent;
-      xGuide = snappedX;
-    }
-
-    const targetLeft = elX - targetIconHalfWidthPercent;
-    const xDiffLeft = Math.abs(
-      newPosition.x - (targetLeft - newIconHalfWidthPercent),
-    );
-    if (xDiffLeft < snapXThreshold) {
-      snappedX = targetLeft - newIconHalfWidthPercent;
-      xGuide = snappedX;
-    }
-
-    // D. LÓGICA Y (Empilhamento - Borda a Borda)
-    const targetBottom = elY + targetIconHalfHeightPercent;
-    const yDiffBottom = Math.abs(
-      newPosition.y - (targetBottom + newIconHalfHeightPercent),
-    );
-    if (yDiffBottom < snapYThreshold) {
-      snappedY = targetBottom + newIconHalfHeightPercent;
-      yGuide = snappedY;
-    }
-
-    const targetTop = elY - targetIconHalfHeightPercent;
-    const yDiffTop = Math.abs(
-      newPosition.y - (targetTop - newIconHalfHeightPercent),
-    );
-    if (yDiffTop < snapYThreshold) {
-      snappedY = targetTop - newIconHalfHeightPercent;
-      yGuide = snappedY;
-    }
+    // 3. Verificar se o Snap realmente ocorreu
+    const epsilon = 0.0001;
+    const didSnapX = Math.abs(snappedX - newPosition.x) > epsilon;
+    const didSnapY = Math.abs(snappedY - newPosition.y) > epsilon;
 
     return {
       snappedPosition: { x: snappedX, y: snappedY },
-      guides: { x: xGuide, y: yGuide },
+      guides: {
+        x: didSnapX && xGuide ? xGuide : null, // Só mostra guia central
+        y: didSnapY && yGuide ? yGuide : null,
+      },
+      anchors: {
+        x: didSnapX ? anchorXId : null, // Só retorna âncora se snapou
+        y: didSnapY ? anchorYId : null,
+      },
     };
   }
   // --- Fim da Lógica de Alinhamento ---
 
-  // --- Lógica de Drop (Atualizada com Guias Visuais) ---
+  // --- Lógica de Drop (Atualizada com Guias e Múltiplos Âncoras) ---
   const [{ isOver }, drop] = useDrop(
     () => ({
       accept: [ItemTypes.PALETTE_ITEM, ItemTypes.STAGE_ELEMENT],
@@ -269,18 +285,26 @@ export default function FormationMap({
           draggedItemScale = item.scale || 1.0;
         }
 
+        // --- INÍCIO DA MUDANÇA (Feature 1 / Nova Lógica) ---
         setSnapGuides(null);
+        setSnapAnchors(null); // Limpa âncoras
 
-        const { snappedPosition, guides } = getSnappedPosition(
+        const { snappedPosition, guides, anchors } = getSnappedPosition(
           initialPosition,
           itemType === ItemTypes.STAGE_ELEMENT ? item.id : null,
           draggedItemScale,
         );
 
+        if (anchors.x || anchors.y) {
+          setSnapAnchors(anchors); // Define os novos âncoras (pode ser {x: A, y: B})
+          setTimeout(() => setSnapAnchors(null), 1200);
+        }
+
         if (guides.x !== null || guides.y !== null) {
           setSnapGuides(guides);
           setTimeout(() => setSnapGuides(null), 1200);
         }
+        // --- FIM DA MUDANÇA ---
 
         if (itemType === ItemTypes.PALETTE_ITEM && onPaletteDrop) {
           onPaletteDrop(item, snappedPosition);
@@ -303,8 +327,9 @@ export default function FormationMap({
     ],
   );
 
-  // --- LÓGICA DE AGRUPAMENTO E LABELS - ATUALIZADA (Bug do Label) ---
+  // --- LÓGICA DE AGRUPAMENTO E LABELS - ATUALIZADA (Bug 2) ---
   const processedGroups = useMemo(() => {
+    // ... (Lógica de agrupar por group_id)
     const groups = new Map();
     for (const element of elements) {
       if (!groups.has(element.group_id)) {
@@ -329,7 +354,7 @@ export default function FormationMap({
       let minX = 100,
         maxX = 0;
       let maxY = 0;
-      let elementAtMaxY = null; // (Correção Bug do Label)
+      let elementAtMaxY = null; // (Correção Bug 2)
 
       for (const el of group.elements) {
         const elX = parseFloat(el.position_x);
@@ -338,17 +363,17 @@ export default function FormationMap({
         if (elX > maxX) maxX = elX;
 
         if (elY > maxY) {
-          // (Correção Bug do Label)
+          // (Correção Bug 2)
           maxY = elY;
           elementAtMaxY = el;
         }
       }
 
-      const scaleAtMaxY = elementAtMaxY?.scale || 1.0; // (Correção Bug do Label)
+      const scaleAtMaxY = elementAtMaxY?.scale || 1.0; // (Correção Bug 2)
       group.labelPosition = {
         x: (minX + maxX) / 2,
         y: maxY,
-        scale: scaleAtMaxY, // (Correção Bug do Label)
+        scale: scaleAtMaxY, // (Correção Bug 2)
       };
       groupsWithLabels.push(group);
     }
@@ -370,7 +395,7 @@ export default function FormationMap({
         ${isOver ? "ring-4 ring-rakusai-pink-light ring-inset" : ""} 
       `}
     >
-      {/* Loop de Renderização (Passando globalScale) */}
+      {/* Loop de Renderização (Passando globalScale e snapAnchors) */}
       {processedGroups.map((group) => (
         <React.Fragment key={group.group_id}>
           {group.elements.map((element) => {
@@ -395,16 +420,18 @@ export default function FormationMap({
                 onClick={onElementClick}
                 onElementMerge={onElementMerge}
                 globalScale={globalScale}
+                snapAnchors={snapAnchors} // <-- Passa o objeto de âncoras
               />
             );
           })}
 
+          {/* (Correção Bug 2) */}
           {group.display_name && group.labelPosition && (
             <GroupLabel
               label={group.display_name}
               x={group.labelPosition.x}
               y={group.labelPosition.y}
-              scale={group.labelPosition.scale} // (Correção Bug do Label)
+              scale={group.labelPosition.scale} // <-- Passa a escala individual
               isHighlighted={
                 loggedInUser && group.assigned_user_id === loggedInUser.id
               }
@@ -414,10 +441,7 @@ export default function FormationMap({
         </React.Fragment>
       ))}
 
-      {/* --- INÍCIO DA CORREÇÃO (Feature 1 - Guia Visual) --- */}
-      {/* Verifica se 'snapGuides' existe (não é nulo) ANTES 
-        de tentar acessar 'snapGuides.y' ou 'snapGuides.x'.
-      */}
+      {/* --- (Feature 1: Guias Visuais Centrais) --- */}
       {snapGuides && snapGuides.y !== null && (
         <div
           className="absolute left-0 right-0 border-t-2 border-dashed border-rakusai-pink pointer-events-none"
@@ -430,7 +454,7 @@ export default function FormationMap({
           style={{ left: `${snapGuides.x}%` }}
         />
       )}
-      {/* --- FIM DA CORREÇÃO --- */}
+      {/* --- FIM DA MUDANÇA --- */}
 
       {/* Lógica de "Cena Vazia" */}
       {elements.length === 0 && (

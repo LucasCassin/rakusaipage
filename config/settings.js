@@ -46,8 +46,8 @@ export const settings = {
       STATUS: "/status",
     },
     STAGE_MAP_SNAP: {
-      SNAP_Y_THRESHOLD: 2,
-      SNAP_X_THRESHOLD: 2,
+      SNAP_Y_THRESHOLD: 3,
+      SNAP_X_THRESHOLD: 3,
       SNAP_MAX_DISTANCE_PERCENT: 100,
       BASE_ICON_SIZE_PX: 48,
     },
