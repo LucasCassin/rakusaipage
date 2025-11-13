@@ -7,7 +7,7 @@ import { settings } from "config/settings.js";
 
 const VIRTUAL_WIDTH = 1000;
 const BASE_ICON_SIZE_PX = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
-// (Bug 2) Distância base em pixels do centro do ícone até o topo do label
+
 const BASE_LABEL_MARGIN_PX = 3;
 
 /**
@@ -20,7 +20,7 @@ const GroupLabel = ({
   y,
   isHighlighted,
   globalScale = 1.0,
-  scale = 1.0, // Escala individual do elemento mais baixo
+  scale = 1.0,
 }) => {
   if (!label) return null;
 
@@ -28,7 +28,6 @@ const GroupLabel = ({
     ? "bg-rakusai-pink"
     : "bg-gray-800 bg-opacity-80";
 
-  // --- (Correção Bug 2: Posição do Label) ---
   const baseIconHalfHeight = (BASE_ICON_SIZE_PX * scale * globalScale) / 2;
   const marginOffset = baseIconHalfHeight + BASE_LABEL_MARGIN_PX;
 
@@ -38,16 +37,14 @@ const GroupLabel = ({
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        // --- CORREÇÃO: Removido o '* 1.5' que estava no arquivo base ---
         transform: `translateX(-50%) scale(${globalScale})`,
         transformOrigin: "top center",
         pointerEvents: "none",
         width: "150px",
-        marginTop: `${marginOffset}px`, // (marginTop dinâmico)
+        marginTop: `${marginOffset}px`,
       }}
     >
       <span
-        // ('mt-4' removido do original, agora controlado pelo style)
         className={`px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow text-center ${highlightClasses}`}
       >
         {label}
@@ -59,9 +56,7 @@ const GroupLabel = ({
 /**
  * Renderiza o "Palco".
  * REVISADO:
- * 1. Lógica de Snap Desacoplada (Nova Lógica).
- * 2. Adiciona Guias Visuais (Feature 1).
- * 3. Corrige Posição do Label (Bug 2).
+ * 1. Adiciona Snap às Linhas do Grid Estático (Feature Nova).
  */
 export default function FormationMap({
   elements = [],
@@ -75,19 +70,14 @@ export default function FormationMap({
 }) {
   const mapRef = useRef(null);
 
-  // --- Lógica de Escala Global ---
   const [dimensions, setDimensions] = useState({
     width: VIRTUAL_WIDTH,
     height: VIRTUAL_WIDTH * (3 / 4),
   });
-
-  // --- INÍCIO DA MUDANÇA (Feature 1 / Nova Lógica) ---
-  const [snapGuides, setSnapGuides] = useState(null); // Para linhas centrais
-  const [snapAnchors, setSnapAnchors] = useState(null); // Para destaque (objeto {x, y})
-  // --- FIM DA MUDANÇA ---
+  const [snapGuides, setSnapGuides] = useState(null);
+  const [snapAnchors, setSnapAnchors] = useState(null);
 
   useLayoutEffect(() => {
-    // ... (Lógica do ResizeObserver - permanece a mesma)
     const element = mapRef.current;
     if (!element) return;
     const resizeObserver = new ResizeObserver((entries) => {
@@ -109,22 +99,14 @@ export default function FormationMap({
   const globalScale = dimensions.width / VIRTUAL_WIDTH;
   const actualWidth = dimensions.width;
   const actualHeight = dimensions.height;
-  // --- Fim da Lógica de Escala ---
 
-  // --- Lógica de Alinhamento (Snap) REVISADA (Nova Lógica Desacoplada) ---
   function getSnappedPosition(
     newPosition,
     elementToIgnoreId = null,
     draggedItemScale = 1.0,
   ) {
     const { STAGE_MAP_SNAP } = settings.global;
-    if (
-      !STAGE_MAP_SNAP ||
-      !elements ||
-      elements.length === 0 ||
-      actualWidth === 0 ||
-      actualHeight === 0
-    ) {
+    if (!STAGE_MAP_SNAP || actualWidth === 0 || actualHeight === 0) {
       return {
         snappedPosition: newPosition,
         guides: { x: null, y: null },
@@ -132,17 +114,6 @@ export default function FormationMap({
       };
     }
 
-    const otherElements = elements.filter((el) => el.id !== elementToIgnoreId);
-
-    if (otherElements.length === 0) {
-      return {
-        snappedPosition: newPosition,
-        guides: { x: null, y: null },
-        anchors: { x: null, y: null },
-      };
-    }
-
-    // 1. Inicializa
     let snappedX = newPosition.x;
     let snappedY = newPosition.y;
 
@@ -159,13 +130,35 @@ export default function FormationMap({
 
     const draggedScale = draggedItemScale || 1.0;
 
-    // 2. Loop por TODOS os elementos para checar *todos* os alinhamentos
+    const staticGridLines = [12.5, 25, 37.5, 50, 62.5, 75, 87.5];
+
+    for (const lineY of staticGridLines) {
+      const yDiff = Math.abs(newPosition.y - lineY);
+      if (yDiff < minYDiff) {
+        minYDiff = yDiff;
+        snappedY = lineY;
+        yGuide = lineY;
+        anchorYId = null;
+      }
+    }
+
+    for (const lineX of staticGridLines) {
+      const xDiff = Math.abs(newPosition.x - lineX);
+      if (xDiff < minXDiff) {
+        minXDiff = xDiff;
+        snappedX = lineX;
+        xGuide = lineX;
+        anchorXId = null;
+      }
+    }
+
+    const otherElements = elements.filter((el) => el.id !== elementToIgnoreId);
+
     for (const element of otherElements) {
       const elX = parseFloat(element.position_x);
       const elY = parseFloat(element.position_y);
       const targetScale = element.scale || 1.0;
 
-      // Calcular Meias-Dimensões (Usando a fórmula validada)
       const newIconHalfWidthPercent =
         ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
           2 /
@@ -187,7 +180,6 @@ export default function FormationMap({
           dimensions.height) *
         100;
 
-      // --- Verificações do Eixo Y (Independente) ---
       let yDiff = Math.abs(newPosition.y - elY);
       if (yDiff < minYDiff) {
         minYDiff = yDiff;
@@ -195,7 +187,6 @@ export default function FormationMap({
         yGuide = elY;
         anchorYId = element.id;
       }
-
       const targetBottom = elY + targetIconHalfHeightPercent;
       yDiff = Math.abs(
         newPosition.y - (targetBottom + newIconHalfHeightPercent),
@@ -203,20 +194,18 @@ export default function FormationMap({
       if (yDiff < minYDiff) {
         minYDiff = yDiff;
         snappedY = targetBottom + newIconHalfHeightPercent;
-        yGuide = null; // Borda
+        yGuide = null;
         anchorYId = element.id;
       }
-
       const targetTop = elY - targetIconHalfHeightPercent;
       yDiff = Math.abs(newPosition.y - (targetTop - newIconHalfHeightPercent));
       if (yDiff < minYDiff) {
         minYDiff = yDiff;
         snappedY = targetTop - newIconHalfHeightPercent;
-        yGuide = null; // Borda
+        yGuide = null;
         anchorYId = element.id;
       }
 
-      // --- Verificações do Eixo X (Independente) ---
       let xDiff = Math.abs(newPosition.x - elX);
       if (xDiff < minXDiff) {
         minXDiff = xDiff;
@@ -224,27 +213,24 @@ export default function FormationMap({
         xGuide = elX;
         anchorXId = element.id;
       }
-
       const targetRight = elX + targetIconHalfWidthPercent;
       xDiff = Math.abs(newPosition.x - (targetRight + newIconHalfWidthPercent));
       if (xDiff < minXDiff) {
         minXDiff = xDiff;
         snappedX = targetRight + newIconHalfWidthPercent;
-        xGuide = null; // Borda
+        xGuide = null;
         anchorXId = element.id;
       }
-
       const targetLeft = elX - targetIconHalfWidthPercent;
       xDiff = Math.abs(newPosition.x - (targetLeft - newIconHalfWidthPercent));
       if (xDiff < minXDiff) {
         minXDiff = xDiff;
         snappedX = targetLeft - newIconHalfWidthPercent;
-        xGuide = null; // Borda
+        xGuide = null;
         anchorXId = element.id;
       }
     }
 
-    // 3. Verificar se o Snap realmente ocorreu
     const epsilon = 0.0001;
     const didSnapX = Math.abs(snappedX - newPosition.x) > epsilon;
     const didSnapY = Math.abs(snappedY - newPosition.y) > epsilon;
@@ -252,18 +238,16 @@ export default function FormationMap({
     return {
       snappedPosition: { x: snappedX, y: snappedY },
       guides: {
-        x: didSnapX && xGuide ? xGuide : null, // Só mostra guia central
+        x: didSnapX && xGuide ? xGuide : null,
         y: didSnapY && yGuide ? yGuide : null,
       },
       anchors: {
-        x: didSnapX ? anchorXId : null, // Só retorna âncora se snapou
+        x: didSnapX ? anchorXId : null,
         y: didSnapY ? anchorYId : null,
       },
     };
   }
-  // --- Fim da Lógica de Alinhamento ---
 
-  // --- Lógica de Drop (Atualizada com Guias e Múltiplos Âncoras) ---
   const [{ isOver }, drop] = useDrop(
     () => ({
       accept: [ItemTypes.PALETTE_ITEM, ItemTypes.STAGE_ELEMENT],
@@ -274,38 +258,29 @@ export default function FormationMap({
         const mapRect = mapRef.current.getBoundingClientRect();
         const x = ((offset.x - mapRect.left) / mapRect.width) * 100;
         const y = ((offset.y - mapRect.top) / mapRect.height) * 100;
-
         const initialPosition = { x, y };
         const itemType = monitor.getItemType();
         let draggedItemScale = 1.0;
-
         if (itemType === ItemTypes.PALETTE_ITEM) {
           draggedItemScale = item.scale || 1.0;
         } else if (itemType === ItemTypes.STAGE_ELEMENT) {
           draggedItemScale = item.scale || 1.0;
         }
-
-        // --- INÍCIO DA MUDANÇA (Feature 1 / Nova Lógica) ---
         setSnapGuides(null);
-        setSnapAnchors(null); // Limpa âncoras
-
+        setSnapAnchors(null);
         const { snappedPosition, guides, anchors } = getSnappedPosition(
           initialPosition,
           itemType === ItemTypes.STAGE_ELEMENT ? item.id : null,
           draggedItemScale,
         );
-
         if (anchors.x || anchors.y) {
-          setSnapAnchors(anchors); // Define os novos âncoras (pode ser {x: A, y: B})
+          setSnapAnchors(anchors);
           setTimeout(() => setSnapAnchors(null), 1200);
         }
-
         if (guides.x !== null || guides.y !== null) {
           setSnapGuides(guides);
           setTimeout(() => setSnapGuides(null), 1200);
         }
-        // --- FIM DA MUDANÇA ---
-
         if (itemType === ItemTypes.PALETTE_ITEM && onPaletteDrop) {
           onPaletteDrop(item, snappedPosition);
         } else if (itemType === ItemTypes.STAGE_ELEMENT && onElementMove) {
@@ -327,9 +302,7 @@ export default function FormationMap({
     ],
   );
 
-  // --- LÓGICA DE AGRUPAMENTO E LABELS - ATUALIZADA (Bug 2) ---
   const processedGroups = useMemo(() => {
-    // ... (Lógica de agrupar por group_id)
     const groups = new Map();
     for (const element of elements) {
       if (!groups.has(element.group_id)) {
@@ -354,32 +327,29 @@ export default function FormationMap({
       let minX = 100,
         maxX = 0;
       let maxY = 0;
-      let elementAtMaxY = null; // (Correção Bug 2)
+      let elementAtMaxY = null;
 
       for (const el of group.elements) {
         const elX = parseFloat(el.position_x);
         const elY = parseFloat(el.position_y);
         if (elX < minX) minX = elX;
         if (elX > maxX) maxX = elX;
-
         if (elY > maxY) {
-          // (Correção Bug 2)
           maxY = elY;
           elementAtMaxY = el;
         }
       }
 
-      const scaleAtMaxY = elementAtMaxY?.scale || 1.0; // (Correção Bug 2)
+      const scaleAtMaxY = elementAtMaxY?.scale || 1.0;
       group.labelPosition = {
         x: (minX + maxX) / 2,
         y: maxY,
-        scale: scaleAtMaxY, // (Correção Bug 2)
+        scale: scaleAtMaxY,
       };
       groupsWithLabels.push(group);
     }
     return groupsWithLabels;
   }, [elements]);
-  // --- (FIM DA LÓGICA ATUALIZADA) ---
 
   const combinedRef = (node) => {
     mapRef.current = node;
@@ -396,7 +366,7 @@ export default function FormationMap({
       `}
     >
       {isEditorMode && (
-        <div className="absolute inset-4 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none">
           {/* Linhas Verticais (X-axis) */}
           <div
             className="absolute top-0 bottom-0 border-l border-gray-300 border-dashed"
@@ -486,7 +456,7 @@ export default function FormationMap({
                 onClick={onElementClick}
                 onElementMerge={onElementMerge}
                 globalScale={globalScale}
-                snapAnchors={snapAnchors} // <-- Passa o objeto de âncoras
+                snapAnchors={snapAnchors}
               />
             );
           })}
@@ -497,7 +467,7 @@ export default function FormationMap({
               label={group.display_name}
               x={group.labelPosition.x}
               y={group.labelPosition.y}
-              scale={group.labelPosition.scale} // <-- Passa a escala individual
+              scale={group.labelPosition.scale}
               isHighlighted={
                 loggedInUser && group.assigned_user_id === loggedInUser.id
               }
