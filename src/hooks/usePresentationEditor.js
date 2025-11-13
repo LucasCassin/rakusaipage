@@ -401,6 +401,8 @@ export function usePresentationEditor(presentationId) {
           isTemplate: formData.isTemplate,
           element_type_name: modalData.element_type_name,
           image_url: modalData.image_url,
+          scale: modalData.scale,
+          image_url_highlight: modalData.image_url_highlight,
         };
         await createElementApi(createBody, visualData.isTemplate, visualData);
       } else {
