@@ -3,13 +3,12 @@ import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX } from "react-icons/fi";
+import { zonedTimeToUtc } from "date-fns-tz";
 
 /**
  * Modal para CRIAR uma nova apresentação.
- * VERSÃO ATUALIZADA: Inclui todos os campos de logística.
  */
 export default function PresentationFormModal({ error, onClose, onSubmit }) {
-  // --- MUDANÇA: Adicionar todos os novos campos ao estado ---
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -18,7 +17,6 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
     meet_time: "",
     meet_location: "",
   });
-  // --- FIM DA MUDANÇA ---
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,14 +28,30 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    // Filtra chaves vazias (para 'meet_time' não ir como "" e bugar o 'timestamptz')
+
     const finalData = {};
+    const timeZone = "America/Sao_Paulo";
+
     for (const key in formData) {
-      if (formData[key]) {
-        finalData[key] = formData[key];
+      const value = formData[key];
+
+      if (value) {
+        if (key === "date" || key === "meet_time") {
+          try {
+            const dateValueWithSeconds = `${value}:00`;
+            const dateObj = toDate(dateValueWithSeconds, { timeZone });
+            finalData[key] = dateObj.toISOString();
+          } catch (err) {
+            console.error(`Data inválida para ${key}:`, value, err);
+            finalData[key] = value;
+          }
+        } else {
+          finalData[key] = value;
+        }
       }
     }
-    await onSubmit(finalData); //
+
+    await onSubmit(finalData);
     setIsLoading(false);
   };
 
@@ -89,19 +103,18 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
             />
           </div>
 
-          {/* --- MUDANÇA: Novos campos de logística --- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label
                 htmlFor="date"
                 className="block text-sm font-medium text-gray-700"
               >
-                Data do Evento
+                Hora do Evento
               </label>
               <FormInput
                 id="date"
                 name="date"
-                type="date"
+                type="datetime-local"
                 value={formData.date}
                 onChange={handleChange}
                 className="mt-1"
@@ -133,7 +146,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               <FormInput
                 id="meet_time"
                 name="meet_time"
-                type="datetime-local" // Pega Data e Hora
+                type="datetime-local"
                 value={formData.meet_time}
                 onChange={handleChange}
                 className="mt-1"
@@ -156,7 +169,6 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               />
             </div>
           </div>
-          {/* --- FIM DA MUDANÇA --- */}
 
           {error && <Alert type="error">{error}</Alert>}
 

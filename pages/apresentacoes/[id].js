@@ -94,11 +94,12 @@ export default function PresentationPage() {
     : "lg:col-span-3";
 
   const formattedDate = presentation.date
-    ? new Date(presentation.date).toLocaleDateString("pt-BR", {
-        timeZone: "UTC",
+    ? new Date(presentation.date).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo", // Usar fuso local para hora de encontro
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     : null;
 
