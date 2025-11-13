@@ -7,17 +7,32 @@ import { settings } from "config/settings.js"; // Importa as configs
 
 const VIRTUAL_WIDTH = 1000;
 const BASE_ICON_SIZE_PX = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
+const BASE_LABEL_MARGIN_PX = 3;
 
 /**
  * (Componente interno) GroupLabel
- * (Recebe 'globalScale' da etapa anterior)
+ * ATUALIZADO:
+ * 1. Recebe 'scale' (individual) para o marginTop.
+ * 2. Corrige o 'transform' (remove * 1.5).
  */
-const GroupLabel = ({ label, x, y, isHighlighted, globalScale }) => {
+const GroupLabel = ({
+  label,
+  x,
+  y,
+  isHighlighted,
+  globalScale = 1.0,
+  scale = 1.0,
+}) => {
   if (!label) return null;
 
   const highlightClasses = isHighlighted
     ? "bg-rakusai-pink"
     : "bg-gray-800 bg-opacity-80";
+
+  // --- (Correção do Bug do Label) ---
+  const baseIconHalfHeight = (BASE_ICON_SIZE_PX * scale * globalScale) / 2;
+  const marginOffset = baseIconHalfHeight + BASE_LABEL_MARGIN_PX;
+  // --- FIM DA CORREÇÃO ---
 
   return (
     <div
@@ -25,14 +40,15 @@ const GroupLabel = ({ label, x, y, isHighlighted, globalScale }) => {
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        transform: `translateX(-50%) scale(${globalScale * 1.5})`,
+        transform: `translateX(-50%) scale(${globalScale})`, // (Correção: * 1.5 removido)
         transformOrigin: "top center",
         pointerEvents: "none",
         width: "150px",
+        marginTop: `${marginOffset}px`, // (Correção: marginTop dinâmico)
       }}
     >
       <span
-        className={`mt-4 px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow text-center ${highlightClasses}`}
+        className={`px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow text-center ${highlightClasses}`}
       >
         {label}
       </span>
@@ -42,8 +58,7 @@ const GroupLabel = ({ label, x, y, isHighlighted, globalScale }) => {
 
 /**
  * Renderiza o "Palco".
- * REVISADO: Implementa lógica de Snap ao "Mais Próximo"
- * e alinhamento "Lado a Lado" e "Empilhado".
+ * (Lógica de Snap e Escala)
  */
 export default function FormationMap({
   elements = [],
@@ -57,17 +72,17 @@ export default function FormationMap({
 }) {
   const mapRef = useRef(null);
 
-  // --- Lógica de Escala Global (Mede Largura E Altura) ---
+  // --- Lógica de Escala Global ---
   const [dimensions, setDimensions] = useState({
     width: VIRTUAL_WIDTH,
-    height: VIRTUAL_WIDTH * (3 / 4), // (Assume 4:3 inicial)
+    height: VIRTUAL_WIDTH * (3 / 4),
   });
+  const [snapGuides, setSnapGuides] = useState(null); // { x: number|null, y: number|null }
 
   useLayoutEffect(() => {
     const element = mapRef.current;
     if (!element) return;
 
-    // Mede as dimensões reais do mapa
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries[0]) {
         setDimensions({
@@ -78,27 +93,28 @@ export default function FormationMap({
     });
     resizeObserver.observe(element);
 
-    // Define as dimensões iniciais corretas na montagem
     const rect = element.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
       setDimensions({ width: rect.width, height: rect.height });
     }
 
     return () => resizeObserver.unobserve(element);
-  }, []); // Roda apenas na montagem
+  }, []);
 
   const globalScale = dimensions.width / VIRTUAL_WIDTH;
   const actualWidth = dimensions.width;
   const actualHeight = dimensions.height;
   // --- Fim da Lógica de Escala ---
 
-  // --- Lógica de Alinhamento (Snap) REVISADA ---
+  // --- Lógica de Alinhamento (Snap) ---
   function getSnappedPosition(
-    newPosition, // {x, y} - percentual
+    newPosition,
     elementToIgnoreId = null,
-    draggedItemScale = 1.0, // (Escala do item sendo arrastado)
-    globalScale = 1.0, // (Escala global)
+    draggedItemScale = 1.0,
   ) {
+    let xGuide = null;
+    let yGuide = null;
+
     const { STAGE_MAP_SNAP } = settings.global;
     if (
       !STAGE_MAP_SNAP ||
@@ -107,13 +123,13 @@ export default function FormationMap({
       actualWidth === 0 ||
       actualHeight === 0
     ) {
-      return newPosition; // Retorna original
+      return { snappedPosition: newPosition, guides: { x: null, y: null } };
     }
 
     const otherElements = elements.filter((el) => el.id !== elementToIgnoreId);
 
     if (otherElements.length === 0) {
-      return newPosition;
+      return { snappedPosition: newPosition, guides: { x: null, y: null } };
     }
 
     // 1. Encontrar o elemento mais próximo (Distância Manhattan)
@@ -137,7 +153,7 @@ export default function FormationMap({
       !closestElement ||
       minDistance > STAGE_MAP_SNAP.SNAP_MAX_DISTANCE_PERCENT
     ) {
-      return newPosition; // Longe demais, sem snap
+      return { snappedPosition: newPosition, guides: { x: null, y: null } };
     }
 
     // 3. Executar Lógica de Snap (Apenas no 'closestElement')
@@ -152,7 +168,7 @@ export default function FormationMap({
     const snapXThreshold = STAGE_MAP_SNAP.SNAP_X_THRESHOLD;
     const snapYThreshold = STAGE_MAP_SNAP.SNAP_Y_THRESHOLD;
 
-    // Calcular Meias-Dimensões (Considerando Escala Individual - Feedback 1)
+    // Calcular Meias-Dimensões (Usando a fórmula validada)
     const newIconHalfWidthPercent =
       ((BASE_ICON_SIZE_PX * draggedScale * globalScale) /
         2 /
@@ -171,61 +187,67 @@ export default function FormationMap({
         2 /
         dimensions.height) *
       100;
-    // A. LÓGICA Y (Alinhamento Horizontal - Centro a Centro)
+
+    // A. LÓGICA Y (Centro a Centro)
     const yDiff = Math.abs(newPosition.y - elY);
     if (yDiff < snapYThreshold) {
       snappedY = elY;
+      yGuide = elY;
     }
 
-    // B. LÓGICA X (Alinhamento Vertical - Centro a Centro)
+    // B. LÓGICA X (Centro a Centro)
     const xDiff = Math.abs(newPosition.x - elX);
     if (xDiff < snapXThreshold) {
       snappedX = elX;
+      xGuide = elX;
     }
 
-    // C. LÓGICA X (Lado a Lado - Borda a Borda - Feedback 3)
-    // Alvo: Lado DIREITO do 'closestElement'
+    // C. LÓGICA X (Lado a Lado - Borda a Borda)
     const targetRight = elX + targetIconHalfWidthPercent;
     const xDiffRight = Math.abs(
-      newPosition.x - newIconHalfWidthPercent - targetRight,
+      newPosition.x - (targetRight + newIconHalfWidthPercent),
     );
     if (xDiffRight < snapXThreshold) {
       snappedX = targetRight + newIconHalfWidthPercent;
+      xGuide = snappedX;
     }
 
-    // Alvo: Lado ESQUERDO do 'closestElement'
     const targetLeft = elX - targetIconHalfWidthPercent;
     const xDiffLeft = Math.abs(
       newPosition.x - (targetLeft - newIconHalfWidthPercent),
     );
     if (xDiffLeft < snapXThreshold) {
       snappedX = targetLeft - newIconHalfWidthPercent;
+      xGuide = snappedX;
     }
 
-    // D. LÓGICA Y (Empilhamento - Borda a Borda - Feature Adicionada)
-    // Alvo: Lado INFERIOR do 'closestElement'
+    // D. LÓGICA Y (Empilhamento - Borda a Borda)
     const targetBottom = elY + targetIconHalfHeightPercent;
     const yDiffBottom = Math.abs(
       newPosition.y - (targetBottom + newIconHalfHeightPercent),
     );
     if (yDiffBottom < snapYThreshold) {
       snappedY = targetBottom + newIconHalfHeightPercent;
+      yGuide = snappedY;
     }
 
-    // Alvo: Lado SUPERIOR do 'closestElement'
     const targetTop = elY - targetIconHalfHeightPercent;
     const yDiffTop = Math.abs(
       newPosition.y - (targetTop - newIconHalfHeightPercent),
     );
     if (yDiffTop < snapYThreshold) {
       snappedY = targetTop - newIconHalfHeightPercent;
+      yGuide = snappedY;
     }
 
-    return { x: snappedX, y: snappedY };
+    return {
+      snappedPosition: { x: snappedX, y: snappedY },
+      guides: { x: xGuide, y: yGuide },
+    };
   }
   // --- Fim da Lógica de Alinhamento ---
 
-  // --- Lógica de Drop (Atualizada com Escala do Item Arrastado) ---
+  // --- Lógica de Drop (Atualizada com Guias Visuais) ---
   const [{ isOver }, drop] = useDrop(
     () => ({
       accept: [ItemTypes.PALETTE_ITEM, ItemTypes.STAGE_ELEMENT],
@@ -239,31 +261,30 @@ export default function FormationMap({
 
         const initialPosition = { x, y };
         const itemType = monitor.getItemType();
-
-        // Determinar a escala do item sendo arrastado
         let draggedItemScale = 1.0;
+
         if (itemType === ItemTypes.PALETTE_ITEM) {
-          draggedItemScale = item.scale || 1.0; // Pega do PaletteItem
+          draggedItemScale = item.scale || 1.0;
         } else if (itemType === ItemTypes.STAGE_ELEMENT) {
-          draggedItemScale = item.scale || 1.0; // Pega do StageElement (corrigido)
+          draggedItemScale = item.scale || 1.0;
         }
 
-        // Aplicar Snap
+        setSnapGuides(null);
+
+        const { snappedPosition, guides } = getSnappedPosition(
+          initialPosition,
+          itemType === ItemTypes.STAGE_ELEMENT ? item.id : null,
+          draggedItemScale,
+        );
+
+        if (guides.x !== null || guides.y !== null) {
+          setSnapGuides(guides);
+          setTimeout(() => setSnapGuides(null), 1200);
+        }
+
         if (itemType === ItemTypes.PALETTE_ITEM && onPaletteDrop) {
-          const snappedPosition = getSnappedPosition(
-            initialPosition,
-            null,
-            draggedItemScale,
-            globalScale,
-          );
           onPaletteDrop(item, snappedPosition);
         } else if (itemType === ItemTypes.STAGE_ELEMENT && onElementMove) {
-          const snappedPosition = getSnappedPosition(
-            initialPosition,
-            item.id,
-            draggedItemScale,
-            globalScale,
-          );
           onElementMove(item.id, snappedPosition);
         }
       },
@@ -279,10 +300,10 @@ export default function FormationMap({
       elements,
       actualWidth,
       actualHeight,
-    ], // Dependências
+    ],
   );
 
-  // --- Lógica de Agrupamento (Original) ---
+  // --- LÓGICA DE AGRUPAMENTO E LABELS - ATUALIZADA (Bug do Label) ---
   const processedGroups = useMemo(() => {
     const groups = new Map();
     for (const element of elements) {
@@ -306,26 +327,34 @@ export default function FormationMap({
       }
 
       let minX = 100,
-        maxX = 0,
-        maxY = 0;
+        maxX = 0;
+      let maxY = 0;
+      let elementAtMaxY = null; // (Correção Bug do Label)
 
       for (const el of group.elements) {
         const elX = parseFloat(el.position_x);
         const elY = parseFloat(el.position_y);
         if (elX < minX) minX = elX;
         if (elX > maxX) maxX = elX;
-        if (elY > maxY) maxY = elY;
+
+        if (elY > maxY) {
+          // (Correção Bug do Label)
+          maxY = elY;
+          elementAtMaxY = el;
+        }
       }
 
+      const scaleAtMaxY = elementAtMaxY?.scale || 1.0; // (Correção Bug do Label)
       group.labelPosition = {
         x: (minX + maxX) / 2,
-        y: maxY + 1,
+        y: maxY,
+        scale: scaleAtMaxY, // (Correção Bug do Label)
       };
       groupsWithLabels.push(group);
     }
     return groupsWithLabels;
   }, [elements]);
-  // --- Fim da Lógica de Agrupamento ---
+  // --- (FIM DA LÓGICA ATUALIZADA) ---
 
   const combinedRef = (node) => {
     mapRef.current = node;
@@ -375,6 +404,7 @@ export default function FormationMap({
               label={group.display_name}
               x={group.labelPosition.x}
               y={group.labelPosition.y}
+              scale={group.labelPosition.scale} // (Correção Bug do Label)
               isHighlighted={
                 loggedInUser && group.assigned_user_id === loggedInUser.id
               }
@@ -383,6 +413,24 @@ export default function FormationMap({
           )}
         </React.Fragment>
       ))}
+
+      {/* --- INÍCIO DA CORREÇÃO (Feature 1 - Guia Visual) --- */}
+      {/* Verifica se 'snapGuides' existe (não é nulo) ANTES 
+        de tentar acessar 'snapGuides.y' ou 'snapGuides.x'.
+      */}
+      {snapGuides && snapGuides.y !== null && (
+        <div
+          className="absolute left-0 right-0 border-t-2 border-dashed border-rakusai-pink pointer-events-none"
+          style={{ top: `${snapGuides.y}%` }}
+        />
+      )}
+      {snapGuides && snapGuides.x !== null && (
+        <div
+          className="absolute top-0 bottom-0 border-l-2 border-dashed border-rakusai-pink pointer-events-none"
+          style={{ left: `${snapGuides.x}%` }}
+        />
+      )}
+      {/* --- FIM DA CORREÇÃO --- */}
 
       {/* Lógica de "Cena Vazia" */}
       {elements.length === 0 && (
