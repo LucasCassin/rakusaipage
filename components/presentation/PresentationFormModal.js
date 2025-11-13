@@ -38,9 +38,14 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
       if (value) {
         if (key === "date" || key === "meet_time") {
           try {
-            const dateValueWithSeconds = `${value}:00`;
-            const dateObj = toDate(dateValueWithSeconds, { timeZone });
-            finalData[key] = dateObj.toISOString();
+            let dateValue = value;
+            if (dateValue.length === 16) {
+              dateValue = `${dateValue}:00`;
+            }
+
+            const utcDate = zonedTimeToUtc(dateValue, timeZone);
+
+            finalData[key] = utcDate.toISOString();
           } catch (err) {
             console.error(`Data inválida para ${key}:`, value, err);
             finalData[key] = value;
