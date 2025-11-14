@@ -82,7 +82,6 @@ exports.up = (pgm) => {
 
 exports.down = (pgm) => {
   pgm.sql(`
-    DELETE FROM element_types 
-    WHERE name IN (${elementTypes.map((type) => `'${type.name}'`).join(", ")});
+    DELETE FROM element_types;
   `);
 };
