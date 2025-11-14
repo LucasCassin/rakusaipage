@@ -5,6 +5,8 @@ import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 
+const CLIPBOARD_KEY = "rakusai_scene_clipboard";
+
 export function usePresentationEditor(presentationId) {
   const router = useRouter();
 
@@ -54,6 +56,11 @@ export function usePresentationEditor(presentationId) {
   const [isDeleteSceneModalOpen, setIsDeleteSceneModalOpen] = useState(false);
   const [deleteSceneModalData, setDeleteSceneModalData] = useState(null);
   const [deleteSceneModalError, setDeleteSceneModalError] = useState(null);
+
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+  const [pasteModalError, setPasteModalError] = useState(null);
+
+  const [clipboardContent, setClipboardContent] = useState(null);
 
   const componentToPrintRef = useRef(null);
   const handlePrint = useReactToPrint({
@@ -1027,6 +1034,84 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
+  // Efeito que lê o localStorage na montagem do hook
+  useEffect(() => {
+    try {
+      const data = localStorage.getItem(CLIPBOARD_KEY);
+      if (data) {
+        setClipboardContent(JSON.parse(data));
+      }
+    } catch (e) {
+      console.error("Erro ao ler clipboard:", e);
+      localStorage.removeItem(CLIPBOARD_KEY);
+    }
+  }, []); // Roda apenas uma vez
+
+  // Função 1: COPIAR
+  const copyScene = useCallback((sceneToCopy) => {
+    try {
+      const data = JSON.stringify(sceneToCopy);
+      localStorage.setItem(CLIPBOARD_KEY, data);
+      setClipboardContent(sceneToCopy);
+      // (Poderíamos adicionar um 'toast' de notificação aqui)
+    } catch (e) {
+      console.error("Erro ao copiar cena:", e);
+    }
+  }, []);
+
+  // Funções 2: Abrir/Fechar Modal de Colar
+  const openPasteModal = () => {
+    setPasteModalError(null);
+    setIsPasteModalOpen(true);
+  };
+
+  const closePasteModal = () => {
+    setIsPasteModalOpen(false);
+  };
+
+  // Função 3: COLAR (Chamada de API)
+  const handlePasteScene = useCallback(
+    async (pasteOption) => {
+      if (!clipboardContent) {
+        setPasteModalError("Nenhuma cena encontrada no clipboard.");
+        return;
+      }
+
+      setPasteModalError(null);
+
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}/scenes/clone`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sceneData: clipboardContent,
+              pasteOption: pasteOption,
+            }),
+          },
+        );
+
+        await handleApiResponse({
+          response,
+          router,
+          setError: setPasteModalError,
+          onSuccess: async (newScene) => {
+            // Sucesso!
+            await refetchPresentationData(); // Recarrega tudo
+            closePasteModal();
+            // O 'refetch' atualizará o elenco (viewers) se 'with_users' foi usado
+            // e selecionará a nova cena.
+            setCurrentSceneId(newScene.id);
+          },
+        });
+      } catch (e) {
+        setPasteModalError("Erro de conexão ao colar a cena.");
+      }
+    },
+    [clipboardContent, presentationId, router, refetchPresentationData],
+  );
+
   return {
     presentation,
     isLoading: isLoadingData,
@@ -1101,6 +1186,14 @@ export function usePresentationEditor(presentationId) {
       openDeleteScene: openDeleteSceneModal,
       closeDeleteScene: closeDeleteSceneModal,
       deleteScene: deleteScene,
+
+      isPasteOpen: isPasteModalOpen,
+      pasteError: pasteModalError,
+      openPaste: openPasteModal,
+      closePaste: closePasteModal,
+      handlePaste: handlePasteScene,
+
+      handleCopy: copyScene,
     },
 
     dropHandlers: {
