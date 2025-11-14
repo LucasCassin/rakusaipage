@@ -828,6 +828,16 @@ const schemas = {
           otherwise: Joi.optional(),
         }),
     }),
+
+  sceneData: () =>
+    // URL para imagens de ícones
+    Joi.object({
+      sceneData: Joi.array().when("$required.sceneData", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.
