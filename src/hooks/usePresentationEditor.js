@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
+import { useMessage } from "./useMessage";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -61,6 +62,12 @@ export function usePresentationEditor(presentationId) {
   const [pasteModalError, setPasteModalError] = useState(null);
 
   const [clipboardContent, setClipboardContent] = useState(null);
+
+  const {
+    success: globalSuccessMessage,
+    setSuccess: setGlobalSuccessMessage,
+    clearSuccess: clearGlobalSuccessMessage,
+  } = useMessage();
 
   const componentToPrintRef = useRef(null);
   const handlePrint = useReactToPrint({
@@ -920,6 +927,7 @@ export function usePresentationEditor(presentationId) {
         onSuccess: async () => {
           await refetchPresentationData();
           closeDeleteSceneModal();
+          fetchPool();
           if (currentSceneId === deleteSceneModalData.scene.id) {
             setCurrentSceneId(null);
           }
@@ -1048,16 +1056,19 @@ export function usePresentationEditor(presentationId) {
   }, []); // Roda apenas uma vez
 
   // Função 1: COPIAR
-  const copyScene = useCallback((sceneToCopy) => {
-    try {
-      const data = JSON.stringify(sceneToCopy);
-      localStorage.setItem(CLIPBOARD_KEY, data);
-      setClipboardContent(sceneToCopy);
-      // (Poderíamos adicionar um 'toast' de notificação aqui)
-    } catch (e) {
-      console.error("Erro ao copiar cena:", e);
-    }
-  }, []);
+  const copyScene = useCallback(
+    (sceneToCopy) => {
+      try {
+        const data = JSON.stringify(sceneToCopy);
+        localStorage.setItem(CLIPBOARD_KEY, data);
+        setClipboardContent(sceneToCopy);
+        setGlobalSuccessMessage(`Cena "${sceneToCopy.name}" copiada!`);
+      } catch (e) {
+        console.error("Erro ao copiar cena:", e);
+      }
+    },
+    [setGlobalSuccessMessage],
+  );
 
   // Funções 2: Abrir/Fechar Modal de Colar
   const openPasteModal = () => {
@@ -1097,11 +1108,9 @@ export function usePresentationEditor(presentationId) {
           router,
           setError: setPasteModalError,
           onSuccess: async (newScene) => {
-            // Sucesso!
-            await refetchPresentationData(); // Recarrega tudo
+            await refetchPresentationData();
+            fetchPool();
             closePasteModal();
-            // O 'refetch' atualizará o elenco (viewers) se 'with_users' foi usado
-            // e selecionará a nova cena.
             setCurrentSceneId(newScene.id);
           },
         });
@@ -1127,6 +1136,9 @@ export function usePresentationEditor(presentationId) {
     permissions,
 
     clipboardContent,
+
+    globalSuccessMessage,
+    clearGlobalSuccessMessage,
 
     castHook: {
       viewers,
