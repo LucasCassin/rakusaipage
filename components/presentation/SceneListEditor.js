@@ -1,9 +1,7 @@
 import React from "react";
 import Button from "components/ui/Button";
-import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
-// --- NOVO IMPORT ---
+import { FiEdit2, FiTrash2, FiPlus, FiCopy, FiClipboard } from "react-icons/fi";
 import SceneDraggableItem from "./SceneDraggableItem";
-// --- FIM DO NOVO IMPORT ---
 
 /**
  * Renderiza a lista de Cenas (Roteiro) com controles de Edição
@@ -17,7 +15,10 @@ export default function SceneListEditor({
   onAddScene,
   onEditScene,
   onDeleteScene,
-  reorderHandlers, // <-- 1. NOVA PROP (do 'usePE')
+  reorderHandlers,
+  onCopyScene,
+  onPasteScene,
+  hasClipboardContent,
 }) {
   return (
     <div className="bg-white p-3 rounded-lg shadow-md border border-gray-200">
@@ -58,6 +59,21 @@ export default function SceneListEditor({
               ></span>
 
               <div className="flex items-center pr-2">
+                {permissions.canCreateScenes && (
+                  <button
+                    type="button"
+                    onClick={() => onCopyScene(scene)}
+                    title="Copiar Cena"
+                    className={`p-1 rounded-full ${
+                      currentSceneId === scene.id
+                        ? "text-white hover:bg-white/20"
+                        : "text-gray-500 hover:bg-gray-300"
+                    }`}
+                  >
+                    <FiCopy className="h-4 w-4" />
+                  </button>
+                )}
+
                 {permissions.canUpdateScenes && (
                   <button
                     type="button"
@@ -88,7 +104,18 @@ export default function SceneListEditor({
             </div>
           </SceneDraggableItem>
         ))}
-        {/* --- FIM DA MUDANÇA --- */}
+
+        {permissions.canCreateScenes && hasClipboardContent && (
+          <Button
+            variant="secondary"
+            size="small"
+            className="!rounded-full"
+            onClick={onPasteScene}
+            title="Colar Cena"
+          >
+            <FiClipboard />
+          </Button>
+        )}
 
         {/* Botão Adicionar Cena */}
         {permissions.canCreateScenes && (

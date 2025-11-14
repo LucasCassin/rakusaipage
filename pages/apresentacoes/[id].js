@@ -21,6 +21,8 @@ import ShareModal from "components/presentation/ShareModal";
 import SceneFormModal from "components/presentation/SceneFormModal";
 import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 import TransitionStepModal from "components/presentation/TransitionStepModal";
+import PasteSceneModal from "components/presentation/PasteSceneModal";
+
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
 import {
   FiChevronsUp,
@@ -223,6 +225,9 @@ export default function PresentationPage() {
                   }
                   onDeleteScene={editor.modal.openDeleteScene}
                   reorderHandlers={editor.reorderHandlers}
+                  onCopyScene={editor.modal.handleCopy}
+                  onPasteScene={editor.modal.openPaste}
+                  hasClipboardContent={!!editor.clipboardContent}
                 />
               ) : (
                 <SceneSelector
@@ -331,6 +336,15 @@ export default function PresentationPage() {
           error={editor.modal.stepError}
           onClose={editor.modal.closeStep}
           onSubmit={editor.modal.saveStep}
+        />
+      )}
+
+      {editor.modal.isPasteOpen && (
+        <PasteSceneModal
+          sceneName={editor.clipboardContent?.name}
+          error={editor.modal.pasteError}
+          onClose={editor.modal.closePaste}
+          onSubmit={editor.modal.handlePaste}
         />
       )}
 
