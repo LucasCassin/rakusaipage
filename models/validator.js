@@ -829,10 +829,12 @@ const schemas = {
         }),
     }),
 
+  // sceneData: () =>
+  //   Joi.object().concat(schemas.presentation_id()).concat(schemas.id()),
   sceneData: () =>
     // URL para imagens de ícones
     Joi.object({
-      sceneData: Joi.array().when("$required.sceneData", {
+      sceneData: Joi.object().when("$required.sceneData", {
         is: "required",
         then: Joi.required(),
         otherwise: Joi.optional(),

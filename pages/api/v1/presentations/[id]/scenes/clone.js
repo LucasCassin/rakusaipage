@@ -5,7 +5,7 @@ import authorization from "models/authorization.js";
 import scene from "models/scene.js";
 import presentation from "models/presentation.js";
 import validator from "models/validator.js";
-import { NotFoundError } from "errors/index.js";
+import { NotFoundError, UnauthorizedError } from "errors/index.js";
 
 const router = createRouter()
   .use(authentication.injectAnonymousOrUser)
@@ -13,9 +13,7 @@ const router = createRouter()
 
 // --- Rota POST (Clonar Cena) ---
 router.post(
-  // Foco em Segurança:
-  // Para colar uma cena, o usuário precisa ter permissão
-  // de 'criar cena' na apresentação de destino.
+  validateUserLogged,
   authorization.canRequest("create:scene"),
   validateRequest,
   postHandler,
@@ -23,12 +21,23 @@ router.post(
 
 export default router.handler(controller.errorsHandlers);
 
+function validateUserLogged(req, res, next) {
+  const user = req.context.user;
+  if (!user.id) {
+    throw new UnauthorizedError({
+      message: "Você precisa estar logado para ver esta apresentação privada.",
+    });
+  }
+  next();
+}
+
 /**
  * Middleware de validação do ID da URL e do Body.
  */
 async function validateRequest(req, res, next) {
   try {
     // 1. Validar ID da URL (Apresentação de Destino)
+
     req.query = validator(
       { targetPresentationId: req.query?.id },
       { targetPresentationId: "required" },
