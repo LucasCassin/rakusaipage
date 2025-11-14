@@ -1126,6 +1126,8 @@ export function usePresentationEditor(presentationId) {
     setIsEditorMode,
     permissions,
 
+    clipboardContent,
+
     castHook: {
       viewers,
       isLoading: isLoadingViewers,
