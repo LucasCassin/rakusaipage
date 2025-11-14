@@ -597,14 +597,34 @@ const schemas = {
       }),
     }),
 
+  newOrder: () =>
+    // Para ordenação de cenas/passos
+    Joi.object({
+      newOrder: Joi.number().integer().min(0).when("$required.newOrder", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   scene_type: () =>
-    // <-- Renomeado de 'type'
-    // Para o tipo de cena (FORMATION, TRANSITION)
     Joi.object({
       scene_type: Joi.string()
         .trim()
-        .valid("FORMATION", "TRANSITION") // Valida contra a lista do ENUM
+        .valid("FORMATION", "TRANSITION")
         .when("$required.scene_type", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pasteOption: () =>
+    Joi.object({
+      pasteOption: Joi.string()
+        .trim()
+        .valid("elements_only", "with_names", "with_users")
+        .when("$required.pasteOption", {
           is: "required",
           then: Joi.required(),
           otherwise: Joi.optional(),
@@ -739,6 +759,32 @@ const schemas = {
         .trim()
         .guid({ version: "uuidv4" })
         .when("$required.sourceGroupId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  targetPresentationId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      targetPresentationId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.targetPresentationId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  sourceSceneId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      sourceSceneId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.sourceSceneId", {
           is: "required",
           then: Joi.required(),
           otherwise: Joi.optional(),

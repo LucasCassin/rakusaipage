@@ -2,7 +2,7 @@ import database from "infra/database.js";
 import validator from "models/validator.js";
 import { NotFoundError } from "errors/index.js";
 
-async function addViewer(presentation_id, user_id) {
+async function addViewer(presentation_id, user_id, { useClient } = {}) {
   const validatedData = validator(
     { presentation_id, user_id },
     {
@@ -21,7 +21,8 @@ async function addViewer(presentation_id, user_id) {
     values: [validatedData.presentation_id, validatedData.user_id],
   };
 
-  const results = await database.query(query);
+  const db = useClient || database;
+  const results = await db.query(query);
   return results.rows[0];
 }
 
