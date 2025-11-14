@@ -1063,6 +1063,9 @@ export function usePresentationEditor(presentationId) {
         localStorage.setItem(CLIPBOARD_KEY, data);
         setClipboardContent(sceneToCopy);
         setGlobalSuccessMessage(`Cena "${sceneToCopy.name}" copiada!`);
+        setTimeout(() => {
+          setGlobalSuccessMessage(null);
+        }, 3000);
       } catch (e) {
         console.error("Erro ao copiar cena:", e);
       }

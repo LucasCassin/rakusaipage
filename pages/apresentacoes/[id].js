@@ -22,6 +22,7 @@ import SceneFormModal from "components/presentation/SceneFormModal";
 import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 import TransitionStepModal from "components/presentation/TransitionStepModal";
 import PasteSceneModal from "components/presentation/PasteSceneModal";
+import Alert from "components/ui/Alert";
 
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
 import {
@@ -123,6 +124,12 @@ export default function PresentationPage() {
         maxWidth="max-w-7xl"
       >
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {editor.globalSuccessMessage && (
+            <Alert type="success" className="mb-4">
+              {editor.globalSuccessMessage}
+            </Alert>
+          )}
+
           <div className="mb-4">
             <Link
               href="/apresentacoes"
