@@ -1116,6 +1116,9 @@ export function usePresentationEditor(presentationId) {
             closePasteModal();
             setCurrentSceneId(newScene.id);
           },
+          onError: () => {
+            setClipboardContent(null);
+          },
         });
       } catch (e) {
         setPasteModalError("Erro de conexão ao colar a cena.");
