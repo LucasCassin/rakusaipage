@@ -39,7 +39,7 @@ export default function StageLine({
       style={{
         left: "0",
         top: `${element.position_y}%`,
-        transform: `translateY(-50%) scale(${globalScale})`,
+        transform: `translateY(-50%))`,
         transformOrigin: "top center",
       }}
     >
@@ -49,7 +49,10 @@ export default function StageLine({
       ></div>
 
       {isEditorMode && (
-        <div className="absolute px-2 py-0.5 bg-rakusai-yellow-dark text-black text-xs font-bold rounded-full">
+        <div
+          className="absolute px-2 py-0.5 bg-rakusai-yellow-dark text-black text-xs font-bold rounded-full"
+          style={{ transform: `scale(${globalScale})` }}
+        >
           Palco
         </div>
       )}
@@ -60,6 +63,7 @@ export default function StageLine({
           onClick={() => onDelete(element.id)}
           className="absolute right-0 flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 focus:outline-none"
           aria-label="Deletar Linha do Palco"
+          style={{ transform: `scale(${globalScale})` }}
         >
           <FiX className="h-4 w-4" />
         </button>
