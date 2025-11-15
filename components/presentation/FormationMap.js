@@ -326,26 +326,49 @@ export default function FormationMap({
 
       let minX = 100,
         maxX = 0;
-      let maxY = 0;
-      let elementAtMaxY = null;
 
+      // --- INÍCIO DA CORREÇÃO (Bug do Label) ---
+
+      // 1. Encontra o Y máximo (o centro mais baixo)
+      let maxY = -Infinity;
       for (const el of group.elements) {
-        const elX = parseFloat(el.position_x);
         const elY = parseFloat(el.position_y);
-        if (elX < minX) minX = elX;
-        if (elX > maxX) maxX = elX;
         if (elY > maxY) {
           maxY = elY;
-          elementAtMaxY = el;
         }
       }
 
-      const scaleAtMaxY = elementAtMaxY?.scale || 1.0;
+      // 2. Filtra todos os elementos que estão nesse Y máximo
+      const lowestElements = group.elements.filter(
+        (el) => parseFloat(el.position_y) === maxY,
+      );
+
+      // 3. Desses elementos, encontra o que tem a MAIOR escala
+      let elementToAnchor = lowestElements[0]; // Pega o primeiro como default
+      if (lowestElements.length > 1) {
+        for (const el of lowestElements) {
+          if ((el.scale || 1.0) > (elementToAnchor.scale || 1.0)) {
+            elementToAnchor = el;
+          }
+        }
+      }
+
+      // 4. (Encontra o X-range, como antes)
+      for (const el of group.elements) {
+        const elX = parseFloat(el.position_x);
+        if (elX < minX) minX = elX;
+        if (elX > maxX) maxX = elX;
+      }
+
+      // 5. Usa o elemento âncora (com max Y e max scale)
+      const scaleAtMaxY = elementToAnchor?.scale || 1.0;
       group.labelPosition = {
         x: (minX + maxX) / 2,
-        y: maxY,
-        scale: scaleAtMaxY,
+        y: maxY, // O Y é o mesmo (maxY)
+        scale: scaleAtMaxY, // A escala é a do maior elemento nesse Y
       };
+      // --- FIM DA CORREÇÃO ---
+
       groupsWithLabels.push(group);
     }
     return groupsWithLabels;
