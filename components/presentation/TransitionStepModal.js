@@ -3,6 +3,8 @@ import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX } from "react-icons/fi";
+import { settings } from "config/settings.js"; // <-- 1. IMPORTAR SETTINGS
+import AssigneeManager from "./AssigneeManager"; // <-- 2. IMPORTAR NOVO COMPONENTE
 
 /**
  * Modal para criar ou editar um TransitionStep (item da checklist).
@@ -18,29 +20,37 @@ export default function TransitionStepModal({
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const { viewers = [], isLoading: isLoadingCast } = cast;
+  const { isLoading: isLoadingCast } = cast;
   const { mode, step } = modalData || {};
   const isCreate = mode === "create";
 
+  // --- 3. ATUALIZAR USEEFFECT ---
   useEffect(() => {
     if (isCreate) {
       setFormData({
         description: "",
-        assigned_user_id: "",
+        assignees: [], // <-- MUDANÇA
       });
     } else if (step) {
       setFormData({
         description: step.description || "",
-        assigned_user_id: step.assigned_user_id || "",
+        assignees: step.assignees || [], // <-- MUDANÇA
         order: step.order,
       });
     }
   }, [modalData, step, isCreate]);
+  // --- FIM DA MUDANÇA ---
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  // --- 4. NOVO HANDLER PARA O ARRAY ---
+  const handleAssigneesChange = (newAssigneesArray) => {
+    setFormData((prev) => ({ ...prev, assignees: newAssigneesArray }));
+  };
+  // --- FIM DO NOVO HANDLER ---
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,66 +59,43 @@ export default function TransitionStepModal({
     setIsLoading(false);
   };
 
-  const title = isCreate ? "Adicionar Passo" : "Editar Passo";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">{title}</h3>
-          <button onClick={onClose} disabled={isLoading}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative w-full max-w-lg rounded-lg bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 p-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {isCreate ? "Adicionar Passo" : "Editar Passo"}
+          </h3>
+          <button onClick={onClose}>
             <FiX className="h-6 w-6 text-gray-500" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+          <FormInput
+            label="Descrição"
+            name="description"
+            value={formData.description || ""}
+            onChange={handleChange}
+            placeholder="Ex: Tocar 1, 2, 3..."
+            required
+            maxLength={500}
+            disabled={isLoading}
+          />
+
+          {/* --- 5. SUBSTITUIR O SELECT --- */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Descrição da Tarefa
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Usuários Associados
             </label>
-            <FormInput
-              id="description"
-              name="description"
-              value={formData.description || ""}
-              onChange={handleChange}
-              placeholder="Ex: Renan entra com okedo"
-              required
-              className="mt-1"
+            <AssigneeManager
+              cast={cast}
+              currentAssignees={formData.assignees}
+              onChange={handleAssigneesChange}
+              maxLimit={settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_STEP}
             />
           </div>
-
-          <div>
-            <label
-              htmlFor="assigned_user_id"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Associar Usuário (Opcional)
-            </label>
-            <select
-              id="assigned_user_id"
-              name="assigned_user_id"
-              value={formData.assigned_user_id || ""}
-              onChange={handleChange}
-              disabled={isLoadingCast}
-              className="mt-1 py-2 w-full rounded-md border border-gray-300 text-sm font-medium text-gray-700"
-            >
-              {isLoadingCast ? (
-                <option>Carregando elenco...</option>
-              ) : (
-                <>
-                  <option value="">Nenhum</option>
-                  {cast.viewers.map((viewer) => (
-                    <option key={viewer.id} value={viewer.id}>
-                      {viewer.username}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
+          {/* --- FIM DA SUBSTITUIÇÃO --- */}
 
           {error && <Alert type="error">{error}</Alert>}
 

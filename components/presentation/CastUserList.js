@@ -4,24 +4,25 @@ import { FiTrash2 } from "react-icons/fi";
 
 /**
  * Calcula em quantos elementos/passos um usuário está.
- *
+ * (ATUALIZADO PARA SUPORTAR 'assignees' M-N)
  */
 function calculateParticipation(userId, scenes) {
   if (!scenes) return 0;
 
   return scenes.reduce((count, scene) => {
-    if (scene.scene_type !== "FORMATION" || !scene.scene_elements) {
-      return count;
-    }
-    const isUserInScene = scene.scene_elements.some(
-      (el) => el.assigned_user_id === userId,
-    );
+    let participationInScene = 0;
 
-    if (isUserInScene) {
-      return count + 1;
+    // 1. Verifica Formações (scene_elements)
+    if (scene.scene_type === "FORMATION" && scene.scene_elements) {
+      const isUserInElement = scene.scene_elements.some(
+        (el) => el.assignees && el.assignees.includes(userId), // <-- MUDANÇA
+      );
+      if (isUserInElement) {
+        participationInScene = 1; // Contamos 1 por CENA, não por elemento
+      }
     }
 
-    return count;
+    return count + participationInScene;
   }, 0);
 }
 /**
@@ -38,26 +39,31 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
     return () => clearTimeout(timer);
   }, [pendingAction]);
 
-  const handleRemove = async () => {
-    if (pendingAction !== "delete") {
-      setPendingAction("delete");
-      return;
-    }
-    setIsProcessing(true);
-    await onRemove(user.id);
-    // O 'usePresentationCast' vai atualizar a lista
-  };
-
-  // Calcula o contador
+  // Recalcula a participação (agora usando a lógica M-N)
   const participationCount = useMemo(
     () => calculateParticipation(user.id, scenes),
     [user.id, scenes],
   );
 
   const isAssigned = participationCount > 0;
+
+  const handleRemove = async () => {
+    if (isAssigned) return; // Segurança extra
+
+    if (pendingAction !== "delete") {
+      setPendingAction("delete");
+      return;
+    }
+    setIsProcessing(true);
+    await onRemove(user.id);
+    // O 'usePresentationEditor' vai atualizar o estado e causar re-render.
+    setIsProcessing(false);
+    setPendingAction(null);
+  };
+
   const isDisabled = isProcessing || isAssigned;
   const buttonTitle = isAssigned
-    ? `Este usuário não pode ser removido pois está associado a ${participationCount} item(ns) no mapa.`
+    ? `Este usuário não pode ser removido pois está associado a ${participationCount} cena(s) no mapa.`
     : "Remover do elenco";
 
   return (
@@ -98,10 +104,10 @@ export default function CastUserList({ viewers, scenes, onRemove }) {
 
   return (
     <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-transparent pr-1">
-      {viewers.map((viewer) => (
+      {viewers.map((user) => (
         <CastUserItem
-          key={viewer.id}
-          user={viewer}
+          key={user.id}
+          user={user}
           scenes={scenes}
           onRemove={onRemove}
         />
