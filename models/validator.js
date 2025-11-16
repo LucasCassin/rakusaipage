@@ -713,16 +713,31 @@ const schemas = {
         }),
     }),
 
-  assigned_user_id: () =>
-    // ID do usuário associado (opcional)
+  // assigned_user_id: () =>
+  //   // ID do usuário associado (opcional)
+  //   Joi.object({
+  //     assigned_user_id: Joi.string()
+  //       .trim()
+  //       .guid({ version: "uuidv4" })
+  //       .when("$required.assigned_user_id", {
+  //         is: "required",
+  //         then: Joi.required(),
+  //         otherwise: Joi.optional().allow(null), // Permite ser nulo
+  //       }),
+  //   }),
+
+  assignees: () =>
+    // Array de IDs de usuários associados (opcional)
     Joi.object({
-      assigned_user_id: Joi.string()
-        .trim()
-        .guid({ version: "uuidv4" })
-        .when("$required.assigned_user_id", {
+      assignees: Joi.array()
+        .items(
+          Joi.string().trim().guid({ version: "uuidv4" }), // Valida cada item como UUID
+        )
+        .min(0) // Permite um array vazio []
+        .when("$required.assignees", {
           is: "required",
-          then: Joi.required(),
-          otherwise: Joi.optional().allow(null), // Permite ser nulo
+          then: Joi.required().min(1), // Se for obrigatório, deve ter ao menos 1
+          otherwise: Joi.optional().allow(null), // Permite ser undefined ou null
         }),
     }),
 
