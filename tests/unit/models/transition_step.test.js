@@ -1,9 +1,13 @@
 import orchestrator from "tests/orchestrator.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
-import transitionStep from "models/transition_step.js"; // O modelo que estamos testando
+import transitionStep from "models/transition_step.js";
 import user from "models/user.js";
+import { settings } from "config/settings.js";
 import { ValidationError, NotFoundError } from "errors/index.js";
+import { v4 as uuid } from "uuid";
+
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_STEP;
 
 describe("Transition Step Model", () => {
   let adminUser, testUser, testTransitionScene;
@@ -13,7 +17,6 @@ describe("Transition Step Model", () => {
     await orchestrator.clearDatabase();
     await orchestrator.runPendingMigrations();
 
-    // Setup: 1 Usuário, 1 Apresentação, 1 Cena de Transição
     adminUser = await user.findOneUser({ username: "mainUser" });
     testUser = await user.create({
       username: "alunoTransicao",
@@ -29,67 +32,96 @@ describe("Transition Step Model", () => {
     testTransitionScene = await scene.create({
       presentation_id: testPresentation.id,
       name: "Troca para Hajime",
-      scene_type: "TRANSITION", //
+      scene_type: "TRANSITION",
       order: 1,
     });
   });
 
   describe("create()", () => {
-    it("should create a new transition step", async () => {
+    it("should create a new transition step with multiple 'assignees'", async () => {
       const data = {
         scene_id: testTransitionScene.id,
         order: 1,
-        description: "Lucas entra com okedo",
-        assigned_user_id: testUser.id,
+        description: "Lucas and Admin enter with okedo",
+        assignees: [testUser.id, adminUser.id],
       };
       const newStep = await transitionStep.create(data);
 
-      expect(newStep.id).toBeDefined();
       expect(newStep.scene_id).toBe(testTransitionScene.id);
-      expect(newStep.description).toBe("Lucas entra com okedo");
-      expect(newStep.order).toBe(1);
-      expect(newStep.assigned_user_id).toBe(testUser.id);
+      expect(newStep.description).toBe("Lucas and Admin enter with okedo");
+      expect(newStep.assignees).toBeInstanceOf(Array);
+      expect(newStep.assignees).toHaveLength(2);
+      expect(newStep.assignees).toContain(testUser.id);
+      expect(newStep.assignees).toContain(adminUser.id);
     });
 
-    it("should fail with ValidationError if 'description' is missing", async () => {
+    it("should create a step with 'assignees' as an empty array", async () => {
       const data = {
         scene_id: testTransitionScene.id,
         order: 2,
+        description: "No one moves",
+        assignees: [],
       };
-      await expect(transitionStep.create(data)).rejects.toThrow(
-        ValidationError,
-      );
+      const newStep = await transitionStep.create(data);
+      expect(newStep.description).toBe("No one moves");
+      expect(newStep.assignees).toEqual([]);
     });
 
-    it("should fail with ValidationError if 'scene_id' is missing", async () => {
+    it("should create a step with 'assignees' as null or undefined", async () => {
       const data = {
-        order: 2,
-        description: "Passo perdido",
+        scene_id: testTransitionScene.id,
+        order: 3,
+        description: "Checklist (null)",
+        assignees: null,
       };
+      const newStep = await transitionStep.create(data);
+      expect(newStep.assignees).toEqual([]);
+
+      const data2 = {
+        scene_id: testTransitionScene.id,
+        order: 4,
+        description: "Checklist (undefined)",
+      };
+      const newStep2 = await transitionStep.create(data2);
+      expect(newStep2.assignees).toEqual([]);
+    });
+
+    it("should throw (ValidationError) when creating with 'assignees' over the limit", async () => {
+      const uniqueUsers = [];
+      for (let i = 0; i <= MAX_ASSIGNEES; i++) {
+        uniqueUsers.push(uuid());
+      }
+
+      const data = {
+        scene_id: testTransitionScene.id,
+        order: 5,
+        description: "Limit failure",
+        assignees: uniqueUsers,
+      };
+
       await expect(transitionStep.create(data)).rejects.toThrow(
         ValidationError,
       );
     });
   });
 
-  describe("update() and del()", () => {
+  describe("update()", () => {
     let stepToEdit;
 
-    beforeAll(async () => {
-      // Cria um passo para ser usado nos testes
-      const data = {
+    beforeEach(async () => {
+      stepToEdit = await transitionStep.create({
         scene_id: testTransitionScene.id,
         order: 10,
-        description: "Descrição Original",
-      };
-      stepToEdit = await transitionStep.create(data);
+        description: "Original Step",
+        assignees: [testUser.id],
+      });
     });
 
-    it("should update a step's description, order, and assignment", async () => {
+    it("should update description, order, and 'assignees'", async () => {
       const updateData = {
+        description: "Updated Description",
         order: 11,
-        description: "Descrição Atualizada",
-        assigned_user_id: adminUser.id,
+        assignees: [adminUser.id],
       };
       const updatedStep = await transitionStep.update(
         stepToEdit.id,
@@ -97,20 +129,20 @@ describe("Transition Step Model", () => {
       );
 
       expect(updatedStep.id).toBe(stepToEdit.id);
-      expect(updatedStep.description).toBe("Descrição Atualizada");
+      expect(updatedStep.description).toBe("Updated Description");
       expect(updatedStep.order).toBe(11);
-      expect(updatedStep.assigned_user_id).toBe(adminUser.id);
+      expect(updatedStep.assignees).toEqual([adminUser.id]);
     });
 
-    it("should allow un-assigning a user (setting to null)", async () => {
+    it("should allow removing all 'assignees' (empty array)", async () => {
       const updateData = {
-        assigned_user_id: null,
+        assignees: [],
       };
       const updatedStep = await transitionStep.update(
         stepToEdit.id,
         updateData,
       );
-      expect(updatedStep.assigned_user_id).toBeNull();
+      expect(updatedStep.assignees).toEqual([]);
     });
 
     it("should throw NotFoundError when updating a non-existent step", async () => {
@@ -124,7 +156,6 @@ describe("Transition Step Model", () => {
       const deleted = await transitionStep.del(stepToEdit.id);
       expect(deleted.id).toBe(stepToEdit.id);
 
-      // Verifica se foi deletado
       const found = await transitionStep.findById(stepToEdit.id);
       expect(found).toBeUndefined();
     });

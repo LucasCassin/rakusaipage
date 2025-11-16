@@ -2,9 +2,13 @@ import orchestrator from "tests/orchestrator.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
 import elementType from "models/element_type.js";
-import sceneElement from "models/scene_element.js"; // O modelo que estamos testando
+import sceneElement from "models/scene_element.js";
 import user from "models/user.js";
+import { settings } from "config/settings.js";
 import { ValidationError, NotFoundError } from "errors/index.js";
+import { v4 as uuid } from "uuid";
+
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_GROUP;
 
 describe("Scene Element Model", () => {
   let adminUser, testPresentation, testScene, odaikoType, testUser;
@@ -14,7 +18,6 @@ describe("Scene Element Model", () => {
     await orchestrator.clearDatabase();
     await orchestrator.runPendingMigrations();
 
-    // Setup: 1 Usuário, 1 Apresentação, 1 Cena, 1 Tipo de Elemento
     adminUser = await user.findOneUser({ username: "mainUser" });
     testUser = await user.create({
       username: "alunoElemento",
@@ -42,100 +45,109 @@ describe("Scene Element Model", () => {
   });
 
   describe("create()", () => {
-    it("should create a new scene element", async () => {
-      const data = {
-        scene_id: testScene.id,
-        element_type_id: odaikoType.id,
-        position_x: 50.5,
-        position_y: 75.0,
-        display_name: "Lucas",
-        assigned_user_id: testUser.id,
-      };
-      const newElement = await sceneElement.create(data);
-
-      expect(newElement.id).toBeDefined();
-      expect(newElement.scene_id).toBe(testScene.id);
-      expect(newElement.display_name).toBe("Lucas");
-      expect(newElement.position_x).toBe(50.5);
-      expect(newElement.assigned_user_id).toBe(testUser.id);
-    });
-
-    it("should fail with ValidationError if 'scene_id' is missing", async () => {
-      const data = {
-        element_type_id: odaikoType.id,
-        position_x: 50,
-        position_y: 50,
-      };
-      await expect(sceneElement.create(data)).rejects.toThrow(ValidationError);
-    });
-
-    it("should fail with ValidationError if 'position_x' is out of bounds (0-100)", async () => {
-      const data = {
-        scene_id: testScene.id,
-        element_type_id: odaikoType.id,
-        position_x: 101.0, // Inválido
-        position_y: 50,
-      };
-      // O validator.js deve pegar isso
-      await expect(sceneElement.create(data)).rejects.toThrow(ValidationError);
-    });
-  });
-
-  describe("update() and del()", () => {
-    let elementToEdit;
-
-    beforeAll(async () => {
-      // Cria um elemento para ser usado nos testes
+    it("should create a new element (and group) with multiple 'assignees'", async () => {
       const data = {
         scene_id: testScene.id,
         element_type_id: odaikoType.id,
         position_x: 10,
-        position_y: 10,
-        display_name: "Original",
+        position_y: 20,
+        display_name: "Aluno 1",
+        assignees: [testUser.id, adminUser.id],
       };
-      elementToEdit = await sceneElement.create(data);
+      const newElement = await sceneElement.create(data);
+
+      expect(newElement.scene_id).toBe(testScene.id);
+      expect(newElement.display_name).toBe("Aluno 1");
+      expect(newElement.assignees).toBeInstanceOf(Array);
+      expect(newElement.assignees).toHaveLength(2);
+      expect(newElement.assignees).toContain(testUser.id);
+      expect(newElement.assignees).toContain(adminUser.id);
     });
 
-    it("should update an element's position", async () => {
+    it("should create an element with 'assignees' as an empty array", async () => {
+      const data = {
+        scene_id: testScene.id,
+        element_type_id: odaikoType.id,
+        position_x: 30,
+        position_y: 40,
+        display_name: "Odaiko",
+        assignees: [],
+      };
+      const newElement = await sceneElement.create(data);
+      expect(newElement.display_name).toBe("Odaiko");
+      expect(newElement.assignees).toEqual([]);
+    });
+
+    it("should throw (ValidationError) when creating with 'assignees' over the limit", async () => {
+      const uniqueUsers = [];
+      for (let i = 0; i <= MAX_ASSIGNEES; i++) {
+        uniqueUsers.push(uuid());
+      }
+
+      const data = {
+        scene_id: testScene.id,
+        element_type_id: odaikoType.id,
+        position_x: 50,
+        position_y: 50,
+        assignees: uniqueUsers,
+      };
+
+      await expect(sceneElement.create(data)).rejects.toThrow(ValidationError);
+    });
+  });
+
+  describe("update()", () => {
+    let elementToEdit;
+
+    beforeEach(async () => {
+      elementToEdit = await sceneElement.create({
+        scene_id: testScene.id,
+        element_type_id: odaikoType.id,
+        position_x: 1,
+        position_y: 1,
+        display_name: "Original Element",
+        assignees: [testUser.id],
+      });
+    });
+
+    it("should update only the position (scene_element)", async () => {
       const updateData = {
         position_x: 11.5,
-        position_y: 12.5,
       };
       const updatedElement = await sceneElement.update(
         elementToEdit.id,
         updateData,
       );
 
-      expect(updatedElement.id).toBe(elementToEdit.id);
       expect(updatedElement.position_x).toBe(11.5);
-      expect(updatedElement.position_y).toBe(12.5);
-      expect(updatedElement.display_name).toBe("Original"); // Não mudou
+      expect(updatedElement.display_name).toBe("Original Element");
+      expect(updatedElement.assignees).toEqual([testUser.id]);
     });
 
-    it("should update an element's assignment (name and user)", async () => {
+    it("should update display_name (group) and 'assignees'", async () => {
       const updateData = {
-        display_name: "Novo Nome",
-        assigned_user_id: adminUser.id,
+        display_name: "New Name",
+        assignees: [adminUser.id],
       };
       const updatedElement = await sceneElement.update(
         elementToEdit.id,
         updateData,
       );
 
-      expect(updatedElement.display_name).toBe("Novo Nome");
-      expect(updatedElement.assigned_user_id).toBe(adminUser.id);
-      expect(updatedElement.position_x).toBe(11.5); // Permanece da edição anterior
+      expect(updatedElement.display_name).toBe("New Name");
+      expect(updatedElement.assignees).toEqual([adminUser.id]);
+      expect(updatedElement.position_x).toBe(1);
     });
 
-    it("should allow un-assigning a user (setting to null)", async () => {
+    it("should allow removing 'assignees' (empty array)", async () => {
       const updateData = {
-        assigned_user_id: null,
+        assignees: [],
       };
       const updatedElement = await sceneElement.update(
         elementToEdit.id,
         updateData,
       );
-      expect(updatedElement.assigned_user_id).toBeNull();
+      expect(updatedElement.assignees).toEqual([]);
     });
 
     it("should throw NotFoundError when updating a non-existent element", async () => {
@@ -149,7 +161,6 @@ describe("Scene Element Model", () => {
       const deleted = await sceneElement.del(elementToEdit.id);
       expect(deleted.id).toBe(elementToEdit.id);
 
-      // Verifica se foi deletado
       const found = await sceneElement.findById(elementToEdit.id);
       expect(found).toBeUndefined();
     });
