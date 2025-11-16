@@ -4,20 +4,23 @@ import session from "models/session.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
 import elementType from "models/element_type.js";
-import sceneElement from "models/scene_element.js"; // Usamos para criar elementos
+import sceneElement from "models/scene_element.js";
 import database from "infra/database";
+import { settings } from "config/settings.js";
+import { v4 as uuid } from "uuid";
+
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_GROUP;
 
 describe("Test /api/v1/scene_elements/[id] routes", () => {
   let adminUser, adminSession, alunoUser, tocadorUser;
   let testScene, odaikoType;
-  let elementToTest; // O elemento principal (scene_element)
+  let elementToTest;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
     await orchestrator.clearDatabase();
     await orchestrator.runPendingMigrations();
 
-    // 1. Criar usuários e sessão admin
     adminUser = await user.findOneUser({ username: "mainUser" });
     adminUser = await user.update({
       id: adminUser.id,
@@ -28,59 +31,64 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
       "create:scene",
       "create:element",
       "manage:element_types",
+      "read:element",
+      "update:element",
+      "delete:element",
     ]);
     adminSession = await session.create(adminUser);
 
     alunoUser = await user.create({
-      username: "alunoElement",
-      email: "alunoelement@test.com",
-      password: "StrongPassword123@",
-    });
-    tocadorUser = await user.create({
-      username: "tocadorElement",
-      email: "tocadorelement@test.com",
+      username: "alunoElementId",
+      email: "alunoelementid@test.com",
       password: "StrongPassword123@",
     });
 
-    // 2. Criar infra
+    alunoUser = await user.update({
+      id: alunoUser.id,
+      password: "StrongPassword123@",
+    });
+
+    tocadorUser = await user.create({
+      username: "tocadorElementId",
+      email: "tocadorelementid@test.com",
+      password: "StrongPassword123@",
+    });
+
+    tocadorUser = await user.update({
+      id: tocadorUser.id,
+      password: "StrongPassword123@",
+    });
+
     const testPresentation = await presentation.create(
-      { name: "Show para Elementos" },
+      { name: "Apresentação de Elements ID" },
       adminUser.id,
     );
     testScene = await scene.create({
       presentation_id: testPresentation.id,
-      name: "Cena de Formação",
+      name: "Cena de Formação ID",
       scene_type: "FORMATION",
       order: 1,
     });
     odaikoType = await elementType.create({
-      name: "Odaiko7",
+      name: "Odaiko (Teste Element ID)",
       image_url: "/odaiko.svg",
       scale: 1.0,
     });
   });
 
-  // Criamos um novo elemento ANTES de cada teste
   beforeEach(async () => {
     elementToTest = await sceneElement.create({
       scene_id: testScene.id,
       element_type_id: odaikoType.id,
       position_x: 10,
       position_y: 10,
-      display_name: "Elemento Original",
-      assigned_user_id: tocadorUser.id,
+      display_name: "Original",
+      assignees: [alunoUser.id],
     });
   });
 
-  // Limpamos os elementos DEPOIS de cada teste
-  afterEach(async () => {
-    await database.query("DELETE FROM scene_elements;");
-    await database.query("DELETE FROM element_groups;");
-  });
-
-  // --- GET ---
-  describe("GET /api/v1/scene_elements/[id]", () => {
-    it("should get the element and its group data (JOIN)", async () => {
+  describe("GET", () => {
+    it("should return 200 and the element data (including assignees)", async () => {
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
         {
@@ -88,24 +96,105 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
           headers: { cookie: `session_id=${adminSession.token}` },
         },
       );
-      const resBody = await res.json();
-
       expect(res.status).toBe(200);
-      expect(resBody.id).toBe(elementToTest.id);
-      expect(resBody.position_x).toBe(10);
-      expect(resBody.group_id).toBe(elementToTest.group_id);
-      // Foco em Testes: Validando o JOIN da 'findById' refatorada
-      expect(resBody.display_name).toBe("Elemento Original");
-      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
+      const body = await res.json();
+      expect(body.id).toBe(elementToTest.id);
+      expect(body.display_name).toBe("Original");
+      expect(body.assignees).toEqual([alunoUser.id]);
     });
   });
 
-  // --- (REFATORADO) PATCH ---
-  describe("PATCH /api/v1/scene_elements/[id]", () => {
+  describe("PATCH", () => {
+    it("should return 200 and update the group (name and multiple assignees)", async () => {
+      const updateData = {
+        display_name: "Novo Nome",
+        assignees: [tocadorUser.id, adminUser.id],
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${adminSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.display_name).toBe("Novo Nome");
+      expect(body.assignees).toHaveLength(2);
+      expect(body.assignees).toContain(tocadorUser.id);
+    });
+
+    it("should return 200 and update assignees (single user)", async () => {
+      const updateData = {
+        assignees: [adminUser.id],
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${adminSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.assignees).toEqual([adminUser.id]);
+    });
+
+    it("should return 200 and remove assignees (empty array)", async () => {
+      const updateData = {
+        assignees: [],
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${adminSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.assignees).toEqual([]);
+    });
+
+    it("should return 400 (ValidationError) if assignees array exceeds limit", async () => {
+      const tooManyUsers = [];
+      for (let i = 0; i <= MAX_ASSIGNEES; i++) {
+        tooManyUsers.push(uuid());
+      }
+
+      const updateData = {
+        assignees: tooManyUsers,
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${adminSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
     it("should update element position and group name in one transaction", async () => {
       const updateData = {
-        position_x: 99.9, // Atualiza scene_elements
-        display_name: "Nome Atualizado", // Atualiza element_groups
+        position_x: 99.9,
+        display_name: "Nome Atualizado",
       };
 
       const res = await fetch(
@@ -121,12 +210,10 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
       );
       const resBody = await res.json();
 
-      // 1. Validar o 'scene_element' retornado
       expect(res.status).toBe(200);
-      expect(resBody.position_x).toBe(99.9); // Posição atualizada
-      expect(resBody.position_y).toBe(10); // Posição antiga mantida
+      expect(resBody.position_x).toBe(99.9);
+      expect(resBody.position_y).toBe(10);
 
-      // 2. Foco em Testes: Validar a transação (checar o 'element_group' no banco)
       const groupRes = await database.query({
         text: `SELECT display_name FROM element_groups WHERE id = $1`,
         values: [elementToTest.group_id],
@@ -135,7 +222,6 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
     });
   });
 
-  // --- (REFATORADO) DELETE ---
   describe("DELETE /api/v1/scene_elements/[id]", () => {
     it("should delete the element AND its group (if orphan)", async () => {
       const groupId = elementToTest.group_id;
@@ -149,14 +235,12 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
       );
       expect(res.status).toBe(200);
 
-      // 1. Validar que o elemento foi deletado
       const elRes = await database.query({
         text: `SELECT COUNT(*) FROM scene_elements WHERE id = $1`,
         values: [elementToTest.id],
       });
       expect(elRes.rows[0].count).toBe("0");
 
-      // 2. Foco em Testes: Validar que o grupo órfão foi deletado
       const groupRes = await database.query({
         text: `SELECT COUNT(*) FROM element_groups WHERE id = $1`,
         values: [groupId],
@@ -167,14 +251,12 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
     it("should delete the element but NOT the group (if not orphan)", async () => {
       const groupId = elementToTest.group_id;
 
-      // 2. Criar um segundo elemento (elementB) no MESMO grupo
       await database.query({
         text: `INSERT INTO scene_elements (scene_id, element_type_id, group_id, position_x, position_y)
                VALUES ($1, $2, $3, 40, 40)`,
         values: [testScene.id, odaikoType.id, groupId],
       });
 
-      // 3. Deletar o primeiro elemento (elementToTest)
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/scene_elements/${elementToTest.id}`,
         {
@@ -184,7 +266,6 @@ describe("Test /api/v1/scene_elements/[id] routes", () => {
       );
       expect(res.status).toBe(200);
 
-      // 4. Foco em Testes: Validar que o grupo NÃO foi deletado
       const groupRes = await database.query({
         text: `SELECT COUNT(*) FROM element_groups WHERE id = $1`,
         values: [groupId],

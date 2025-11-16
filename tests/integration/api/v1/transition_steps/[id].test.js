@@ -4,6 +4,10 @@ import session from "models/session.js";
 import presentation from "models/presentation.js";
 import scene from "models/scene.js";
 import transitionStep from "models/transition_step.js";
+import { settings } from "config/settings.js";
+import { v4 as uuid } from "uuid";
+
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_STEP;
 
 describe("Test /api/v1/transition_steps/[id] routes", () => {
   let adminUser, alunoUser, tocadorUser;
@@ -14,21 +18,19 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
     await orchestrator.clearDatabase();
     await orchestrator.runPendingMigrations();
 
-    // 1. Criar Admin, atualizar senha e dar features
     adminUser = await user.findOneUser({ username: "mainUser" });
     adminUser = await user.update({
       id: adminUser.id,
-      password: "StrongPassword123@", // Senha de admin
+      password: "StrongPassword123@",
     });
     adminUser = await user.addFeatures(adminUser, [
       "create:presentation",
       "create:scene",
       "create:step",
-      "update:step", // Feature para PATCH
-      "delete:step", // Feature para DELETE
+      "update:step",
+      "delete:step",
     ]);
 
-    // 2. Criar Aluno (sem features)
     alunoUser = await user.create({
       username: "alunoStepId",
       email: "alunostepid@test.com",
@@ -39,45 +41,50 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
       password: "StrongPassword123@",
     });
 
-    // 3. Criar usuário para ser "atribuído"
     tocadorUser = await user.create({
       username: "tocadorStepId",
       email: "tocadorstepid@test.com",
       password: "StrongPassword123@",
     });
 
-    // 4. Criar Apresentação e Cena (DEVE ser TRANSITION)
+    tocadorUser = await user.update({
+      id: tocadorUser.id,
+      password: "StrongPassword123@",
+    });
+
     const testPresentation = await presentation.create(
-      { name: "Show para Passos ID" },
+      { name: "Apresentação de Steps ID" },
       adminUser.id,
     );
     testScene = await scene.create({
       presentation_id: testPresentation.id,
       name: "Cena de Transição ID",
-      scene_type: "TRANSITION", // Obrigatório para 'transition_steps'
+      scene_type: "TRANSITION",
       order: 1,
-    });
-
-    // 5. Criar passos de teste
-    stepToEdit = await transitionStep.create({
-      scene_id: testScene.id,
-      order: 1,
-      description: "Descrição Original",
-    });
-    stepToDelete = await transitionStep.create({
-      scene_id: testScene.id,
-      order: 2,
-      description: "Passo para Deletar",
     });
   });
 
-  describe("PATCH /api/v1/transition_steps/[id]", () => {
-    it("should allow an Admin (update:step) to update a step", async () => {
+  describe("PATCH", () => {
+    beforeEach(async () => {
+      stepToEdit = await transitionStep.create({
+        scene_id: testScene.id,
+        order: 1,
+        description: "Descrição Original",
+        assignees: [alunoUser.id],
+      });
+      stepToDelete = await transitionStep.create({
+        scene_id: testScene.id,
+        order: 2,
+        description: "Passo para Deletar",
+      });
+    });
+
+    it("should return 200 for Admin and update the step (multiple assignees)", async () => {
       const newSession = await session.create(adminUser);
-      const patchData = {
-        order: 10,
-        description: "Descrição Editada",
-        assigned_user_id: tocadorUser.id,
+      const updateData = {
+        description: "Descrição Atualizada",
+        order: 2,
+        assignees: [tocadorUser.id, adminUser.id],
       };
 
       const res = await fetch(
@@ -88,16 +95,83 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
             "Content-Type": "application/json",
             cookie: `session_id=${newSession.token}`,
           },
-          body: JSON.stringify(patchData),
+          body: JSON.stringify(updateData),
         },
       );
-      const resBody = await res.json();
-
       expect(res.status).toBe(200);
-      expect(resBody.id).toBe(stepToEdit.id);
-      expect(resBody.description).toBe("Descrição Editada");
-      expect(resBody.order).toBe(10);
-      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
+      const body = await res.json();
+      expect(body.description).toBe("Descrição Atualizada");
+      expect(body.order).toBe(2);
+      expect(body.assignees).toHaveLength(2);
+      expect(body.assignees).toContain(tocadorUser.id);
+      expect(body.id).toBe(stepToEdit.id);
+    });
+
+    it("should return 200 for Admin and update the step (single assignee)", async () => {
+      const newSession = await session.create(adminUser);
+      const updateData = {
+        assignees: [tocadorUser.id],
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToEdit.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.assignees).toEqual([tocadorUser.id]);
+    });
+
+    it("should return 200 for Admin and remove assignees (empty array)", async () => {
+      const newSession = await session.create(adminUser);
+      const updateData = {
+        assignees: [],
+      };
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToEdit.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.assignees).toEqual([]);
+    });
+
+    it("should return 400 (ValidationError) if assignees array exceeds limit", async () => {
+      const newSession = await session.create(adminUser);
+      const tooManyUsers = [];
+      for (let i = 0; i <= MAX_ASSIGNEES; i++) {
+        tooManyUsers.push(uuid());
+      }
+
+      const updateData = {
+        assignees: tooManyUsers,
+      };
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToEdit.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(400);
     });
 
     it("should return 400 for invalid data (e.g., 'order' negative)", async () => {
@@ -110,10 +184,10 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
             "Content-Type": "application/json",
             cookie: `session_id=${newSession.token}`,
           },
-          body: JSON.stringify({ order: -5 }), // Inválido
+          body: JSON.stringify({ order: -5 }),
         },
       );
-      expect(res.status).toBe(400); // Erro do validator.js
+      expect(res.status).toBe(400);
     });
 
     it("should return 404 for a non-existent step ID", async () => {
@@ -130,7 +204,7 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
           body: JSON.stringify({ description: "Fantasma" }),
         },
       );
-      expect(res.status).toBe(404); // Erro do modelo transitionStep.update
+      expect(res.status).toBe(404);
     });
 
     it("should return 403 for an Aluno (no 'update:step' feature)", async () => {
@@ -165,7 +239,6 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
       expect(res.status).toBe(200);
       expect(resBody.id).toBe(stepToDelete.id);
 
-      // Verificar se foi deletado (PATCH deve dar 404)
       const patchRes = await fetch(
         `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToDelete.id}`,
         {
@@ -190,13 +263,13 @@ describe("Test /api/v1/transition_steps/[id] routes", () => {
           headers: { cookie: `session_id=${newSession.token}` },
         },
       );
-      expect(res.status).toBe(404); // Erro do modelo transitionStep.del
+      expect(res.status).toBe(404);
     });
 
     it("should return 403 for an Aluno (no 'delete:step' feature)", async () => {
       const newSession = await session.create(alunoUser);
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToEdit.id}`, // Tenta deletar o passo que sobrou
+        `${orchestrator.webserverUrl}/api/v1/transition_steps/${stepToEdit.id}`,
         {
           method: "DELETE",
           headers: { cookie: `session_id=${newSession.token}` },
