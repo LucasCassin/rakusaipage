@@ -51,6 +51,10 @@ export const settings = {
       SNAP_MAX_DISTANCE_PERCENT: 100,
       BASE_ICON_SIZE_PX: 48,
     },
+    STAGE_MAP_LOGIC: {
+      MAX_ASSIGNEES_PER_STEP: 10,
+      MAX_ASSIGNEES_PER_GROUP: 2,
+    },
   },
 
   // Configurações de login
