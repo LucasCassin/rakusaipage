@@ -1,8 +1,6 @@
 exports.up = (pgm) => {
-  // 1. Criar o tipo ENUM para as Cenas
   pgm.createType("scene_type_enum", ["FORMATION", "TRANSITION"]);
 
-  // 2. Tabela de Apresentações (O Evento)
   pgm.createTable("presentations", {
     id: {
       type: "uuid",
@@ -19,7 +17,7 @@ exports.up = (pgm) => {
     created_by_user_id: {
       type: "uuid",
       references: '"users"(id)',
-      onDelete: "SET NULL", // Se o usuário for deletado, mantém a apresentação
+      onDelete: "SET NULL",
     },
     created_at: {
       type: "timestamptz",
@@ -33,7 +31,6 @@ exports.up = (pgm) => {
     },
   });
 
-  // 3. Tabela de "Elenco" (Quem pode ver)
   pgm.createTable("presentation_viewers", {
     id: {
       type: "uuid",
@@ -44,13 +41,13 @@ exports.up = (pgm) => {
       type: "uuid",
       notNull: true,
       references: '"presentations"(id)',
-      onDelete: "CASCADE", // Se a apresentação for deletada, o elenco é limpo
+      onDelete: "CASCADE",
     },
     user_id: {
       type: "uuid",
       notNull: true,
       references: '"users"(id)',
-      onDelete: "CASCADE", // Se o usuário for deletado, ele sai do elenco
+      onDelete: "CASCADE",
     },
     created_at: {
       type: "timestamptz",
@@ -58,7 +55,6 @@ exports.up = (pgm) => {
       default: pgm.func("timezone('utc', now())"),
     },
   });
-  // Índice para evitar duplicatas
   pgm.addConstraint(
     "presentation_viewers",
     "presentation_viewers_unique_pair",
@@ -67,7 +63,6 @@ exports.up = (pgm) => {
     },
   );
 
-  // 4. Tabela de Cenas (Músicas ou Transições)
   pgm.createTable("scenes", {
     id: {
       type: "uuid",
@@ -78,15 +73,14 @@ exports.up = (pgm) => {
       type: "uuid",
       notNull: true,
       references: '"presentations"(id)',
-      onDelete: "CASCADE", // Deleta as cenas se a apresentação for deletada
+      onDelete: "CASCADE",
     },
     order: { type: "integer", notNull: true },
     name: { type: "text", notNull: true },
     scene_type: { type: "scene_type_enum", notNull: true },
-    description: { type: "text" }, // Para notas da música (se for FORMATION)
+    description: { type: "text" },
   });
 
-  // 5. Tabela de Passos da Transição (Checklist)
   pgm.createTable("transition_steps", {
     id: {
       type: "uuid",
@@ -97,18 +91,44 @@ exports.up = (pgm) => {
       type: "uuid",
       notNull: true,
       references: '"scenes"(id)',
-      onDelete: "CASCADE", // Deleta os passos se a cena for deletada
+      onDelete: "CASCADE",
     },
     order: { type: "integer", notNull: true },
     description: { type: "text", notNull: true },
-    assigned_user_id: {
-      type: "uuid",
-      references: '"users"(id)',
-      onDelete: "SET NULL", // Mantém o passo da transição, mas desvincula o usuário
-    },
   });
 
-  // 6. Tabela de Tipos de Elementos (O Catálogo de Ícones)
+  pgm.createTable("transition_step_assignees", {
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("gen_random_uuid()"),
+    },
+    transition_step_id: {
+      type: "uuid",
+      notNull: true,
+      references: '"transition_steps"(id)',
+      onDelete: "CASCADE",
+    },
+    user_id: {
+      type: "uuid",
+      notNull: true,
+      references: '"users"(id)',
+      onDelete: "CASCADE",
+    },
+    created_at: {
+      type: "timestamptz",
+      notNull: true,
+      default: pgm.func("timezone('utc', now())"),
+    },
+  });
+  pgm.addConstraint(
+    "transition_step_assignees",
+    "transition_step_assignees_unique_pair",
+    {
+      unique: ["transition_step_id", "user_id"],
+    },
+  );
+
   pgm.createTable("element_types", {
     id: {
       type: "uuid",
@@ -121,8 +141,6 @@ exports.up = (pgm) => {
     scale: { type: "float", notNull: true, default: 1.0 },
   });
 
-  // 7. (NOVO) Tabela de Grupos de Elementos
-  // Esta tabela irá conter a lógica de 'display_name' e 'assigned_user_id'
   pgm.createTable("element_groups", {
     id: {
       type: "uuid",
@@ -136,15 +154,40 @@ exports.up = (pgm) => {
       onDelete: "CASCADE",
     },
     display_name: { type: "text" },
-    assigned_user_id: {
-      type: "uuid",
-      references: '"users"(id)',
-      onDelete: "SET NULL",
-    },
   });
 
-  // 8. (MODIFICADA) Tabela de Elementos da Cena (O Ponto no Mapa)
-  // Esta tabela agora é 'filha' de 'element_groups'
+  pgm.createTable("element_group_assignees", {
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("gen_random_uuid()"),
+    },
+    element_group_id: {
+      type: "uuid",
+      notNull: true,
+      references: '"element_groups"(id)',
+      onDelete: "CASCADE",
+    },
+    user_id: {
+      type: "uuid",
+      notNull: true,
+      references: '"users"(id)',
+      onDelete: "CASCADE",
+    },
+    created_at: {
+      type: "timestamptz",
+      notNull: true,
+      default: pgm.func("timezone('utc', now())"),
+    },
+  });
+  pgm.addConstraint(
+    "element_group_assignees",
+    "element_group_assignees_unique_pair",
+    {
+      unique: ["element_group_id", "user_id"],
+    },
+  );
+
   pgm.createTable("scene_elements", {
     id: {
       type: "uuid",
@@ -163,25 +206,27 @@ exports.up = (pgm) => {
       references: '"element_types"(id)',
       onDelete: "RESTRICT",
     },
-    // FK para o grupo ao qual este elemento pertence
     group_id: {
       type: "uuid",
       notNull: true,
       references: '"element_groups"(id)',
       onDelete: "CASCADE",
     },
-    position_x: { type: "float", notNull: true }, // Mantido
-    position_y: { type: "float", notNull: true }, // Mantido
+    position_x: { type: "float", notNull: true },
+    position_y: { type: "float", notNull: true },
   });
 };
 
 exports.down = (pgm) => {
   pgm.dropTable("presentation_viewers");
 
+  pgm.dropTable("transition_step_assignees");
   pgm.dropTable("transition_steps");
 
   pgm.dropTable("scene_elements");
+  pgm.dropTable("element_group_assignees");
   pgm.dropTable("element_groups");
+
   pgm.dropTable("element_types");
   pgm.dropTable("scenes");
   pgm.dropTable("presentations");
