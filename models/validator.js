@@ -736,7 +736,7 @@ const schemas = {
         .min(0) // Permite um array vazio []
         .when("$required.assignees", {
           is: "required",
-          then: Joi.required().min(1), // Se for obrigatório, deve ter ao menos 1
+          then: Joi.required(), // Se for obrigatório, deve ter ao menos 1
           otherwise: Joi.optional().allow(null), // Permite ser undefined ou null
         }),
     }),
