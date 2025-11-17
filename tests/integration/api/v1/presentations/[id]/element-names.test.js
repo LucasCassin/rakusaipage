@@ -8,7 +8,7 @@ import sceneElement from "models/scene_element.js";
 
 describe("Test /api/v1/presentations/[id]/element-names routes", () => {
   let adminUser, alunoUser, tocadorUser;
-  let odaikoType, testPresentation;
+  let odaikoType, testPresentation, se;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -53,6 +53,7 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
       { name: "Show da Edição Global" },
       adminUser.id,
     );
+
     const scene1 = await scene.create({
       presentation_id: testPresentation.id,
       name: "Musica 1",
@@ -73,9 +74,9 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
       position_x: 10,
       position_y: 10,
       display_name: "Trocador",
-      assigned_user_id: tocadorUser.id,
+      assignees: [tocadorUser.id],
     };
-    await sceneElement.create(elementData); // Elemento na Cena 1
+    se = await sceneElement.create(elementData); // Elemento na Cena 1
     await sceneElement.create({
       ...elementData,
       scene_id: scene2.id, // Elemento na Cena 2
@@ -84,13 +85,20 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
   });
 
   describe("PATCH /api/v1/presentations/[id]/element-names", () => {
-    it("should allow an Admin (update:presentation) to update names globally and return 200", async () => {
+    it("should return 200 and update display_name and assignees globally", async () => {
       const newSession = await session.create(adminUser);
+      const groupOdaiko_id = await presentation.findGroupsByCriteria(
+        testPresentation.id,
+        {
+          display_name: "Trocador",
+          element_type_id: odaikoType.id,
+        },
+      );
+
       const updateData = {
-        element_type_id: odaikoType.id, // O tipo de elemento
-        old_display_name: "Trocador", // O nome antigo
-        new_display_name: "Nome Global Editado", // O nome novo
-        new_assigned_user_id: adminUser.id, // O novo usuário atribuído
+        groupIds: [groupOdaiko_id], // (Certifique-se de pegar os IDs dos grupos no setup)
+        display_name: "Nome Global",
+        assignees: [alunoUser.id],
       };
 
       const res = await fetch(
@@ -104,11 +112,43 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
           body: JSON.stringify(updateData),
         },
       );
-      const resBody = await res.json();
 
       expect(res.status).toBe(200);
-      // Deve ter atualizado os 2 elementos criados no beforeAll
-      expect(resBody).toEqual({ updatedCount: 2 });
+      const body = await res.json();
+      expect(body.updatedCount).toBe(2);
+
+      // Validação no banco (opcional, mas recomendado)
+      const el = await sceneElement.findById(se.id);
+      expect(el.display_name).toBe("Nome Global");
+      expect(el.assignees).toEqual([alunoUser.id]);
+    });
+
+    it("should return 200 and clear users if assignees is empty array", async () => {
+      const newSession = await session.create(adminUser);
+      const groupOdaiko_id = await presentation.findGroupsByCriteria(
+        testPresentation.id,
+        {
+          display_name: "Trocador",
+          element_type_id: odaikoType.id,
+        },
+      );
+      const updateData = {
+        groupIds: [groupOdaiko_id],
+        assignees: [], // MUDANÇA 2: Array vazio para limpar
+      };
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/presentations/${testPresentation.id}/element-names`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${newSession.token}`,
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+      expect(res.status).toBe(200);
     });
 
     it("should return 400 for invalid data (missing 'new_display_name')", async () => {

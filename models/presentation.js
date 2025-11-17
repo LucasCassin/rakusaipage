@@ -1,16 +1,56 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
-import { NotFoundError, ForbiddenError } from "errors/index.js";
+import {
+  NotFoundError,
+  ForbiddenError,
+  ValidationError,
+} from "errors/index.js";
+import { settings } from "config/settings.js";
+
+// --- HELPER INTERNO PARA ASSIGNEES ---
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_GROUP;
+
+async function setAssigneesForGroup(
+  groupId,
+  assignees = [],
+  { useClient } = {},
+) {
+  const db = useClient || database;
+  const uniqueAssignees = [...new Set(assignees)];
+
+  if (uniqueAssignees.length > MAX_ASSIGNEES) {
+    throw new ValidationError({
+      message: `Um elemento/grupo pode ter no máximo ${MAX_ASSIGNEES} usuário(s) associado(s).`,
+      statusCode: 400,
+    });
+  }
+
+  await db.query({
+    text: `DELETE FROM element_group_assignees WHERE element_group_id = $1;`,
+    values: [groupId],
+  });
+
+  if (uniqueAssignees.length > 0) {
+    const valuesPlaceholders = uniqueAssignees
+      .map((_, index) => `($1, $${index + 2})`)
+      .join(", ");
+    const values = [groupId, ...uniqueAssignees];
+    await db.query({
+      text: `
+        INSERT INTO element_group_assignees (element_group_id, user_id)
+        VALUES ${valuesPlaceholders};
+      `,
+      values: values,
+    });
+  }
+}
+// -------------------------------------
 
 async function create(data, created_by_user_id) {
-  // Valida o user_id separadamente, pois ele vem da sessão
   const validatedUserId = validator(
     { user_id: created_by_user_id },
-    {
-      user_id: "required",
-    },
+    { user_id: "required" },
   );
-
   const validatedData = validator(data, {
     name: "required",
     date: "optional",
@@ -45,8 +85,7 @@ async function create(data, created_by_user_id) {
   return results.rows[0];
 }
 
-async function update(presentation_id, data) {
-  // Valida os dados do body
+async function update(presentationId, data) {
   const validatedData = validator(data, {
     name: "optional",
     date: "optional",
@@ -57,310 +96,318 @@ async function update(presentation_id, data) {
     is_public: "optional",
   });
 
-  // Valida os IDs
-  const validatedIds = validator(
-    { presentation_id },
-    {
-      presentation_id: "required",
-    },
-  );
-
-  const originalPresentation = await findById(validatedIds.presentation_id);
-  if (!originalPresentation) {
-    throw new NotFoundError({ message: "Apresentação não encontrada." });
-  }
-
-  // Constrói o SET clause APENAS com os dados do body
   const updateFields = Object.keys(validatedData)
     .map((key, index) => `"${key}" = $${index + 1}`)
     .join(", ");
 
-  if (Object.keys(validatedData).length === 0) return originalPresentation;
+  if (Object.keys(validatedData).length === 0) {
+    return findById(presentationId);
+  }
 
   const query = {
     text: `
-      UPDATE presentations
-      SET ${updateFields}, updated_at = now()
+      UPDATE presentations SET ${updateFields}, updated_at = now()
       WHERE id = $${Object.keys(validatedData).length + 1}
       RETURNING *;
     `,
-    values: [...Object.values(validatedData), validatedIds.presentation_id],
+    values: [...Object.values(validatedData), presentationId],
   };
 
   const results = await database.query(query);
-  return results.rows[0];
-}
-
-async function del(presentation_id) {
-  const validatedData = validator(
-    { presentation_id },
-    { presentation_id: "required" },
-  );
-
-  const presentation = await findById(validatedData.presentation_id);
-  if (!presentation) {
+  if (results.rowCount === 0) {
     throw new NotFoundError({ message: "Apresentação não encontrada." });
   }
-  // if (presentation.created_by_user_id !== validatedData.user_id) {
-  //   throw new ForbiddenError({
-  //     message: "Você não tem permissão para deletar esta apresentação.",
-  //   });
-  // }
-
-  const query = {
-    text: `DELETE FROM presentations WHERE id = $1 RETURNING id;`,
-    values: [validatedData.presentation_id],
-  };
-  await database.query(query);
-  return { id: validatedData.presentation_id };
-}
-
-async function findById(presentation_id) {
-  const validatedData = validator(
-    { presentation_id },
-    { presentation_id: "required" },
-  );
-  const query = {
-    text: `SELECT * FROM presentations WHERE id = $1;`,
-    values: [validatedData.presentation_id],
-  };
-  const results = await database.query(query);
   return results.rows[0];
 }
 
-async function findAllForUser(user_id) {
-  const validatedId = validator({ user_id }, { user_id: "required" });
+async function del(presentationId) {
+  const validatedId = validator({ id: presentationId }, { id: "required" });
+  const query = {
+    text: `DELETE FROM presentations WHERE id = $1 RETURNING id;`,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  if (results.rowCount === 0) {
+    throw new NotFoundError({ message: "Apresentação não encontrada." });
+  }
+  return results.rows[0];
+}
 
+async function findAllByUserId(userId) {
+  const validatedId = validator({ id: userId }, { id: "required" });
   const query = {
     text: `
-      SELECT p.* FROM presentations p
+      SELECT p.*
+      FROM presentations p
       LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
-      WHERE 
-        p.created_by_user_id = $1 OR pv.user_id = $1
-      GROUP BY p.id
+      WHERE p.created_by_user_id = $1 OR pv.user_id = $1
       ORDER BY p.date DESC, p.created_at DESC;
     `,
-    values: [validatedId.user_id],
+    values: [validatedId.id],
   };
-
   const results = await database.query(query);
   return results.rows;
 }
 
-async function findDeepById(presentation_id) {
-  const validatedId = validator(
-    { presentation_id },
-    { presentation_id: "required" },
-  );
-
-  // 1. Busca a apresentação principal
-  const presentationQuery = {
+async function findById(presentationId) {
+  const validatedId = validator({ id: presentationId }, { id: "required" });
+  const query = {
     text: `SELECT * FROM presentations WHERE id = $1;`,
-    values: [validatedId.presentation_id],
+    values: [validatedId.id],
   };
+  const results = await database.query(query);
+  return results.rows[0];
+}
 
-  // 2. Busca todas as cenas, ordenadas
+async function findDeepById(presentationId) {
+  const validatedId = validator({ id: presentationId }, { id: "required" });
+
+  const presentation = await findById(validatedId.id);
+  if (!presentation) {
+    throw new NotFoundError({ message: "Apresentação não encontrada." });
+  }
+
   const scenesQuery = {
     text: `SELECT * FROM scenes WHERE presentation_id = $1 ORDER BY "order";`,
-    values: [validatedId.presentation_id],
+    values: [validatedId.id],
   };
+  const scenesResults = await database.query(scenesQuery);
+  presentation.scenes = scenesResults.rows;
 
-  // 3. Busca todos os elementos (de todas as cenas)
-  // --- (QUERY CORRIGIDA) ---
+  // --- CORREÇÃO: JOIN com as novas tabelas de assignees ---
   const elementsQuery = {
     text: `
       SELECT 
-        el.*, 
-        et.name as element_type_name, 
-        et.image_url,
-        et.scale,
-        et.image_url_highlight,
-        eg.display_name,        
-        eg.assigned_user_id
-      FROM scene_elements el
-      JOIN scenes s ON el.scene_id = s.id
-      JOIN element_types et ON el.element_type_id = et.id
-      JOIN element_groups eg ON el.group_id = eg.id   -- (O JOIN que faltava)
-      WHERE s.presentation_id = $1;
+        se.*,
+        eg.display_name,
+        COALESCE(
+          (
+            SELECT json_agg(ega.user_id)
+            FROM element_group_assignees ega
+            WHERE ega.element_group_id = eg.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        scene_elements se
+      JOIN 
+        element_groups eg ON se.group_id = eg.id
+      WHERE 
+        se.scene_id IN (SELECT id FROM scenes WHERE presentation_id = $1);
     `,
-    values: [validatedId.presentation_id],
+    values: [validatedId.id],
   };
 
-  // 4. Busca todos os passos de transição (de todas as cenas)
   const stepsQuery = {
     text: `
-      SELECT ts.* FROM transition_steps ts
-      JOIN scenes s ON ts.scene_id = s.id
-      WHERE s.presentation_id = $1
-      ORDER BY ts."order";
+      SELECT 
+        ts.*,
+        COALESCE(
+          (
+            SELECT json_agg(tsa.user_id)
+            FROM transition_step_assignees tsa
+            WHERE tsa.transition_step_id = ts.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        transition_steps ts
+      WHERE 
+        ts.scene_id IN (SELECT id FROM scenes WHERE presentation_id = $1)
+      ORDER BY 
+        ts."order";
     `,
-    values: [validatedId.presentation_id],
+    values: [validatedId.id],
   };
+  // -------------------------------------------------------
 
-  const [presentationResult, scenesResult, elementsResult, stepsResult] =
-    await Promise.all([
-      database.query(presentationQuery),
-      database.query(scenesQuery),
-      database.query(elementsQuery),
-      database.query(stepsQuery),
-    ]);
+  const [elementsResults, stepsResults] = await Promise.all([
+    database.query(elementsQuery),
+    database.query(stepsQuery),
+  ]);
 
-  if (presentationResult.rows.length === 0) {
-    return undefined;
+  const elementsMap = new Map();
+  for (const element of elementsResults.rows) {
+    if (!elementsMap.has(element.scene_id)) {
+      elementsMap.set(element.scene_id, []);
+    }
+    elementsMap.get(element.scene_id).push(element);
   }
 
-  const presentation = presentationResult.rows[0];
-  const allElements = elementsResult.rows;
-  const allSteps = stepsResult.rows;
+  const stepsMap = new Map();
+  for (const step of stepsResults.rows) {
+    if (!stepsMap.has(step.scene_id)) {
+      stepsMap.set(step.scene_id, []);
+    }
+    stepsMap.get(step.scene_id).push(step);
+  }
 
-  // 5. Junta o JSON (Nesting)
-  // (Esta lógica não precisa mudar, pois 'allElements' agora contém
-  // 'display_name' e 'assigned_user_id' graças ao JOIN)
-  presentation.scenes = scenesResult.rows.map((scene) => {
-    scene.scene_elements = allElements.filter((el) => el.scene_id === scene.id);
-    scene.transition_steps = allSteps.filter((st) => st.scene_id === scene.id);
-    return scene;
-  });
+  for (const scene of presentation.scenes) {
+    scene.scene_elements = elementsMap.get(scene.id) || [];
+    scene.transition_steps = stepsMap.get(scene.id) || [];
+  }
 
   return presentation;
 }
 
-/**
- * Busca o "pool" de nomes e usuários únicos
- * associados aos elementos de uma apresentação.
- * (REFATORADO para usar 'element_groups')
- */
-async function findElementPool(presentationId) {
-  const validatedId = validator(
-    { presentation_id: presentationId },
-    { presentation_id: "required" },
+async function checkViewerOrCreator(presentationId, userId) {
+  const validated = validator(
+    { presentation_id: presentationId, user_id: userId },
+    { presentation_id: "required", user_id: "required" },
   );
 
   const query = {
     text: `
-      SELECT 
-        DISTINCT 
-        eg.display_name, 
-        eg.assigned_user_id, 
-        u.username,
-        et.id AS element_type_id,
-        et.name AS element_type_name,
-        et.image_url,
-        et.scale,
-        et.image_url_highlight
-
-      FROM 
-        element_groups eg
-      JOIN 
-        scenes s ON eg.scene_id = s.id
-      LEFT JOIN 
-        users u ON eg.assigned_user_id = u.id
-      JOIN 
-        scene_elements se ON se.group_id = eg.id
-      JOIN 
-        element_types et ON se.element_type_id = et.id
-      WHERE 
-        s.presentation_id = $1 
-        AND eg.display_name IS NOT NULL;
+      SELECT p.id, p.created_by_user_id, pv.user_id AS viewer_id
+      FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id AND pv.user_id = $2
+      WHERE p.id = $1
+        AND (p.created_by_user_id = $2 OR pv.user_id = $2 OR p.is_public = true);
     `,
-    values: [validatedId.presentation_id],
+    values: [validated.presentation_id, validated.user_id],
+  };
+
+  const results = await database.query(query);
+  if (results.rowCount === 0) {
+    throw new NotFoundError({
+      message:
+        "Apresentação não encontrada ou você não tem permissão para acessá-la.",
+    });
+  }
+
+  const isCreator = results.rows[0].created_by_user_id === userId;
+  return {
+    ...results.rows[0],
+    isCreator,
+  };
+}
+
+async function findElementPool(presentationId) {
+  const validatedId = validator({ id: presentationId }, { id: "required" });
+  const query = {
+    text: `
+      WITH GroupedData AS (
+        SELECT 
+          eg.display_name,
+          et.id AS element_type_id,
+          et.name AS element_type_name,
+          et.image_url,
+          et.scale,
+          et.image_url_highlight,
+          -- Subquery para buscar array de nomes (ordenados para consistência no DISTINCT)
+          (
+            SELECT array_agg(u.username ORDER BY u.username)
+            FROM element_group_assignees ega
+            JOIN users u ON ega.user_id = u.id
+            WHERE ega.element_group_id = eg.id
+          ) AS assignee_names,
+          -- Subquery para buscar array de IDs
+          (
+            SELECT array_agg(u.id ORDER BY u.username)
+            FROM element_group_assignees ega
+            JOIN users u ON ega.user_id = u.id
+            WHERE ega.element_group_id = eg.id
+          ) AS assignees
+        FROM 
+          element_groups eg
+        JOIN 
+          scenes s ON eg.scene_id = s.id
+        JOIN 
+          scene_elements se ON se.group_id = eg.id
+        JOIN 
+          element_types et ON se.element_type_id = et.id
+        WHERE 
+          s.presentation_id = $1 
+          AND eg.display_name IS NOT NULL
+      )
+      SELECT DISTINCT
+        display_name,
+        element_type_id,
+        element_type_name,
+        image_url,
+        scale,
+        image_url_highlight,
+        COALESCE(assignee_names, '{}') AS assignee_names,
+        COALESCE(assignees, '{}') AS assignees
+      FROM GroupedData;
+    `,
+    values: [validatedId.id],
   };
   const results = await database.query(query);
   return results.rows;
 }
 
-/**
- * Atualiza nomes/usuários globalmente
- * (Esta função estava correta na última refatoração e
- * depende da lógica Nome + Tipo de Instrumento)
- */
-async function updateElementGlobally(presentation_id, data) {
-  // Valida os IDs de contexto
-  const validatedIds = validator(
-    {
-      presentation_id: presentation_id,
-      element_type_id: data.element_type_id,
-    },
-    {
-      presentation_id: "required",
-      element_type_id: "required",
-    },
-  );
+async function globalElementNamesUpdate(presentationId, groupIds, newData) {
+  // 1. Validar dados (Adaptado para receber assignees)
+  const validatedNewData = validator(newData, {
+    display_name: "optional",
+    assignees: "optional",
+  });
 
-  // Valida os dados (nomes)
-  const validatedOldName = validator(
-    { display_name: data.old_display_name },
-    {
-      display_name: "required",
-    },
-  );
-  const validatedNewName = validator(
-    { display_name: data.new_display_name },
-    {
-      display_name: "required",
-    },
-  );
+  const { display_name, assignees } = validatedNewData;
+  const hasName = display_name !== undefined;
+  const hasAssignees = assignees !== undefined;
 
-  // Valida o ID de usuário (opcional)
-  const validatedNewUserId = validator(
-    { assigned_user_id: data.new_assigned_user_id },
-    {
-      assigned_user_id: "optional",
-    },
-  );
-
-  // Encontra todos os 'element_groups' IDs que correspondem
-  // (Esta query está correta, pois filtra por display_name E element_type_id)
-  const findQuery = {
-    text: `
-      SELECT 
-        eg.id 
-      FROM 
-        element_groups eg
-      JOIN 
-        scenes s ON eg.scene_id = s.id
-      WHERE 
-        s.presentation_id = $1
-        AND eg.display_name = $2
-        AND EXISTS (
-          SELECT 1 
-          FROM scene_elements se 
-          WHERE se.group_id = eg.id 
-            AND se.element_type_id = $3
-        );
-    `,
-    values: [
-      validatedIds.presentation_id,
-      validatedOldName.display_name,
-      validatedIds.element_type_id,
-    ],
-  };
-
-  const groupsToUpdate = await database.query(findQuery);
-  const groupIds = groupsToUpdate.rows.map((row) => row.id);
-
-  if (groupIds.length === 0) {
+  if ((!hasName && !hasAssignees) || !groupIds || groupIds.length === 0) {
     return { updatedCount: 0 };
   }
 
-  // Executa o update em massa na tabela 'element_groups'
-  const updateQuery = {
-    text: `
-      UPDATE element_groups
-      SET 
-        display_name = $1,
-        assigned_user_id = $2
-      WHERE id = ANY($3::uuid[]);
-    `,
-    values: [
-      validatedNewName.display_name,
-      validatedNewUserId.assigned_user_id || null,
-      groupIds,
-    ],
-  };
+  const client = await database.getNewClient();
+  try {
+    await client.query("BEGIN");
 
-  const results = await database.query(updateQuery);
-  return { updatedCount: results.rowCount };
+    // 2. Validar se os grupos pertencem à apresentação (Segurança)
+    const verifyQuery = {
+      text: `
+        SELECT eg.id 
+        FROM element_groups eg
+        JOIN scenes s ON eg.scene_id = s.id
+        WHERE s.presentation_id = $1 AND eg.id = ANY($2::uuid[])
+      `,
+      values: [presentationId, groupIds],
+    };
+    const verifyResult = await client.query(verifyQuery);
+    const validGroupIds = verifyResult.rows.map((r) => r.id);
+
+    if (validGroupIds.length === 0) {
+      await client.query("ROLLBACK");
+      return { updatedCount: 0 };
+    }
+
+    // 3. Atualizar Nomes (Batch)
+    if (hasName) {
+      const updateNameQuery = {
+        text: `
+          UPDATE element_groups
+          SET display_name = $1
+          WHERE id = ANY($2::uuid[]);
+        `,
+        values: [display_name, validGroupIds],
+      };
+      await client.query(updateNameQuery);
+    }
+
+    // 4. Atualizar Assignees (Iterativo com helper M-N)
+    if (hasAssignees) {
+      await Promise.all(
+        validGroupIds.map((groupId) =>
+          setAssigneesForGroup(groupId, assignees, { useClient: client }),
+        ),
+      );
+    }
+
+    await client.query("COMMIT");
+    return { updatedCount: validGroupIds.length };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    await client.end();
+  }
 }
 
 async function reorderScenes(presentation_id, scene_ids) {
@@ -376,7 +423,7 @@ async function reorderScenes(presentation_id, scene_ids) {
     !Array.isArray(validatedData.scene_ids) ||
     validatedData.scene_ids.length === 0
   ) {
-    return; // Nada a fazer
+    return;
   }
 
   const valuesString = validatedData.scene_ids
@@ -386,7 +433,7 @@ async function reorderScenes(presentation_id, scene_ids) {
   const queryValues = [validatedData.presentation_id];
   validatedData.scene_ids.forEach((sceneId, index) => {
     queryValues.push(sceneId);
-    queryValues.push(index); // A nova ordem é o índice no array
+    queryValues.push(index);
   });
 
   const query = {
@@ -394,7 +441,8 @@ async function reorderScenes(presentation_id, scene_ids) {
       UPDATE scenes AS s
       SET "order" = v.new_order
       FROM (VALUES ${valuesString}) AS v(id, new_order)
-      WHERE s.id = v.id AND s.presentation_id = $1;
+      WHERE s.id = v.id
+        AND s.presentation_id = $1;
     `,
     values: queryValues,
   };
@@ -402,14 +450,54 @@ async function reorderScenes(presentation_id, scene_ids) {
   await database.query(query);
 }
 
+/**
+ * Busca os IDs dos grupos de uma apresentação que correspondem
+ * ao nome de exibição e tipo de elemento fornecidos.
+ */
+async function findGroupsByCriteria(
+  presentation_id,
+  { display_name, element_type_id },
+) {
+  const validatedData = validator(
+    { presentation_id, display_name, element_type_id },
+    {
+      presentation_id: "required",
+      display_name: "required",
+      element_type_id: "required",
+    },
+  );
+
+  const query = {
+    text: `
+      SELECT DISTINCT eg.id
+      FROM element_groups eg
+      JOIN scene_elements se ON eg.id = se.group_id
+      JOIN scenes s ON eg.scene_id = s.id
+      WHERE s.presentation_id = $1
+        AND eg.display_name = $2
+        AND se.element_type_id = $3;
+    `,
+    values: [
+      validatedData.presentation_id,
+      validatedData.display_name,
+      validatedData.element_type_id,
+    ],
+  };
+
+  const results = await database.query(query);
+  return results.rows.map((row) => row.id);
+}
+
 export default {
   create,
   update,
   del,
+  findAllByUserId,
   findById,
-  findAllForUser,
   findDeepById,
+  checkViewerOrCreator,
   findElementPool,
-  updateElementGlobally,
+  globalElementNamesUpdate,
   reorderScenes,
+  findGroupsByCriteria,
 };

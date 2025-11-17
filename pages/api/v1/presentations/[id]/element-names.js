@@ -38,8 +38,9 @@ async function patchHandler(req, res) {
 
     // O canRequest() já validou a permissão.
     // O modelo 'updateElementGlobally' valida o req.body e cuida do 404.
-    const result = await presentation.updateElementGlobally(
+    const result = await presentation.globalElementNamesUpdate(
       presentation_id,
+      req.body.groupIds,
       req.body,
     );
 

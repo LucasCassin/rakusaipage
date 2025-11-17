@@ -86,7 +86,7 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       position_x: 50,
       position_y: 50,
       display_name: "Elemento do Pool",
-      assigned_user_id: tocadorUser.id,
+      assignees: [tocadorUser.id],
     });
 
     const shimeType = await elementType.create({
@@ -102,7 +102,7 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       position_x: 20,
       position_y: 20,
       display_name: "Elemento do Pool 2",
-      assigned_user_id: null,
+      assignees: [],
     });
 
     // 6.3. Adicionar o Elemento C (sem nome, não deve ir para o pool)
@@ -112,7 +112,7 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
       position_x: 80,
       position_y: 80,
       display_name: null,
-      assigned_user_id: null,
+      assignees: [],
     });
   });
 
@@ -171,12 +171,12 @@ describe("Test /api/v1/presentations/[id]/pool routes", () => {
         expect.arrayContaining([
           expect.objectContaining({
             display_name: "Elemento do Pool",
-            assigned_user_id: tocadorUser.id,
+            assignees: [tocadorUser.id],
             element_type_name: "Odaiko Test Pool",
           }),
           expect.objectContaining({
             display_name: "Elemento do Pool 2",
-            assigned_user_id: null,
+            assignees: [],
             element_type_name: "Shime Test Pool",
           }),
         ]),

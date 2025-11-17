@@ -83,7 +83,7 @@ beforeAll(async () => {
     position_x: 10,
     position_y: 10,
     display_name: "Lider",
-    assigned_user_id: tocadorUser1.id,
+    assignees: [tocadorUser1.id],
   });
   await sceneElement.create({
     scene_id: tempFormationScene.id,
@@ -91,7 +91,7 @@ beforeAll(async () => {
     position_x: 20,
     position_y: 20,
     display_name: "Suporte",
-    assigned_user_id: tocadorUser2.id,
+    assignees: [tocadorUser2.id],
   });
 
   // 6. Criar Cena Fonte (TRANSITION) em Pres B
@@ -105,7 +105,7 @@ beforeAll(async () => {
     scene_id: tempTransitionScene.id,
     description: "Passo T1",
     order: 0,
-    assigned_user_id: tocadorUser1.id,
+    assignees: [tocadorUser1.id],
   });
 
   // 7. Simular o 'findDeepById' (o payload que o frontend enviará)
@@ -162,9 +162,9 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBe("Lider");
-    expect(groups[0].assigned_user_id).toBe(tocadorUser1.id);
+    expect(groups[0].assignees).toBe([tocadorUser1.id]);
     expect(groups[1].display_name).toBe("Suporte");
-    expect(groups[1].assigned_user_id).toBe(tocadorUser2.id);
+    expect(groups[1].assignees).toBe([tocadorUser2.id]);
   });
 
   it("should clone FORMATION with 'with_names' (no users)", async () => {
@@ -195,9 +195,9 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBe("Lider");
-    expect(groups[0].assigned_user_id).toBeNull(); // <-- MUDANÇA
+    expect(groups[0].assignees).toBe([]); // <-- MUDANÇA
     expect(groups[1].display_name).toBe("Suporte");
-    expect(groups[1].assigned_user_id).toBeNull(); // <-- MUDANÇA
+    expect(groups[1].assignees).toBe([]); // <-- MUDANÇA
   });
 
   it("should clone FORMATION with 'elements_only'", async () => {
@@ -228,7 +228,7 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBeNull(); // <-- MUDANÇA
-    expect(groups[0].assigned_user_id).toBeNull(); // <-- MUDANÇA
+    expect(groups[0].assignees).toBe([]); // <-- MUDANÇA
   });
 
   it("should clone TRANSITION with 'with_users'", async () => {
@@ -258,7 +258,7 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     ).rows;
     expect(steps).toHaveLength(1); // O setup de teste só tinha 1 passo
     expect(steps[0].description).toBe("Passo T1");
-    expect(steps[0].assigned_user_id).toBe(tocadorUser1.id);
+    expect(steps[0].assignees).toBe([tocadorUser1.id]);
   });
 
   // Testes de Erro (Validação da Rota)
