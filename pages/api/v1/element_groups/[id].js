@@ -41,13 +41,13 @@ function groupIdValidator(req, res, next) {
 
 /**
  * Handler para PATCH /api/v1/element_groups/[id]
- * Atualiza o 'display_name' ou 'assigned_user_id' de um grupo.
+ * Atualiza o 'display_name' ou 'assignees' de um grupo.
  */
 async function patchHandler(req, res) {
   try {
     const { id: groupId } = req.query;
 
-    // O model 'elementGroup.update' valida o body (display_name, assigned_user_id)
+    // O model 'elementGroup.update' valida o body (display_name, assignees)
     // e cuida do 404 se o grupo não existir.
     const updatedGroup = await elementGroup.update(groupId, req.body);
 

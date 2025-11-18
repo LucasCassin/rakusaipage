@@ -1,43 +1,150 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
-import { NotFoundError, ServiceError } from "errors/index.js";
+import { NotFoundError, ServiceError, ValidationError } from "errors/index.js";
+import { settings } from "config/settings.js";
+
+const MAX_ASSIGNEES = settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_GROUP;
+
+// --- HELPERS NECESSÁRIOS ---
 
 /**
- * Atualiza os dados de um grupo (ex: nome, usuário).
- * Nota: Isso não move elementos, apenas altera os metadados do grupo.
+ * Helper: Substitui os usuários associados a um grupo.
  */
-async function update(groupId, data) {
-  const validatedData = validator(data, {
-    display_name: "optional",
-    assigned_user_id: "optional",
+async function setAssigneesForGroup(
+  groupId,
+  assignees = [],
+  { useClient } = {},
+) {
+  const db = useClient || database;
+
+  // 1. Validar duplicatas e limite
+  const uniqueAssignees = [...new Set(assignees)];
+  if (uniqueAssignees.length > MAX_ASSIGNEES) {
+    throw new ValidationError({
+      message: `Um elemento/grupo pode ter no máximo ${MAX_ASSIGNEES} usuário(s) associado(s).`,
+      statusCode: 400,
+    });
+  }
+
+  // 2. Limpar associações antigas
+  await db.query({
+    text: `DELETE FROM element_group_assignees WHERE element_group_id = $1;`,
+    values: [groupId],
   });
 
-  const updateFields = Object.keys(validatedData)
-    .map((key, index) => `"${key}" = $${index + 1}`)
-    .join(", ");
+  // 3. Inserir novas
+  if (uniqueAssignees.length > 0) {
+    const valuesPlaceholders = uniqueAssignees
+      .map((_, index) => `($1, $${index + 2})`)
+      .join(", ");
 
-  if (Object.keys(validatedData).length === 0) {
-    return findGroupById(groupId); // Retorna o original
+    const values = [groupId, ...uniqueAssignees];
+
+    await db.query({
+      text: `
+        INSERT INTO element_group_assignees (element_group_id, user_id)
+        VALUES ${valuesPlaceholders};
+      `,
+      values: values,
+    });
   }
-
-  const query = {
-    text: `
-      UPDATE element_groups SET ${updateFields}
-      WHERE id = $${Object.keys(validatedData).length + 1}
-      RETURNING *;
-    `,
-    values: [...Object.values(validatedData), groupId],
-  };
-
-  const results = await database.query(query);
-  if (results.rowCount === 0) {
-    throw new NotFoundError({ message: "Grupo de elementos não encontrado." });
-  }
-  return results.rows[0];
 }
 
 /**
- * Deleta um grupo E TODOS os seus elementos (via ON DELETE CASCADE).
+ * Helper: Busca um grupo pelo ID, incluindo o array de assignees.
+ */
+async function findGroupById(groupId, { useClient } = {}) {
+  const validatedId = validator({ id: groupId }, { id: "required" });
+  const db = useClient || database;
+
+  const query = {
+    text: `
+      SELECT 
+        eg.*,
+        COALESCE(
+          (
+            SELECT json_agg(ega.user_id)
+            FROM element_group_assignees ega
+            WHERE ega.element_group_id = eg.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        element_groups eg
+      WHERE 
+        eg.id = $1;
+    `,
+    values: [validatedId.id],
+  };
+
+  const results = await db.query(query);
+  return results.rows[0];
+}
+
+// --- FUNÇÃO UPDATE REFATORADA ---
+
+async function update(groupId, data) {
+  const validatedData = validator(data, {
+    display_name: "optional",
+    assignees: "optional:arrayOf-uuid", // Nova validação de array
+  });
+
+  const { display_name, assignees } = validatedData;
+  const hasName = display_name !== undefined;
+  const hasAssignees = assignees !== undefined;
+
+  // Se nada foi enviado para atualizar, retorna o objeto atual
+  if (!hasName && !hasAssignees) {
+    return findGroupById(groupId);
+  }
+
+  // 2. Iniciar transação (necessária para atualizar 2 tabelas)
+  const client = await database.getNewClient();
+  try {
+    await client.query("BEGIN");
+
+    // 3. Verificar se o grupo existe
+    const check = await client.query(
+      "SELECT id FROM element_groups WHERE id = $1",
+      [groupId],
+    );
+    if (check.rowCount === 0) {
+      throw new NotFoundError({
+        message: "Grupo de elementos não encontrado.",
+      });
+    }
+
+    // 4. Atualizar display_name (se enviado)
+    if (hasName) {
+      await client.query({
+        text: `UPDATE element_groups SET display_name = $1 WHERE id = $2;`,
+        values: [display_name, groupId],
+      });
+    }
+
+    // 5. Atualizar assignees (se enviado)
+    if (hasAssignees) {
+      await setAssigneesForGroup(groupId, assignees, { useClient: client });
+    }
+
+    await client.query("COMMIT");
+
+    // 6. Retornar objeto completo (com array assignees)
+    return await findGroupById(groupId);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error; // Erros de validação (limite, etc)
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Deleta um grupo.
  */
 async function del(groupId) {
   const validatedId = validator({ id: groupId }, { id: "required" });
@@ -53,25 +160,9 @@ async function del(groupId) {
 }
 
 /**
- * Busca um grupo (sem seus elementos).
- */
-async function findGroupById(groupId) {
-  const validatedId = validator({ id: groupId }, { id: "required" });
-  const query = {
-    text: `SELECT * FROM element_groups WHERE id = $1;`,
-    values: [validatedId.id],
-  };
-  const results = await database.query(query);
-  return results.rows[0];
-}
-
-/**
- * Função principal do Agrupamento:
- * Move todos os 'scene_elements' de um 'sourceGroupId' para um 'targetGroupId'
- * e depois deleta o 'sourceGroup' (que ficou vazio).
+ * Funde dois grupos.
  */
 async function merge(targetGroupId, sourceGroupId) {
-  // 1. Validar IDs
   const validatedIds = validator(
     { targetGroupId, sourceGroupId },
     {
@@ -80,7 +171,6 @@ async function merge(targetGroupId, sourceGroupId) {
     },
   );
 
-  // Não permitir fusão de um grupo nele mesmo
   if (validatedIds.targetGroupId === validatedIds.sourceGroupId) {
     throw new ServiceError({
       message: "Não é possível fundir um grupo com ele mesmo.",
@@ -88,12 +178,10 @@ async function merge(targetGroupId, sourceGroupId) {
     });
   }
 
-  // 2. Iniciar transação
   const client = await database.getNewClient();
   try {
     await client.query("BEGIN");
 
-    // 3. Query 1: Re-atribuir todos os elementos do sourceGroup para o targetGroup
     const updateQuery = {
       text: `
         UPDATE scene_elements 
@@ -105,27 +193,21 @@ async function merge(targetGroupId, sourceGroupId) {
     };
     const updateResult = await client.query(updateQuery);
 
-    if (updateResult.rowCount === 0) {
-      // Isso pode acontecer se o sourceGroup já estava vazio.
-      // Não é um erro, mas precisamos deletá-lo.
-    }
-
-    // 4. Query 2: Deletar o sourceGroup, que agora está vazio
     const deleteQuery = {
       text: `DELETE FROM element_groups WHERE id = $1;`,
       values: [validatedIds.sourceGroupId],
     };
     await client.query(deleteQuery);
 
-    // 5. Commit
     await client.query("COMMIT");
 
-    // Retorna o número de elementos que foram movidos
     return { elements_moved: updateResult.rowCount };
   } catch (error) {
     await client.query("ROLLBACK");
-    const specificError = database.handleDatabaseError(error);
-    throw specificError;
+    if (!error.code) {
+      throw error;
+    }
+    throw database.handleDatabaseError(error);
   } finally {
     await client.end();
   }
@@ -134,6 +216,6 @@ async function merge(targetGroupId, sourceGroupId) {
 export default {
   update,
   del,
-  findGroupById,
   merge,
+  findGroupById,
 };

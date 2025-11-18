@@ -76,7 +76,7 @@ describe("Test /api/v1/element_groups/[id] routes", () => {
       position_x: 50,
       position_y: 50,
       display_name: "Grupo B Original",
-      assigned_user_id: tocadorUser.id,
+      assignees: [tocadorUser.id],
     });
     groupB = elementB.group_id;
   });
@@ -88,10 +88,10 @@ describe("Test /api/v1/element_groups/[id] routes", () => {
 
   // --- PATCH ---
   describe("PATCH /api/v1/element_groups/[id]", () => {
-    it("should update a group's 'display_name' and 'assigned_user_id'", async () => {
+    it("should update a group's 'display_name' and 'assignees'", async () => {
       const payload = {
         display_name: "Grupo A Atualizado",
-        assigned_user_id: tocadorUser.id,
+        assignees: [tocadorUser.id],
       };
 
       const res = await fetch(
@@ -109,7 +109,7 @@ describe("Test /api/v1/element_groups/[id] routes", () => {
 
       expect(res.status).toBe(200);
       expect(resBody.display_name).toBe("Grupo A Atualizado");
-      expect(resBody.assigned_user_id).toBe(tocadorUser.id);
+      expect(resBody.assignees).toEqual([tocadorUser.id]);
 
       // Foco em Testes: Validar no banco
       const groupInDb = await elementGroup.findGroupById(groupA);
