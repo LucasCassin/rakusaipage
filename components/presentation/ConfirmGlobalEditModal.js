@@ -43,9 +43,9 @@ export default function ConfirmGlobalEditModal({
       }"`,
     );
   }
-  if (newData?.assigned_user_id !== oldData?.assigned_user_id) {
+  if (newData?.assignees !== oldData?.assignees) {
     changes.push(
-      `Usuário associado (agora ID: ${newData?.assigned_user_id || "Nenhum"})`,
+      `Usuário(s) associado(s) (agora ID: ${newData?.assignees || "Nenhum"})`,
     );
   }
 
