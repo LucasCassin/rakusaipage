@@ -87,18 +87,12 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
   describe("PATCH /api/v1/presentations/[id]/element-names", () => {
     it("should return 200 and update display_name and assignees globally", async () => {
       const newSession = await session.create(adminUser);
-      const groupOdaiko_id = await presentation.findGroupsByCriteria(
-        testPresentation.id,
-        {
-          display_name: "Trocador",
-          element_type_id: odaikoType.id,
-        },
-      );
 
       const updateData = {
-        groupIds: [groupOdaiko_id], // (Certifique-se de pegar os IDs dos grupos no setup)
-        display_name: "Nome Global",
-        assignees: [alunoUser.id],
+        element_type_id: odaikoType.id,
+        old_display_name: "Trocador",
+        new_display_name: "Nome Global",
+        new_assignees: [alunoUser.id],
       };
 
       const res = await fetch(
@@ -125,16 +119,10 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
 
     it("should return 200 and clear users if assignees is empty array", async () => {
       const newSession = await session.create(adminUser);
-      const groupOdaiko_id = await presentation.findGroupsByCriteria(
-        testPresentation.id,
-        {
-          display_name: "Trocador",
-          element_type_id: odaikoType.id,
-        },
-      );
       const updateData = {
-        groupIds: [groupOdaiko_id],
-        assignees: [], // MUDANÇA 2: Array vazio para limpar
+        element_type_id: odaikoType.id,
+        old_display_name: "Nome Global",
+        new_assignees: [], // MUDANÇA 2: Array vazio para limpar
       };
 
       const res = await fetch(
@@ -151,12 +139,11 @@ describe("Test /api/v1/presentations/[id]/element-names routes", () => {
       expect(res.status).toBe(200);
     });
 
-    it("should return 400 for invalid data (missing 'new_display_name')", async () => {
+    it("should return 400 for invalid data (missing 'old_display_name')", async () => {
       const newSession = await session.create(adminUser);
       const updateData = {
         element_type_id: odaikoType.id,
-        old_display_name: "Trocador",
-        // new_display_name está faltando
+        // old_display_name está faltando
       };
 
       const res = await fetch(

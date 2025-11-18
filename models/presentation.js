@@ -339,67 +339,111 @@ async function findElementPool(presentationId) {
   return results.rows;
 }
 
-async function globalElementNamesUpdate(presentationId, groupIds, newData) {
-  // 1. Validar dados (Adaptado para receber assignees)
-  const validatedNewData = validator(newData, {
-    display_name: "optional",
-    assignees: "optional",
-  });
+/**
+ * Atualiza globalmente o nome e os usuários de elementos iguais.
+ * (REFATORADO para M-N assignees)
+ */
+async function updateElementGlobally(presentation_id, data) {
+  // 1. Valida os IDs de contexto
+  const validatedIds = validator(
+    {
+      presentation_id: presentation_id,
+      element_type_id: data.element_type_id,
+    },
+    {
+      presentation_id: "required",
+      element_type_id: "required",
+    },
+  );
+  // Valida os dados (nomes)
+  const validatedOldName = validator(
+    { display_name: data.old_display_name },
+    {
+      display_name: "required",
+    },
+  );
+  let validatedNewName = undefined;
+  if (data.new_display_name !== undefined) {
+    validatedNewName = validator(
+      { display_name: data.new_display_name },
+      {
+        display_name: "optional",
+      },
+    );
+  }
+  // 3. Valida os novos assignees (Array de UUIDs)
+  let validatedAssignees = undefined;
+  if (data.new_assignees !== undefined) {
+    validatedAssignees = validator(
+      { assignees: data.new_assignees },
+      {
+        assignees: "optional",
+      },
+    );
+  }
+  // 4. Encontra todos os 'element_groups' IDs que correspondem
+  const findQuery = {
+    text: `
+      SELECT 
+        eg.id 
+      FROM 
+        element_groups eg
+      JOIN 
+        scenes s ON eg.scene_id = s.id
+      WHERE 
+        s.presentation_id = $1
+        AND eg.display_name = $2
+        AND EXISTS (
+          SELECT 1 
+          FROM scene_elements se 
+          WHERE se.group_id = eg.id 
+            AND se.element_type_id = $3
+        );
+    `,
+    values: [
+      validatedIds.presentation_id,
+      validatedOldName.display_name,
+      validatedIds.element_type_id,
+    ],
+  };
 
-  const { display_name, assignees } = validatedNewData;
-  const hasName = display_name !== undefined;
-  const hasAssignees = assignees !== undefined;
+  const groupsToUpdate = await database.query(findQuery);
+  const groupIds = groupsToUpdate.rows.map((row) => row.id);
 
-  if ((!hasName && !hasAssignees) || !groupIds || groupIds.length === 0) {
+  if (groupIds.length === 0) {
     return { updatedCount: 0 };
   }
 
+  // 5. Inicia Transação para Atualização em Massa
   const client = await database.getNewClient();
   try {
     await client.query("BEGIN");
 
-    // 2. Validar se os grupos pertencem à apresentação (Segurança)
-    const verifyQuery = {
-      text: `
-        SELECT eg.id 
-        FROM element_groups eg
-        JOIN scenes s ON eg.scene_id = s.id
-        WHERE s.presentation_id = $1 AND eg.id = ANY($2::uuid[])
-      `,
-      values: [presentationId, groupIds],
-    };
-    const verifyResult = await client.query(verifyQuery);
-    const validGroupIds = verifyResult.rows.map((r) => r.id);
-
-    if (validGroupIds.length === 0) {
-      await client.query("ROLLBACK");
-      return { updatedCount: 0 };
-    }
-
-    // 3. Atualizar Nomes (Batch)
-    if (hasName) {
-      const updateNameQuery = {
+    // 5.1 Atualizar o nome de exibição (Batch)
+    if (validatedNewName?.display_name !== undefined) {
+      await client.query({
         text: `
-          UPDATE element_groups
-          SET display_name = $1
-          WHERE id = ANY($2::uuid[]);
-        `,
-        values: [display_name, validGroupIds],
-      };
-      await client.query(updateNameQuery);
+        UPDATE element_groups 
+        SET display_name = $1
+        WHERE id = ANY($2::uuid[])
+      `,
+        values: [validatedNewName.display_name, groupIds],
+      });
     }
-
-    // 4. Atualizar Assignees (Iterativo com helper M-N)
-    if (hasAssignees) {
+    // 5.2 Atualizar os assignees (Iterativo com Helper M-N)
+    // (Só executa se 'new_assignees' foi passado)
+    if (validatedAssignees?.assignees !== undefined) {
       await Promise.all(
-        validGroupIds.map((groupId) =>
-          setAssigneesForGroup(groupId, assignees, { useClient: client }),
+        groupIds.map((groupId) =>
+          setAssigneesForGroup(groupId, validatedAssignees.assignees, {
+            useClient: client,
+          }),
         ),
       );
     }
 
     await client.query("COMMIT");
-    return { updatedCount: validGroupIds.length };
+    return { updatedCount: groupIds.length };
   } catch (error) {
     await client.query("ROLLBACK");
     if (!error.code) {
@@ -499,7 +543,7 @@ export default {
   findDeepById,
   checkViewerOrCreator,
   findElementPool,
-  globalElementNamesUpdate,
+  updateElementGlobally,
   reorderScenes,
   findGroupsByCriteria,
 };

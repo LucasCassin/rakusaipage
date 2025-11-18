@@ -254,7 +254,7 @@ describe("Presentation Model Tests", () => {
     });
   });
 
-  describe("globalElementNamesUpdate()", () => {
+  describe("updateElementGlobally()", () => {
     let pres, s1, el1, el2;
 
     beforeEach(async () => {
@@ -284,13 +284,12 @@ describe("Presentation Model Tests", () => {
     });
 
     it("should update assignees for multiple groups", async () => {
-      const groupIds = [el1.group_id, el2.group_id];
       // Atualizar para [otherUser]
-      const result = await presentation.globalElementNamesUpdate(
-        pres.id,
-        groupIds,
-        { assignees: [otherUser.id] },
-      );
+      const result = await presentation.updateElementGlobally(pres.id, {
+        element_type_id: odaikoType.id,
+        old_display_name: "Old",
+        new_assignees: [otherUser.id],
+      });
 
       expect(result.updatedCount).toBe(2);
 
@@ -304,12 +303,11 @@ describe("Presentation Model Tests", () => {
     });
 
     it("should update display_name for multiple groups", async () => {
-      const groupIds = [el1.group_id, el2.group_id];
-      const result = await presentation.globalElementNamesUpdate(
-        pres.id,
-        groupIds,
-        { display_name: "New Global" },
-      );
+      const result = await presentation.updateElementGlobally(pres.id, {
+        element_type_id: odaikoType.id,
+        old_display_name: "Old",
+        new_display_name: "New Global",
+      });
 
       expect(result.updatedCount).toBe(2);
       const deep = await presentation.findDeepById(pres.id);
@@ -317,9 +315,10 @@ describe("Presentation Model Tests", () => {
     });
 
     it("should handle empty assignees (clear users)", async () => {
-      const groupIds = [el1.group_id];
-      await presentation.globalElementNamesUpdate(pres.id, groupIds, {
-        assignees: [],
+      await presentation.updateElementGlobally(pres.id, {
+        element_type_id: odaikoType.id,
+        old_display_name: "Old",
+        new_assignees: [],
       });
 
       const deep = await presentation.findDeepById(pres.id);
