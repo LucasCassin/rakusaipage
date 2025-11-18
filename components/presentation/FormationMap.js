@@ -309,7 +309,7 @@ export default function FormationMap({
         groups.set(element.group_id, {
           group_id: element.group_id,
           display_name: element.display_name,
-          assigned_user_id: element.assigned_user_id,
+          assignees: element.assignees || [],
           elements: [],
         });
       }
@@ -492,7 +492,9 @@ export default function FormationMap({
               y={group.labelPosition.y}
               scale={group.labelPosition.scale}
               isHighlighted={
-                loggedInUser && group.assigned_user_id === loggedInUser.id
+                loggedInUser &&
+                group.assignees &&
+                group.assignees.includes(loggedInUser.id)
               }
               globalScale={globalScale}
             />
