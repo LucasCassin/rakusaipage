@@ -20,7 +20,10 @@ export default function StageElement({
   snapAnchors,
 }) {
   const isHighlighted =
-    loggedInUser && element.assigned_user_id === loggedInUser.id;
+    loggedInUser &&
+    element.assignees &&
+    Array.isArray(element.assignees) &&
+    element.assignees.includes(loggedInUser.id);
 
   const iconUrl =
     isHighlighted && element.image_url_highlight
