@@ -25,7 +25,10 @@ export default function TransitionStepItem({
   }, [pendingAction]);
 
   const isHighlighted =
-    loggedInUser && step.assigned_user_id === loggedInUser.id;
+    loggedInUser &&
+    step.assignees &&
+    Array.isArray(step.assignees) &&
+    step.assignees.includes(loggedInUser.id);
 
   const highlightClasses = isHighlighted
     ? "bg-rakusai-pink-light bg-opacity-20 border-l-4 !border-rakusai-pink"
