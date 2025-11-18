@@ -56,7 +56,7 @@ async function getHandler(req, res) {
     const { id: element_id } = req.query;
 
     // O 'sceneElement.findById' refatorado agora executa o JOIN
-    // com 'element_groups' para buscar display_name e assigned_user_id.
+    // com 'element_groups' para buscar display_name e assignees.
     const element = await sceneElement.findById(element_id);
 
     // Precisamos checar se o elemento foi encontrado,

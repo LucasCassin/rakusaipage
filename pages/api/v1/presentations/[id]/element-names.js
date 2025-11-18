@@ -30,7 +30,7 @@ function presentationIdValidator(req, res, next) {
 
 /**
  * Handler para PATCH /api/v1/presentations/[id]/element-names
- * Atualiza um 'display_name' e 'assigned_user_id' em todas as cenas.
+ * Atualiza um 'display_name' e 'assignees' em todas as cenas.
  */
 async function patchHandler(req, res) {
   try {

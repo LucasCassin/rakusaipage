@@ -245,11 +245,12 @@ describe("Presentation Model Tests", () => {
         element_type_id: odaikoType.id,
         position_x: 0,
         position_y: 0,
+        display_name: "Teste",
       });
 
       const pool = await presentation.findElementPool(pres.id);
       expect(pool).toHaveLength(1);
-      expect(pool[0].id).toBe(odaikoType.id);
+      expect(pool[0].element_type_id).toBe(odaikoType.id);
     });
   });
 

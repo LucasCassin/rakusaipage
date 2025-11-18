@@ -488,7 +488,7 @@ const profiles = {
       "position_x",
       "position_y",
       "display_name",
-      "assigned_user_id",
+      "assignees",
     ],
     allowedOutputFields: [
       "id",
@@ -497,7 +497,7 @@ const profiles = {
       "position_x",
       "position_y",
       "display_name",
-      "assigned_user_id",
+      "assignees",
     ],
   },
   "update:element": {
@@ -505,14 +505,14 @@ const profiles = {
       "position_x",
       "position_y",
       "display_name",
-      "assigned_user_id",
+      "assignees",
     ],
     allowedOutputFields: [
       "id",
       "position_x",
       "position_y",
       "display_name",
-      "assigned_user_id",
+      "assignees",
     ],
   },
   "delete:element": {
@@ -521,23 +521,18 @@ const profiles = {
 
   // ### Presentation Features (Steps) ###
   "create:step": {
-    allowedInputFields: [
-      "scene_id",
-      "order",
-      "description",
-      "assigned_user_id",
-    ],
+    allowedInputFields: ["scene_id", "order", "description", "assignees"],
     allowedOutputFields: [
       "id",
       "scene_id",
       "order",
       "description",
-      "assigned_user_id",
+      "assignees",
     ],
   },
   "update:step": {
-    allowedInputFields: ["order", "description", "assigned_user_id"],
-    allowedOutputFields: ["id", "order", "description", "assigned_user_id"],
+    allowedInputFields: ["order", "description", "assignees"],
+    allowedOutputFields: ["id", "order", "description", "assignees"],
   },
   "delete:step": {
     allowedOutputFields: ["id"],

@@ -283,7 +283,11 @@ async function checkViewerOrCreator(presentationId, userId) {
 }
 
 async function findElementPool(presentationId) {
-  const validatedId = validator({ id: presentationId }, { id: "required" });
+  const validatedId = validator(
+    { presentation_id: presentationId },
+    { presentation_id: "required" },
+  );
+
   const query = {
     text: `
       WITH GroupedData AS (
@@ -294,14 +298,12 @@ async function findElementPool(presentationId) {
           et.image_url,
           et.scale,
           et.image_url_highlight,
-          -- Subquery para buscar array de nomes (ordenados para consistência no DISTINCT)
           (
             SELECT array_agg(u.username ORDER BY u.username)
             FROM element_group_assignees ega
             JOIN users u ON ega.user_id = u.id
             WHERE ega.element_group_id = eg.id
           ) AS assignee_names,
-          -- Subquery para buscar array de IDs
           (
             SELECT array_agg(u.id ORDER BY u.username)
             FROM element_group_assignees ega
@@ -331,7 +333,7 @@ async function findElementPool(presentationId) {
         COALESCE(assignees, '{}') AS assignees
       FROM GroupedData;
     `,
-    values: [validatedId.id],
+    values: [validatedId.presentation_id],
   };
   const results = await database.query(query);
   return results.rows;
