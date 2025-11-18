@@ -35,7 +35,7 @@ function SelectedAssignee({ user, onRemove }) {
  */
 export default function AssigneeManager({
   cast, // { viewers: [], isLoading: ... }
-  currentAssignees, // Array de IDs [uuid, uuid]
+  currentAssignees = [], // Array de IDs [uuid, uuid]
   onChange, // fn(newAssignees)
   maxLimit,
 }) {

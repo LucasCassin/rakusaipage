@@ -3,12 +3,9 @@ import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX, FiTrash2 } from "react-icons/fi";
-import { settings } from "config/settings.js"; // <-- 1. IMPORTAR SETTINGS
-import AssigneeManager from "./AssigneeManager"; // <-- 2. IMPORTAR NOVO COMPONENTE
+import { settings } from "config/settings.js";
+import AssigneeSelect from "./AssigneeSelect"; // <--- IMPORTAR
 
-/**
- * Modal para criar ou editar um SceneElement.
- */
 export default function SceneElementModal({
   modalData,
   cast,
@@ -21,36 +18,31 @@ export default function SceneElementModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { isLoading: isLoadingCast } = cast;
+  const { viewers = [], isLoading: isLoadingCast } = cast;
   const { mode, element_type_name } = modalData || {};
   const isCreate = mode === "create";
-
   const isStageLine = element_type_name === "Palco";
 
-  // --- 3. ATUALIZAR USEEFFECT ---
   useEffect(() => {
     if (modalData) {
       setFormData({
         display_name: modalData.display_name || "",
-        assignees: modalData.assignees || [], // <-- MUDANÇA
+        assignees: modalData.assignees || [], // Array
         element_type_id: modalData.element_type_id,
         position: modalData.position,
         isTemplate: modalData.isTemplate,
       });
     }
   }, [modalData]);
-  // --- FIM DA MUDANÇA ---
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- 4. NOVO HANDLER PARA O ARRAY ---
-  const handleAssigneesChange = (newAssigneesArray) => {
-    setFormData((prev) => ({ ...prev, assignees: newAssigneesArray }));
+  const handleAssigneesChange = (newAssignees) => {
+    setFormData((prev) => ({ ...prev, assignees: newAssignees }));
   };
-  // --- FIM DO NOVO HANDLER ---
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,7 +71,6 @@ export default function SceneElementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-6">
-          {/* Se não for a linha de palco, permite editar nome/usuário */}
           {!isStageLine && (
             <>
               <FormInput
@@ -92,27 +83,27 @@ export default function SceneElementModal({
                 disabled={isLoading || isDeleting}
               />
 
-              {/* --- 5. SUBSTITUIR O SELECT --- */}
+              {/* --- NOVO SELETOR --- */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Usuários Associados
                 </label>
-                <AssigneeManager
-                  cast={cast}
-                  currentAssignees={formData.assignees}
+                <AssigneeSelect
+                  cast={viewers}
+                  selectedIds={formData.assignees || []}
                   onChange={handleAssigneesChange}
                   maxLimit={
                     settings.global.STAGE_MAP_LOGIC.MAX_ASSIGNEES_PER_GROUP
                   }
+                  disabled={isLoading || isDeleting || isLoadingCast}
                 />
               </div>
-              {/* --- FIM DA SUBSTITUIÇÃO --- */}
+              {/* -------------------- */}
             </>
           )}
 
           {error && <Alert type="error">{error}</Alert>}
 
-          {/* Botões */}
           <div className="flex justify-between items-center pt-4">
             <div>
               {!isCreate && (
