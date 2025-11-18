@@ -272,7 +272,7 @@ export function usePresentationEditor(presentationId) {
         scene_id: currentSceneId,
         element_type_id: item.element_type_id,
         display_name: item.display_name || null,
-        assigned_user_id: item.assigned_user_id || null,
+        assignees: item.assignees || null,
         position_x: (position?.x || 50).toFixed(2),
         position_y: (position?.y || 50).toFixed(2),
       };
@@ -288,7 +288,7 @@ export function usePresentationEditor(presentationId) {
       mode: "edit",
       id: element.id,
       display_name: element.display_name,
-      assigned_user_id: element.assigned_user_id,
+      assignees: element.assignees,
       element_type_id: element.element_type_id,
       element_type_name: element.element_type_name,
       image_url: element.image_url,
@@ -396,9 +396,9 @@ export function usePresentationEditor(presentationId) {
         mode,
         id,
         display_name: oldName,
-        assigned_user_id: oldUserId,
+        assignees: oldUserId,
       } = modalData;
-      const { display_name: newName, assigned_user_id: newUserId } = formData;
+      const { display_name: newName, assignees: newUserId } = formData;
 
       const isCreateMode = mode === "create";
 
@@ -407,7 +407,7 @@ export function usePresentationEditor(presentationId) {
           scene_id: currentSceneId,
           element_type_id: formData.element_type_id,
           display_name: newName || null,
-          assigned_user_id: newUserId || null,
+          assignees: newUserId || null,
           position_x: (formData.position?.x || 50).toFixed(4),
           position_y: (formData.position?.y || 50).toFixed(4),
         };
@@ -420,8 +420,8 @@ export function usePresentationEditor(presentationId) {
         };
         await createElementApi(createBody, visualData.isTemplate, visualData);
       } else {
-        const nameChanged = newName !== (oldName || "");
-        const userChanged = newUserId !== (oldUserId || "");
+        const nameChanged = newName !== (oldName || []);
+        const userChanged = newUserId !== (oldUserId || []);
 
         if (!nameChanged && !userChanged) {
           closeElementModal();
@@ -434,11 +434,11 @@ export function usePresentationEditor(presentationId) {
           element_type_id: formData.element_type_id,
           oldData: {
             display_name: oldName || null,
-            assigned_user_id: oldUserId || null,
+            assignees: oldUserId || null,
           },
           newData: {
             display_name: newName || null,
-            assigned_user_id: newUserId || null,
+            assignees: newUserId || null,
           },
         });
         setIsGlobalEditModalOpen(true);
@@ -479,7 +479,7 @@ export function usePresentationEditor(presentationId) {
       element_type_id: globalEditData.element_type_id,
       old_display_name: globalEditData.oldData.display_name,
       new_display_name: globalEditData.newData.display_name,
-      new_assigned_user_id: globalEditData.newData.assigned_user_id,
+      new_assignees: globalEditData.newData.assignees,
     };
 
     try {
@@ -649,7 +649,7 @@ export function usePresentationEditor(presentationId) {
         body = {
           scene_id: sceneId,
           description: formData.description,
-          assigned_user_id: formData.assigned_user_id || null,
+          assignees: formData.assignees || null,
           order: currentScene?.transition_steps.length || 0,
         };
         method = "POST";
@@ -658,7 +658,7 @@ export function usePresentationEditor(presentationId) {
       } else {
         body = {
           description: formData.description,
-          assigned_user_id: formData.assigned_user_id || null,
+          assignees: formData.assignees || null,
           order: formData.order,
         };
         method = "PATCH";
