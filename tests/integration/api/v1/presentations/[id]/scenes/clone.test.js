@@ -156,15 +156,32 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     // 2. Verificar Grupos
     const groups = (
       await database.query({
-        text: "SELECT * FROM element_groups WHERE scene_id = $1 ORDER BY display_name",
+        text: `
+      SELECT 
+        eg.*,
+        COALESCE(
+          (
+            SELECT json_agg(ega.user_id)
+            FROM element_group_assignees ega
+            WHERE ega.element_group_id = eg.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        element_groups eg 
+      WHERE 
+        eg.scene_id = $1 
+      ORDER BY 
+        eg.display_name
+    `,
         values: [resBody.id], // ID da nova cena
       })
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBe("Lider");
-    expect(groups[0].assignees).toBe([tocadorUser1.id]);
+    expect(groups[0].assignees).toEqual([tocadorUser1.id]);
     expect(groups[1].display_name).toBe("Suporte");
-    expect(groups[1].assignees).toBe([tocadorUser2.id]);
+    expect(groups[1].assignees).toEqual([tocadorUser2.id]);
   });
 
   it("should clone FORMATION with 'with_names' (no users)", async () => {
@@ -189,15 +206,32 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     // 1. Verificar Grupos
     const groups = (
       await database.query({
-        text: "SELECT * FROM element_groups WHERE scene_id = $1 ORDER BY display_name",
-        values: [resBody.id],
+        text: `
+      SELECT 
+        eg.*,
+        COALESCE(
+          (
+            SELECT json_agg(ega.user_id)
+            FROM element_group_assignees ega
+            WHERE ega.element_group_id = eg.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        element_groups eg 
+      WHERE 
+        eg.scene_id = $1 
+      ORDER BY 
+        eg.display_name
+    `,
+        values: [resBody.id], // ID da nova cena
       })
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBe("Lider");
-    expect(groups[0].assignees).toBe([]); // <-- MUDANÇA
+    expect(groups[0].assignees).toEqual([]); // <-- MUDANÇA
     expect(groups[1].display_name).toBe("Suporte");
-    expect(groups[1].assignees).toBe([]); // <-- MUDANÇA
+    expect(groups[1].assignees).toEqual([]); // <-- MUDANÇA
   });
 
   it("should clone FORMATION with 'elements_only'", async () => {
@@ -222,13 +256,30 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     // 1. Verificar Grupos
     const groups = (
       await database.query({
-        text: "SELECT * FROM element_groups WHERE scene_id = $1",
-        values: [resBody.id],
+        text: `
+      SELECT 
+        eg.*,
+        COALESCE(
+          (
+            SELECT json_agg(ega.user_id)
+            FROM element_group_assignees ega
+            WHERE ega.element_group_id = eg.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        element_groups eg 
+      WHERE 
+        eg.scene_id = $1 
+      ORDER BY 
+        eg.display_name
+    `,
+        values: [resBody.id], // ID da nova cena
       })
     ).rows;
     expect(groups).toHaveLength(2);
     expect(groups[0].display_name).toBeNull(); // <-- MUDANÇA
-    expect(groups[0].assignees).toBe([]); // <-- MUDANÇA
+    expect(groups[0].assignees).toEqual([]); // <-- MUDANÇA
   });
 
   it("should clone TRANSITION with 'with_users'", async () => {
@@ -252,13 +303,31 @@ describe("POST /api/v1/presentations/[id]/scenes/clone", () => {
     // 1. Verificar Passos
     const steps = (
       await database.query({
-        text: 'SELECT * FROM transition_steps WHERE scene_id = $1 ORDER BY "order"',
-        values: [resBody.id],
+        text: `
+      SELECT 
+        ts.*,
+        COALESCE(
+          (
+            SELECT json_agg(tsa.user_id)
+            FROM transition_step_assignees tsa
+            WHERE tsa.transition_step_id = ts.id
+          ),
+          '[]'::json
+        ) AS assignees
+      FROM 
+        transition_steps ts
+      WHERE 
+        ts.scene_id = $1 
+      ORDER BY 
+        ts."order"
+    `,
+        values: [resBody.id], // ID da nova cena
       })
     ).rows;
+
     expect(steps).toHaveLength(1); // O setup de teste só tinha 1 passo
     expect(steps[0].description).toBe("Passo T1");
-    expect(steps[0].assignees).toBe([tocadorUser1.id]);
+    expect(steps[0].assignees).toEqual([tocadorUser1.id]);
   });
 
   // Testes de Erro (Validação da Rota)

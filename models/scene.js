@@ -29,14 +29,19 @@ async function findAllFromPresentation(presentationId) {
       let steps = [];
 
       if (scene.scene_type === "FORMATION") {
-        // --- ESTA É A MUDANÇA ---
-        // Query antiga: SELECT * FROM scene_elements WHERE scene_id = $1;
         const elementsQuery = {
           text: `
             SELECT 
               se.*,
               eg.display_name,
-              eg.assigned_user_id
+              COALESCE(
+                (
+                  SELECT json_agg(ega.user_id)
+                  FROM element_group_assignees ega
+                  WHERE ega.element_group_id = eg.id
+                ),
+                '[]'::json
+              ) AS assignees
             FROM 
               scene_elements se
             JOIN 
@@ -51,9 +56,26 @@ async function findAllFromPresentation(presentationId) {
       }
 
       if (scene.scene_type === "TRANSITION") {
-        // (A busca de 'transition_steps' não muda)
+        // --- REFATORADO: Busca assignees (M-N) ---
         const stepsQuery = {
-          text: `SELECT * FROM transition_steps WHERE scene_id = $1 ORDER BY "order";`,
+          text: `
+            SELECT 
+              ts.*,
+              COALESCE(
+                (
+                  SELECT json_agg(tsa.user_id)
+                  FROM transition_step_assignees tsa
+                  WHERE tsa.transition_step_id = ts.id
+                ),
+                '[]'::json
+              ) AS assignees
+            FROM 
+              transition_steps ts
+            WHERE 
+              ts.scene_id = $1
+            ORDER BY 
+              ts."order";
+          `,
           values: [scene.id],
         };
         const stepsResults = await database.query(stepsQuery);
@@ -67,9 +89,9 @@ async function findAllFromPresentation(presentationId) {
       };
     }),
   );
+
   return scenesWithDetails;
 }
-
 /**
  * Cria uma nova cena (FORMATION ou TRANSITION).
  * (Sem alterações)
@@ -190,12 +212,35 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
     },
   );
 
+  // Garantir que temos os detalhes da cena fonte (assignees, elements, steps)
+  // Caso o objeto sourceScene passado seja "raso" (apenas dados da tabela scenes)
+  let sourceData = sourceScene;
+  if (
+    (!sourceData.scene_elements && sourceData.scene_type === "FORMATION") ||
+    (!sourceData.transition_steps && sourceData.scene_type === "TRANSITION")
+  ) {
+    // Busca profunda para garantir que temos os assignees
+    const [fetchedScene] = await findAllFromPresentation(
+      sourceScene.presentation_id,
+    );
+    // Precisamos filtrar a cena correta caso findAll retorne várias
+    if (fetchedScene.id === sourceScene.id) {
+      sourceData = fetchedScene;
+    } else {
+      // Fallback: Busca todas e encontra a certa
+      const allScenes = await findAllFromPresentation(
+        sourceScene.presentation_id,
+      );
+      sourceData = allScenes.find((s) => s.id === sourceScene.id) || sourceData;
+    }
+  }
+
   const client = await database.getNewClient();
   try {
     await client.query("BEGIN");
 
     // 2. Criar a nova cena (Base)
-    const newSceneName = `(Cópia) ${sourceScene.name || "Sem Título"}`;
+    const newSceneName = `(Cópia) ${sourceData.name || "Sem Título"}`;
     const sceneQuery = {
       text: `
         INSERT INTO scenes 
@@ -207,8 +252,8 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
         validatedIds.targetPresentationId,
         validatedIds.newOrder,
         newSceneName,
-        sourceScene.scene_type,
-        sourceScene.description || null,
+        sourceData.scene_type,
+        sourceData.description || null,
       ],
     };
     const sceneResult = await client.query(sceneQuery);
@@ -217,16 +262,32 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
     // 3. [Side Effect] Adicionar Usuários ao Elenco (se 'with_users')
     if (validatedIds.pasteOption === "with_users") {
       const userIds = new Set();
-      
-      if (sourceScene.scene_type === "FORMATION") {
-        // (O 'sourceScene.scene_elements' vem do 'findDeepById', 
-        // que já aplainou os dados do element_group)
-        sourceScene.scene_elements?.forEach(el => {
-          if (el.assigned_user_id) userIds.add(el.assigned_user_id);
+
+      // Coleta IDs dos arrays 'assignees'
+      if (sourceData.scene_type === "FORMATION") {
+        sourceData.elements?.forEach((el) => {
+          // 'elements' vem do findAllFromPresentation
+          if (Array.isArray(el.assignees)) {
+            el.assignees.forEach((id) => userIds.add(id));
+          }
         });
-      } else { // TRANSITION
-        sourceScene.transition_steps?.forEach(step => {
-          if (step.assigned_user_id) userIds.add(step.assigned_user_id);
+        // Fallback para 'scene_elements' se o objeto vier de outro lugar
+        sourceData.scene_elements?.forEach((el) => {
+          if (Array.isArray(el.assignees)) {
+            el.assignees.forEach((id) => userIds.add(id));
+          }
+        });
+      } else {
+        // TRANSITION
+        sourceData.steps?.forEach((step) => {
+          if (Array.isArray(step.assignees)) {
+            step.assignees.forEach((id) => userIds.add(id));
+          }
+        });
+        sourceData.transition_steps?.forEach((step) => {
+          if (Array.isArray(step.assignees)) {
+            step.assignees.forEach((id) => userIds.add(id));
+          }
         });
       }
 
@@ -235,23 +296,24 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
         await presentationViewer.addViewer(
           validatedIds.targetPresentationId,
           userId,
-          { useClient: client } // Passa o client
+          { useClient: client },
         );
       }
     }
 
     // 4. Clonar Conteúdo (FORMATION)
-    if (sourceScene.scene_type === "FORMATION") {
-      // 4.1. Recriar os grupos do 'sourceScene' (JSON)
+    if (sourceData.scene_type === "FORMATION") {
+      const sourceElements =
+        sourceData.elements || sourceData.scene_elements || [];
+
+      // 4.1. Recriar os grupos
       const groupsMap = new Map();
-      sourceScene.scene_elements?.forEach(el => {
+      sourceElements.forEach((el) => {
         const groupId = el.group_id;
         if (!groupsMap.has(groupId)) {
           groupsMap.set(groupId, {
-            // (Dados do grupo, que estão achatados em 'el')
             display_name: el.display_name,
-            assigned_user_id: el.assigned_user_id,
-            // (Lista de elementos)
+            assignees: el.assignees || [], // Copia o array
             elements: [],
           });
         }
@@ -259,40 +321,54 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
       });
 
       // 4.2. Iterar e criar os novos grupos e elementos
-      for (const [sourceGroupId, groupData] of groupsMap.entries()) {
-        // A. Definir dados do novo grupo baseado na 'pasteOption'
+      for (const [_, groupData] of groupsMap.entries()) {
         let newDisplayName = null;
-        let newAssignedUserId = null;
 
-        if (validatedIds.pasteOption === "with_names" || validatedIds.pasteOption === "with_users") {
+        if (
+          validatedIds.pasteOption === "with_names" ||
+          validatedIds.pasteOption === "with_users"
+        ) {
           newDisplayName = groupData.display_name;
         }
-        if (validatedIds.pasteOption === "with_users") {
-          newAssignedUserId = groupData.assigned_user_id;
-        }
 
-        // B. Criar o novo 'element_group'
         const groupQuery = {
           text: `
-            INSERT INTO element_groups (scene_id, display_name, assigned_user_id) 
-            VALUES ($1, $2, $3) RETURNING id
+            INSERT INTO element_groups (scene_id, display_name) 
+            VALUES ($1, $2) RETURNING id
           `,
-          values: [newScene.id, newDisplayName, newAssignedUserId],
+          values: [newScene.id, newDisplayName],
         };
         const newGroupId = (await client.query(groupQuery)).rows[0].id;
+
+        // B. Inserir Assignees do Grupo (Novo)
+        if (
+          validatedIds.pasteOption === "with_users" &&
+          groupData.assignees.length > 0
+        ) {
+          const placeholders = groupData.assignees
+            .map((_, idx) => `($1, $${idx + 2})`)
+            .join(", ");
+          const values = [newGroupId, ...groupData.assignees];
+          await client.query({
+            text: `INSERT INTO element_group_assignees (element_group_id, user_id) VALUES ${placeholders}`,
+            values: values,
+          });
+        }
 
         // C. Criar os 'scene_elements' (BULK INSERT)
         const elementValues = [];
         const elementParams = [];
         groupData.elements.forEach((el, index) => {
-          const i = index * 5; // 5 colunas
-          elementParams.push(`($${i+1}, $${i+2}, $${i+3}, $${i+4}, $${i+5})`);
+          const i = index * 5;
+          elementParams.push(
+            `($${i + 1}, $${i + 2}, $${i + 3}, $${i + 4}, $${i + 5})`,
+          );
           elementValues.push(
             newScene.id,
             el.element_type_id,
             newGroupId,
             el.position_x,
-            el.position_y
+            el.position_y,
           );
         });
 
@@ -311,48 +387,51 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
     }
 
     // 5. Clonar Conteúdo (TRANSITION)
-    if (sourceScene.scene_type === "TRANSITION" && sourceScene.transition_steps?.length > 0) {
-      const stepValues = [];
-      const stepParams = [];
+    if (sourceData.scene_type === "TRANSITION") {
+      const sourceSteps = sourceData.steps || sourceData.transition_steps || [];
 
-      sourceScene.transition_steps.forEach((step, index) => {
-        let newAssignedUserId = null;
-        if (validatedIds.pasteOption === "with_users") {
-          newAssignedUserId = step.assigned_user_id;
+      if (sourceSteps.length > 0) {
+        // Precisamos inserir um por um ou em lote, mas precisamos dos IDs gerados para inserir os assignees
+        // Faremos um por um para garantir a associação correta de assignees, ou insert com returning id e mapeamento.
+        // Para simplicidade e segurança na ordem, vamos iterar.
+
+        for (const step of sourceSteps) {
+          // A. Inserir Passo
+          const stepQuery = {
+            text: `INSERT INTO transition_steps (scene_id, description, "order") VALUES ($1, $2, $3) RETURNING id`,
+            values: [newScene.id, step.description, step.order],
+          };
+          const stepResult = await client.query(stepQuery);
+          const newStepId = stepResult.rows[0].id;
+
+          // B. Inserir Assignees
+          if (
+            validatedIds.pasteOption === "with_users" &&
+            step.assignees &&
+            step.assignees.length > 0
+          ) {
+            const placeholders = step.assignees
+              .map((_, idx) => `($1, $${idx + 2})`)
+              .join(", ");
+            const values = [newStepId, ...step.assignees];
+            await client.query({
+              text: `INSERT INTO transition_step_assignees (transition_step_id, user_id) VALUES ${placeholders}`,
+              values: values,
+            });
+          }
         }
-        
-        const i = index * 4; // 4 colunas
-        stepParams.push(`($${i+1}, $${i+2}, $${i+3}, $${i+4})`);
-        stepValues.push(
-          newScene.id,
-          step.description,
-          step.order,
-          newAssignedUserId
-        );
-      });
-
-      if (stepValues.length > 0) {
-        const stepQuery = {
-          text: `
-            INSERT INTO transition_steps 
-              (scene_id, description, "order", assigned_user_id) 
-            VALUES ${stepParams.join(", ")}
-          `,
-          values: stepValues,
-        };
-        await client.query(stepQuery);
       }
     }
 
     // 6. Finalizar
     await client.query("COMMIT");
-    
-    // (Retorna a nova cena base. O 'refetch' do frontend
-    // buscará os detalhes aninhados)
-    return newScene; 
 
+    return newScene;
   } catch (error) {
     await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    }
     const specificError = database.handleDatabaseError(error);
     throw specificError;
   } finally {
@@ -360,11 +439,43 @@ async function clone(sourceScene, targetPresentationId, pasteOption, newOrder) {
   }
 }
 
+async function checkSceneViewer(sceneId, userId) {
+  const validated = validator(
+    { sceneId, userId },
+    { sceneId: "required", userId: "required" },
+  );
+
+  const query = {
+    text: `
+      SELECT p.id
+      FROM scenes s
+      JOIN presentations p ON s.presentation_id = p.id
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      WHERE s.id = $1
+        AND (
+          p.is_public = true 
+          OR p.created_by_user_id = $2
+          OR pv.user_id = $2
+        );
+    `,
+    values: [validated.sceneId, validated.userId],
+  };
+
+  const results = await database.query(query);
+  if (results.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Cena não encontrada ou você não tem permissão para vê-la.",
+    });
+  }
+  return true;
+}
+
 export default {
   findAllFromPresentation,
+  findById,
   create,
+  clone,
   update,
   del,
-  findById,
-  clone
+  checkSceneViewer,
 };
