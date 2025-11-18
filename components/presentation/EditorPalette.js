@@ -91,7 +91,7 @@ export default function EditorPalette({
                 image_url_highlight: item.image_url_highlight, // Passando 'highlight'
                 element_type_id: item.element_type_id,
                 display_name: item.display_name,
-                assigned_user_id: item.assigned_user_id,
+                assignees: item.assignees,
                 element_type_name: item.element_type_name,
                 isTemplate: true,
               };
@@ -124,7 +124,7 @@ export default function EditorPalette({
                 image_url_highlight: type.image_url_highlight, // Passando 'highlight'
                 element_type_id: type.id,
                 display_name: null,
-                assigned_user_id: null,
+                assignees: [],
                 element_type_name: type.name,
                 isTemplate: false,
               };

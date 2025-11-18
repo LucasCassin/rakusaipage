@@ -13,7 +13,7 @@ export default function PaletteItem({ itemData }) {
     iconUrl,
     element_type_id,
     display_name,
-    assigned_user_id,
+    assignees,
     isTemplate,
     scale, // <-- 1. RECEBENDO (Correto)
     image_url_highlight, // <-- 1. RECEBENDO (Correto)
@@ -27,7 +27,7 @@ export default function PaletteItem({ itemData }) {
       type: ItemTypes.PALETTE_ITEM,
       element_type_id,
       display_name,
-      assigned_user_id,
+      assignees,
       image_url: iconUrl,
 
       // --- INÍCIO DA CORREÇÃO (Bug 2) ---
