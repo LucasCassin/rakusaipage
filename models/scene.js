@@ -34,6 +34,10 @@ async function findAllFromPresentation(presentationId) {
             SELECT 
               se.*,
               eg.display_name,
+              et.image_url,
+              et.image_url_highlight,
+              et.scale,
+              et.name AS element_type_name,
               COALESCE(
                 (
                   SELECT json_agg(ega.user_id)
@@ -46,6 +50,8 @@ async function findAllFromPresentation(presentationId) {
               scene_elements se
             JOIN 
               element_groups eg ON se.group_id = eg.id
+            JOIN 
+              element_types et ON se.element_type_id = et.id
             WHERE 
               se.scene_id = $1;
           `,
