@@ -42,6 +42,7 @@ const GroupLabel = ({
         pointerEvents: "none",
         width: "150px",
         marginTop: `${marginOffset}px`,
+        zIndex: 20,
       }}
     >
       <span
@@ -455,52 +456,59 @@ export default function FormationMap({
       )}
 
       {/* Loop de Renderização (Passando globalScale e snapAnchors) */}
-      {processedGroups.map((group) => (
-        <React.Fragment key={group.group_id}>
-          {group.elements.map((element) => {
-            if (element.element_type_name === "Palco") {
+      {processedGroups.map(
+        (
+          group,
+          index, // MUDANÇA AQUI: index adicionado
+        ) => (
+          <React.Fragment key={group.group_id || `group-${index}`}>
+            {" "}
+            {/* MUDANÇA AQUI: Fallback de chave */}
+            {group.elements.map((element, elIndex) => {
+              // MUDANÇA AQUI: elIndex adicionado
+              if (element.element_type_name === "Palco") {
+                return (
+                  <StageLine
+                    key={element.id || `line-${elIndex}`} // MUDANÇA AQUI: Fallback de chave
+                    element={element}
+                    isEditorMode={isEditorMode}
+                    onDelete={onElementDelete}
+                    globalScale={globalScale}
+                  />
+                );
+              }
+
               return (
-                <StageLine
-                  key={element.id}
+                <StageElement
+                  key={element.id || `el-${elIndex}`} // MUDANÇA AQUI: Fallback de chave
                   element={element}
+                  loggedInUser={loggedInUser}
                   isEditorMode={isEditorMode}
-                  onDelete={onElementDelete}
+                  onClick={onElementClick}
+                  onElementMerge={onElementMerge}
                   globalScale={globalScale}
+                  snapAnchors={snapAnchors}
                 />
               );
-            }
-
-            return (
-              <StageElement
-                key={element.id}
-                element={element}
-                loggedInUser={loggedInUser}
-                isEditorMode={isEditorMode}
-                onClick={onElementClick}
-                onElementMerge={onElementMerge}
+            })}
+            {/* (Correção Bug 2) */}
+            {group.display_name && group.labelPosition && (
+              <GroupLabel
+                label={group.display_name}
+                x={group.labelPosition.x}
+                y={group.labelPosition.y}
+                scale={group.labelPosition.scale}
+                isHighlighted={
+                  loggedInUser &&
+                  group.assignees &&
+                  group.assignees.includes(loggedInUser.id)
+                }
                 globalScale={globalScale}
-                snapAnchors={snapAnchors}
               />
-            );
-          })}
-
-          {/* (Correção Bug 2) */}
-          {group.display_name && group.labelPosition && (
-            <GroupLabel
-              label={group.display_name}
-              x={group.labelPosition.x}
-              y={group.labelPosition.y}
-              scale={group.labelPosition.scale}
-              isHighlighted={
-                loggedInUser &&
-                group.assignees &&
-                group.assignees.includes(loggedInUser.id)
-              }
-              globalScale={globalScale}
-            />
-          )}
-        </React.Fragment>
-      ))}
+            )}
+          </React.Fragment>
+        ),
+      )}
 
       {/* --- (Feature 1: Guias Visuais Centrais) --- */}
       {snapGuides && snapGuides.y !== null && (

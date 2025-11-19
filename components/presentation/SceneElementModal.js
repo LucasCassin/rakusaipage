@@ -52,8 +52,9 @@ export default function SceneElementModal({
   };
 
   const handleDelete = async () => {
+    if (!modalData?.id) return;
     setIsDeleting(true);
-    await onDelete();
+    await onDelete(modalData.id);
     setIsDeleting(false);
   };
 
