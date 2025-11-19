@@ -23,6 +23,7 @@ import DeleteSceneModal from "components/presentation/DeleteSceneModal";
 import TransitionStepModal from "components/presentation/TransitionStepModal";
 import PasteSceneModal from "components/presentation/PasteSceneModal";
 import Alert from "components/ui/Alert";
+import StatsModal from "components/presentation/StatsModal";
 
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
 import {
@@ -33,6 +34,7 @@ import {
   FiClock,
   FiNavigation,
   FiArrowLeft,
+  FiBarChart2,
 } from "react-icons/fi";
 
 /**
@@ -217,7 +219,11 @@ export default function PresentationPage() {
                 permissions={permissions}
                 onOpenCastModal={editor.modal.openCast}
                 onOpenShareModal={editor.modal.openShare}
-                onPrint={editor.printHandlers.onPrint}
+                onPrint={() => {
+                  if (editor.printHandlers.ref.current) {
+                    editor.printHandlers.onPrint();
+                  }
+                }}
               />
 
               {editor.isEditorMode ? (
@@ -268,6 +274,18 @@ export default function PresentationPage() {
               />
             )}
           </div>
+
+          <button
+            onClick={editor.modal.openStats}
+            className="fixed bottom-6 right-6 z-30 p-3 bg-white text-rakusai-purple rounded-full shadow-lg hover:bg-gray-50 hover:scale-110 transition-all border border-gray-200 flex items-center justify-center group"
+            title="Ver Estatísticas"
+          >
+            <FiBarChart2 size={24} />
+            {/* Tooltip Mobile/Desktop */}
+            <span className="absolute right-full mr-2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Estatísticas
+            </span>
+          </button>
         </div>
       </PageLayout>
       {editor.isEditorMode && (
@@ -352,6 +370,15 @@ export default function PresentationPage() {
           error={editor.modal.pasteError}
           onClose={editor.modal.closePaste}
           onSubmit={editor.modal.handlePaste}
+        />
+      )}
+
+      {editor.modal.isStatsOpen && (
+        <StatsModal
+          presentation={editor.presentation}
+          loggedInUser={editor.user}
+          onClose={editor.modal.closeStats}
+          isLoading={editor.isLoading}
         />
       )}
 

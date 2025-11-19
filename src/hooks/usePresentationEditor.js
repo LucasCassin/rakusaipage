@@ -65,6 +65,8 @@ export function usePresentationEditor(presentationId) {
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [pasteModalError, setPasteModalError] = useState(null);
 
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+
   const [clipboardContent, setClipboardContent] = useState(null);
 
   const {
@@ -1120,6 +1122,9 @@ export function usePresentationEditor(presentationId) {
     setIsPasteModalOpen(false);
   };
 
+  const openStatsModal = () => setIsStatsModalOpen(true);
+  const closeStatsModal = () => setIsStatsModalOpen(false);
+
   // Função 3: COLAR (Chamada de API)
   const handlePasteScene = useCallback(
     async (pasteOption) => {
@@ -1251,6 +1256,10 @@ export function usePresentationEditor(presentationId) {
       openPaste: openPasteModal,
       closePaste: closePasteModal,
       handlePaste: handlePasteScene,
+
+      isStatsOpen: isStatsModalOpen,
+      openStats: openStatsModal,
+      closeStats: closeStatsModal,
 
       handleCopy: copyScene,
     },
