@@ -137,7 +137,7 @@ async function findAllByUserId(userId) {
   const validatedId = validator({ id: userId }, { id: "required" });
   const query = {
     text: `
-      SELECT p.*
+      SELECT DISTINCT p.*
       FROM presentations p
       LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
       WHERE p.created_by_user_id = $1 OR pv.user_id = $1

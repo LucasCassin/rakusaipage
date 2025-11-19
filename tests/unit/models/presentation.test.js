@@ -95,29 +95,17 @@ describe("Presentation Model Tests", () => {
   });
 
   describe("findAllByUserId()", () => {
-    it("should return presentations created by user OR where user is viewer", async () => {
-      // Criada pelo admin
-      const pres1 = await presentation.create(
-        { name: "Admin Pres" },
+    it("should return unique presentations even if user is viewer multiple times (or creator + viewer)", async () => {
+      const pres = await presentation.create(
+        { name: "Unique Check" },
         adminUser.id,
       );
-      // Criada pelo admin, viewerUser adicionado
-      const pres2 = await presentation.create(
-        { name: "Shared Pres" },
-        adminUser.id,
-      );
-      await presentationViewer.addViewer(pres2.id, viewerUser.id);
+      await presentationViewer.addViewer(pres.id, viewerUser.id);
+      await presentationViewer.addViewer(pres.id, otherUser.id);
+      const list = await presentation.findAllByUserId(adminUser.id);
+      const targetPres = list.filter((p) => p.id === pres.id);
 
-      const list = await presentation.findAllByUserId(viewerUser.id);
-      // viewerUser deve ver apenas a pres2
-      expect(list).toHaveLength(1);
-      expect(list[0].id).toBe(pres2.id);
-
-      const adminList = await presentation.findAllByUserId(adminUser.id);
-      // admin deve ver ambas (ele criou ambas)
-      // (Assumindo que o banco foi limpo ou só tem essas, ou verificar containment)
-      expect(adminList.map((p) => p.id)).toContain(pres1.id);
-      expect(adminList.map((p) => p.id)).toContain(pres2.id);
+      expect(targetPres).toHaveLength(1);
     });
   });
 

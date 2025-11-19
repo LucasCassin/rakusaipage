@@ -2,7 +2,7 @@ import React from "react";
 import Button from "components/ui/Button";
 import Link from "next/link";
 // --- MUDANÇA: Importar o ícone de Localização ---
-import { FiEdit, FiTrash2, FiCalendar, FiMapPin } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiCalendar, FiMapPin, FiEye } from "react-icons/fi";
 // --- FIM DA MUDANÇA ---
 
 /**
@@ -48,11 +48,19 @@ export default function PresentationListItem({
 
       <div className="flex items-center gap-2 mt-4 sm:mt-0">
         {/* Botão Editar (só aparece se tiver a feature) */}
-        {permissions.canUpdate && (
+        {permissions.canUpdate ? (
           <Link href={`/apresentacoes/${presentation.id}`} passHref>
             <Button variant="secondary" size="small" as="a">
               <FiEdit className="mr-2" />
               Editar
+            </Button>
+          </Link>
+        ) : (
+          // Se não tem permissão de update, mostra botão de visualização
+          <Link href={`/apresentacoes/${presentation.id}`} passHref>
+            <Button variant="secondary" size="small" as="a">
+              <FiEye className="mr-2" />
+              Abrir
             </Button>
           </Link>
         )}
