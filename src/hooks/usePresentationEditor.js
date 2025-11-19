@@ -24,6 +24,10 @@ export function usePresentationEditor(presentationId) {
   const [currentSceneId, setCurrentSceneId] = useState(null);
 
   const [pool, setPool] = useState([]);
+  const [paletteOpenSections, setPaletteOpenSections] = useState({
+    pool: true,
+    catalog: false,
+  });
   const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [elementTypes, setElementTypes] = useState([]);
   const [isLoadingElementTypes, setIsLoadingElementTypes] = useState(false);
@@ -104,6 +108,13 @@ export function usePresentationEditor(presentationId) {
     }),
     [user],
   );
+
+  const togglePaletteSection = useCallback((sectionName) => {
+    setPaletteOpenSections((prev) => ({
+      ...prev,
+      [sectionName]: !prev[sectionName],
+    }));
+  }, []);
 
   const fetchViewers = useCallback(async () => {
     if (!presentationId || !permissions.canReadCast) {
@@ -315,6 +326,7 @@ export function usePresentationEditor(presentationId) {
         image_url_highlight: visualData.image_url_highlight,
       };
 
+      // 1. Atualiza o Mapa (Otimista)
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -327,6 +339,29 @@ export function usePresentationEditor(presentationId) {
         scene.scene_elements.push(fakeElement);
         return newPresentation;
       });
+
+      if (!isTemplate && body.display_name) {
+        setPool((prevPool) => {
+          const exists = prevPool.some(
+            (p) =>
+              p.element_type_id === body.element_type_id &&
+              p.display_name === body.display_name,
+          );
+          if (exists) return prevPool;
+
+          const fakePoolItem = {
+            element_type_id: body.element_type_id,
+            display_name: body.display_name,
+            assignees: body.assignees || [],
+            element_type_name: visualData.element_type_name,
+            image_url: visualData.image_url,
+            scale: visualData.scale,
+            image_url_highlight: visualData.image_url_highlight,
+          };
+
+          return [...prevPool, fakePoolItem];
+        });
+      }
 
       closeElementModal();
 
@@ -355,6 +390,7 @@ export function usePresentationEditor(presentationId) {
               scale: fakeElement.scale,
               image_url_highlight: fakeElement.image_url_highlight,
             };
+
             setPresentation((prevPresentation) => {
               const newPresentation = JSON.parse(
                 JSON.stringify(prevPresentation),
@@ -371,6 +407,7 @@ export function usePresentationEditor(presentationId) {
               }
               return newPresentation;
             });
+
             if (!isTemplate && body.display_name) fetchPool();
           },
         });
@@ -1158,6 +1195,8 @@ export function usePresentationEditor(presentationId) {
       pool,
       elementTypes,
       isLoading: isLoadingPool || isLoadingElementTypes,
+      openSections: paletteOpenSections,
+      toggleSection: togglePaletteSection,
     },
 
     modal: {
