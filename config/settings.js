@@ -340,6 +340,11 @@ export const settings = {
           ["nivel:fue:avancado"],
         ],
       },
+      {
+        name: "Apresentações",
+        href: "/apresentacoes",
+        FEATURES: [["read:presentation"]],
+      },
     ],
     OTHER_NAVS: [
       // {

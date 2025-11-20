@@ -37,7 +37,7 @@ export default function PresentationListItem({
         ${isLast ? "rounded-b-lg" : ""}
         ${
           isPast
-            ? "bg-gray-50 border-l-gray-300 hover:bg-gray-100"
+            ? "bg-gray-50 !border-l-gray-300 hover:bg-gray-100"
             : "bg-white border-l-transparent hover:border-l-rakusai-pink"
         }
       `}
