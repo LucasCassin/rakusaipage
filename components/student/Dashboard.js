@@ -5,6 +5,7 @@ import ComunicadosSection from "./ComunicadosSection";
 import VideoAulasSection from "./VideoAulasSection";
 import CommentsSection from "components/comments/CommentsSection";
 import PendingPaymentsSection from "components/student/PendingPaymentsSection";
+import PresentationsSection from "components/student/PresentationsSection";
 
 export default function StudentDashboard({ user, pageData, comunicados }) {
   const welcomeData = pageData?.alunoBoasVindas;
@@ -82,6 +83,7 @@ export default function StudentDashboard({ user, pageData, comunicados }) {
           user={user}
           visibleComunicados={visibleComunicados}
         />
+        <PresentationsSection user={user} />
         <div id="video-aulas">
           <VideoAulasSection />
         </div>

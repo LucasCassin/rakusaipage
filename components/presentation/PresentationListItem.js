@@ -16,7 +16,7 @@ export default function PresentationListItem({
   onDeleteClick,
   onEditInfoClick,
   isPast = false,
-  isFirst = false, // Nova prop
+  isFirst = false,
   isLast = false,
 }) {
   const formattedDate = presentation.date
@@ -38,7 +38,7 @@ export default function PresentationListItem({
         ${
           isPast
             ? "bg-gray-50 !border-l-gray-300 hover:bg-gray-100"
-            : "bg-white border-l-transparent hover:border-l-rakusai-pink"
+            : "bg-white !border-l-transparent hover:!border-l-rakusai-pink"
         }
       `}
     >
