@@ -75,6 +75,41 @@ export default function PresentationsDashboardPage() {
     };
   }, [user]);
 
+  const sortedPresentations = useMemo(() => {
+    if (!presentations) return [];
+
+    const now = new Date(); // Data atual (momento absoluto)
+
+    // Separa as apresentações
+    const future = [];
+    const past = [];
+    const noDate = [];
+
+    presentations.forEach((p) => {
+      if (!p.date) {
+        noDate.push(p);
+        return;
+      }
+
+      const pDate = new Date(p.date);
+      // Compara timestamp absoluto para verificar se já passou
+      if (pDate < now) {
+        past.push(p);
+      } else {
+        future.push(p);
+      }
+    });
+
+    // 1. Futuras: Ascendente (mais próxima do hoje -> mais longe)
+    future.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 2. Passadas: Descendente (mais recente -> mais antiga)
+    past.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Constrói a lista final: Futuras -> Sem Data -> Passadas
+    return [...future, ...noDate, ...past];
+  }, [presentations]);
+
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
@@ -143,31 +178,39 @@ export default function PresentationsDashboardPage() {
         <div className="mt-6 bg-white rounded-lg shadow-md border border-gray-200 divide-y divide-gray-200">
           {isLoading ? (
             <PresentationListSkeleton />
-          ) : presentations.length > 0 ? (
-            presentations.map((pres) => (
-              <PresentationListItem
-                key={pres.id}
-                presentation={pres}
-                permissions={{
-                  canUpdate: permissions.canUpdate,
-                  canDelete: permissions.canDelete,
-                }}
-                onDeleteClick={() => openDeleteModal(pres)}
-                onEditInfoClick={() => openEditModal(pres)}
-              />
-            ))
+          ) : sortedPresentations.length > 0 ? (
+            sortedPresentations.map((pres, index) => {
+              // Lógica de Passado
+              const isPast = pres.date && new Date(pres.date) < new Date();
+
+              // Lógica de Posição para Arredondamento
+              const isFirst = index === 0;
+              const isLast = index === sortedPresentations.length - 1;
+
+              return (
+                <PresentationListItem
+                  key={pres.id}
+                  presentation={pres}
+                  isPast={isPast}
+                  isFirst={isFirst} // Passa se é o primeiro
+                  isLast={isLast} // Passa se é o último
+                  permissions={{
+                    canUpdate: permissions.canUpdate,
+                    canDelete: permissions.canDelete,
+                  }}
+                  onDeleteClick={() => openDeleteModal(pres)}
+                  onEditInfoClick={() => openEditModal(pres)}
+                />
+              );
+            })
           ) : (
             <p className="text-center text-gray-500 p-8">
               Nenhuma apresentação encontrada.
             </p>
           )}
         </div>
-
-        {/* OS MODAIS FORAM REMOVIDOS DAQUI */}
       </PageLayout>
 
-      {/* --- MUDANÇA: MODAIS MOVIDOS PARA FORA DO PageLayout --- */}
-      {/* Isso corrige o bug do backdrop */}
       {isCreateModalOpen && (
         <PresentationFormModal
           error={modalError}
@@ -185,7 +228,6 @@ export default function PresentationsDashboardPage() {
           onDelete={deletePresentation}
         />
       )}
-      {/* --- FIM DA MUDANÇA --- */}
     </>
   );
 }

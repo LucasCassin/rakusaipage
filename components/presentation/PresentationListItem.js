@@ -15,10 +15,13 @@ export default function PresentationListItem({
   permissions,
   onDeleteClick,
   onEditInfoClick,
+  isPast = false,
+  isFirst = false, // Nova prop
+  isLast = false,
 }) {
   const formattedDate = presentation.date
     ? new Date(presentation.date).toLocaleDateString("pt-BR", {
-        timeZone: "UTC",
+        timeZone: "America/Sao_Paulo",
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -26,7 +29,19 @@ export default function PresentationListItem({
     : null;
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-gray-50 transition-colors">
+    <div
+      className={`
+        flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 
+        transition-colors border-l-4
+        ${isFirst ? "rounded-t-lg" : ""} 
+        ${isLast ? "rounded-b-lg" : ""}
+        ${
+          isPast
+            ? "bg-gray-50 border-l-gray-300 hover:bg-gray-100"
+            : "bg-white border-l-transparent hover:border-l-rakusai-pink"
+        }
+      `}
+    >
       <div className="flex-1 min-w-0 pr-4">
         <div className="flex items-center gap-2">
           <p className="font-bold text-gray-900 truncate text-lg">
