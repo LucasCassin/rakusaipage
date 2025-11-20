@@ -91,6 +91,17 @@ export default function StudentHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [router.pathname]);
 
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isMenuOpen]);
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleOthersDropdown = () =>
     setIsOthersDropdownOpen(!isOthersDropdownOpen);
@@ -357,7 +368,7 @@ export default function StudentHeader() {
       </div>
 
       {isMenuOpen && (
-        <div className="sm:hidden bg-gray-800 border-t border-gray-700">
+        <div className="sm:hidden max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hide bg-gray-800 border-t border-gray-700">
           <div className="pl-2 px-2 pt-2 pb-3 border-b border-gray-700 ">
             <div className="px-3 text-md font-semibold text-white">
               {user.username}
@@ -375,7 +386,7 @@ export default function StudentHeader() {
               )}
             </div>
           </div>
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="px-2 pt-2 pb-20 space-y-1">
             {mainStudentNavs.map((item) => (
               <Link
                 key={item.href}
