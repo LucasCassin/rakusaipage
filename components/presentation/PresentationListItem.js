@@ -1,18 +1,20 @@
 import React from "react";
 import Button from "components/ui/Button";
 import Link from "next/link";
-// --- MUDANÇA: Importar o ícone de Localização ---
-import { FiEdit, FiTrash2, FiCalendar, FiMapPin, FiEye } from "react-icons/fi";
-// --- FIM DA MUDANÇA ---
+import {
+  FiEdit,
+  FiTrash2,
+  FiCalendar,
+  FiMapPin,
+  FiEye,
+  FiSettings,
+} from "react-icons/fi";
 
-/**
- * Renderiza um item na lista do Dashboard de Apresentações.
- * VERSÃO ATUALIZADA: Mostra Data e Localização.
- */
 export default function PresentationListItem({
   presentation,
   permissions,
   onDeleteClick,
+  onEditInfoClick,
 }) {
   const formattedDate = presentation.date
     ? new Date(presentation.date).toLocaleDateString("pt-BR", {
@@ -21,42 +23,44 @@ export default function PresentationListItem({
         month: "2-digit",
         year: "numeric",
       })
-    : null; // Nulo se não houver data
+    : null;
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4">
-      <div className="flex-1">
-        <p className="font-bold text-gray-800">{presentation.name}</p>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex-1 min-w-0 pr-4">
+        <div className="flex items-center gap-2">
+          <p className="font-bold text-gray-900 truncate text-lg">
+            {presentation.name}
+          </p>
+          {/* Botão de Editar Info (Ícone Pequeno ao lado do nome ou nas ações) */}
+        </div>
 
-        {/* --- MUDANÇA: Exibir Data e Localização --- */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
           {formattedDate && (
-            <span className="flex items-center gap-2">
-              <FiCalendar className="h-4 w-4" />
+            <span className="flex items-center gap-1.5">
+              <FiCalendar className="h-4 w-4 text-gray-400" />
               <span>{formattedDate}</span>
             </span>
           )}
           {presentation.location && (
-            <span className="flex items-center gap-2">
-              <FiMapPin className="h-4 w-4" />
+            <span className="flex items-center gap-1.5">
+              <FiMapPin className="h-4 w-4 text-gray-400" />
               <span>{presentation.location}</span>
             </span>
           )}
         </div>
-        {/* --- FIM DA MUDANÇA --- */}
       </div>
 
-      <div className="flex items-center gap-2 mt-4 sm:mt-0">
-        {/* Botão Editar (só aparece se tiver a feature) */}
+      <div className="flex items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto justify-end">
+        {/* 1. Botão ABRIR EDITOR (Principal) */}
         {permissions.canUpdate ? (
           <Link href={`/apresentacoes/${presentation.id}`} passHref>
             <Button variant="secondary" size="small" as="a">
               <FiEdit className="mr-2" />
-              Editar
+              Editor
             </Button>
           </Link>
         ) : (
-          // Se não tem permissão de update, mostra botão de visualização
           <Link href={`/apresentacoes/${presentation.id}`} passHref>
             <Button variant="secondary" size="small" as="a">
               <FiEye className="mr-2" />
@@ -65,9 +69,27 @@ export default function PresentationListItem({
           </Link>
         )}
 
-        {/* Botão Deletar (só aparece se tiver a feature) */}
+        {/* 2. Botão EDITAR INFORMAÇÕES (Novo) */}
+        {permissions.canUpdate && (
+          <Button
+            variant="warning"
+            size="small"
+            onClick={onEditInfoClick}
+            title="Editar Informações"
+            className="text-gray-500"
+          >
+            <FiSettings />
+          </Button>
+        )}
+
+        {/* 3. Botão DELETAR */}
         {permissions.canDelete && (
-          <Button variant="danger" size="small" onClick={onDeleteClick}>
+          <Button
+            variant="danger"
+            size="small"
+            onClick={onDeleteClick}
+            title="Excluir Apresentação"
+          >
             <FiTrash2 />
           </Button>
         )}

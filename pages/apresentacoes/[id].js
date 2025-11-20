@@ -100,7 +100,7 @@ export default function PresentationPage() {
 
   const formattedDate = presentation.date
     ? new Date(presentation.date).toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo", // Usar fuso local para hora de encontro
+        timeZone: "America/Sao_Paulo",
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
@@ -110,7 +110,7 @@ export default function PresentationPage() {
 
   const formattedMeetTime = presentation.meet_time
     ? new Date(presentation.meet_time).toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo", // Usar fuso local para hora de encontro
+        timeZone: "America/Sao_Paulo",
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",

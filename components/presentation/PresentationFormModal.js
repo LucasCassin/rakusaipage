@@ -1,14 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX } from "react-icons/fi";
-import { zonedTimeToUtc } from "date-fns-tz";
+import { toZonedTime, format, fromZonedTime } from "date-fns-tz";
 
 /**
- * Modal para CRIAR uma nova apresentação.
+ * Modal para CRIAR ou EDITAR uma apresentação.
  */
-export default function PresentationFormModal({ error, onClose, onSubmit }) {
+export default function PresentationFormModal({
+  error,
+  onClose,
+  onSubmit,
+  presentationToEdit = null,
+}) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -19,6 +24,33 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (presentationToEdit) {
+      const timeZone = "America/Sao_Paulo";
+
+      const toSpTime = (isoString) => {
+        if (!isoString) return "";
+
+        const zonedDate = toZonedTime(isoString, timeZone);
+
+        return format(zonedDate, "yyyy-MM-dd'T'HH:mm", { timeZone });
+      };
+
+      setFormData({
+        name: presentationToEdit.name || "",
+        description: presentationToEdit.description || "",
+
+        date: toSpTime(presentationToEdit.date),
+
+        location: presentationToEdit.location || "",
+
+        meet_time: toSpTime(presentationToEdit.meet_time),
+
+        meet_location: presentationToEdit.meet_location || "",
+      });
+    }
+  }, [presentationToEdit]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,11 +75,12 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               dateValue = `${dateValue}:00`;
             }
 
-            const utcDate = zonedTimeToUtc(dateValue, timeZone);
+            const utcDate = fromZonedTime(dateValue, timeZone);
 
             finalData[key] = utcDate.toISOString();
           } catch (err) {
-            console.error(`Data inválida para ${key}:`, value, err);
+            console.error(`Data inválida em ${key}:`, err);
+
             finalData[key] = value;
           }
         } else {
@@ -60,19 +93,23 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
     setIsLoading(false);
   };
 
-  const title = "Criar Nova Apresentação";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">{title}</h3>
-          <button onClick={onClose} disabled={isLoading}>
-            <FiX className="h-6 w-6 text-gray-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <h3 className="text-xl font-bold text-gray-800">
+            {/* 4. Título Condicional */}
+            {presentationToEdit ? "Editar Informações" : "Nova Apresentação"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <FiX size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label
               htmlFor="name"
@@ -91,7 +128,7 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
             />
           </div>
 
-          <div>
+          <div className="space-y-1">
             <label
               htmlFor="description"
               className="block text-sm font-medium text-gray-700"
@@ -141,6 +178,9 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
                 className="mt-1"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
             <div>
               <label
                 htmlFor="meet_time"
@@ -194,7 +234,8 @@ export default function PresentationFormModal({ error, onClose, onSubmit }) {
               disabled={isLoading}
               size="small"
             >
-              Criar e Editar
+              {/* 4. Botão Condicional */}
+              {presentationToEdit ? "Salvar Alterações" : "Criar e Editar"}
             </Button>
           </div>
         </form>

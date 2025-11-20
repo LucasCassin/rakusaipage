@@ -2,19 +2,17 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
-// O "Cérebro"
-import { usePresentationsDashboard } from "src/hooks/usePresentationsDashboard"; //
 
-// Componentes de UI
+import { usePresentationsDashboard } from "src/hooks/usePresentationsDashboard";
+
 import PageLayout from "components/layouts/PageLayout";
 import InitialLoading from "components/InitialLoading";
 import Alert from "components/ui/Alert";
 import Button from "components/ui/Button";
 import { FiPlus } from "react-icons/fi";
 
-// Os componentes que acabamos de criar
 import PresentationListItem from "components/presentation/PresentationListItem";
-import PresentationFormModal from "components/presentation/PresentationFormModal"; //
+import PresentationFormModal from "components/presentation/PresentationFormModal";
 import DeletePresentationModal from "components/presentation/DeletePresentationModal";
 
 /**
@@ -49,7 +47,6 @@ export default function PresentationsDashboardPage() {
   const [showContent, setShowContent] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // 1. O "CÉREBRO" (Hook)
   const {
     presentations,
     isLoading,
@@ -57,15 +54,17 @@ export default function PresentationsDashboardPage() {
     isCreateModalOpen,
     isDeleteModalOpen,
     currentPresentation,
+    presentationToEdit,
     modalError,
     openCreateModal,
+    openEditModal,
     openDeleteModal,
     closeModal,
     createPresentation,
+    updatePresentation,
     deletePresentation,
   } = usePresentationsDashboard();
 
-  // 2. A LÓGICA DE PERMISSÃO
   const permissions = useMemo(() => {
     const features = user?.features || [];
     return {
@@ -76,7 +75,6 @@ export default function PresentationsDashboardPage() {
     };
   }, [user]);
 
-  // 3. A GUARDA DE AUTENTICAÇÃO
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!user) {
@@ -91,7 +89,14 @@ export default function PresentationsDashboardPage() {
     setShowContent(true);
   }, [user, isLoadingAuth, permissions.canAccessPage, router]);
 
-  // Renderização
+  const handleFormSubmit = async (formData) => {
+    if (presentationToEdit) {
+      await updatePresentation(presentationToEdit.id, formData);
+    } else {
+      await createPresentation(formData);
+    }
+  };
+
   if (isLoadingAuth || !showContent) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -104,8 +109,6 @@ export default function PresentationsDashboardPage() {
     );
   }
 
-  // --- MUDANÇA ESTRUTURAL ---
-  // O return agora é envolvido por um Fragment (<>)
   return (
     <>
       <PageLayout
@@ -150,6 +153,7 @@ export default function PresentationsDashboardPage() {
                   canDelete: permissions.canDelete,
                 }}
                 onDeleteClick={() => openDeleteModal(pres)}
+                onEditInfoClick={() => openEditModal(pres)}
               />
             ))
           ) : (
@@ -168,7 +172,8 @@ export default function PresentationsDashboardPage() {
         <PresentationFormModal
           error={modalError}
           onClose={closeModal}
-          onSubmit={createPresentation}
+          onSubmit={handleFormSubmit}
+          presentationToEdit={presentationToEdit}
         />
       )}
 
