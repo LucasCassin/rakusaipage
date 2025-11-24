@@ -9,7 +9,7 @@ import { useAuth } from "src/contexts/AuthContext";
  */
 export function usePresentation(presentationId) {
   const router = useRouter();
-  const { user } = useAuth(); // Precisamos do usuário logado para a lógica de "Destaque"
+  const { user } = useAuth();
 
   const [presentation, setPresentation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,9 +29,6 @@ export function usePresentation(presentationId) {
         `${settings.global.API.ENDPOINTS.PRESENTATIONS}/${presentationId}`,
       );
 
-      // --- CORREÇÃO AQUI ---
-      // Movendo a lógica de 'setPresentation' para o 'onSuccess'
-      // exatamente como você sugeriu.
       await handleApiResponse({
         response,
         router,
@@ -39,9 +36,7 @@ export function usePresentation(presentationId) {
         onSuccess: (data) => {
           setPresentation(data);
         },
-        // O handleApiResponse cuidará dos erros 401, 403, 404, etc.
       });
-      // --- FIM DA CORREÇÃO ---
     } catch (e) {
       console.error("Erro de conexão ao buscar apresentação:", e);
       setError("Erro de conexão. Verifique sua internet e tente novamente.");
@@ -55,11 +50,11 @@ export function usePresentation(presentationId) {
   }, [fetchData]);
 
   return {
-    presentation, // Os dados de findDeepById (com .scenes, .elements, etc.)
+    presentation,
     setPresentation,
     isLoading,
     error,
-    user, // Passamos o usuário logado para a UI (para a lógica do Destaque)
-    fetchData, // Para o Admin poder forçar a atualização
+    user,
+    fetchData,
   };
 }

@@ -47,27 +47,23 @@ export default function StatsModal({
     const scenesData = [];
 
     presentation.scenes.forEach((scene) => {
-      // 1. FORMAÇÃO
       if (scene.scene_type === "FORMATION") {
         const localCountsMap = {};
 
         (scene.scene_elements || []).forEach((el) => {
           const typeName = el.element_type_name || el.display_name || "Outros";
 
-          // Filtro de Palco
           if (typeName === "Palco" || el.element_type_id === "stage-line-id")
             return;
 
           const icon = el.image_url || el.element_type?.image_url;
           const scale = el.scale || el.element_type?.scale || 1.0;
 
-          // A. Contagem Local
           if (!localCountsMap[typeName]) {
             localCountsMap[typeName] = { count: 0, icon, scale };
           }
           localCountsMap[typeName].count += 1;
 
-          // B. Estatísticas do Usuário
           if (
             loggedInUser &&
             el.assignees &&
@@ -85,7 +81,6 @@ export default function StatsModal({
         });
 
         if (Object.keys(localCountsMap).length > 0) {
-          // Ordenar localmente por quantidade (desc)
           const sortedLocalCounts = Object.entries(localCountsMap)
             .map(([name, data]) => ({ name, ...data }))
             .sort((a, b) => b.count - a.count);
@@ -94,11 +89,10 @@ export default function StatsModal({
             id: scene.id,
             name: scene.name,
             order: scene.order,
-            counts: sortedLocalCounts, // Array ordenado
+            counts: sortedLocalCounts,
           });
         }
 
-        // C. Máximos Globais
         Object.entries(localCountsMap).forEach(([typeName, data]) => {
           if (
             !globalMaxMap[typeName] ||
@@ -114,7 +108,6 @@ export default function StatsModal({
         });
       }
 
-      // 2. TRANSIÇÃO
       if (scene.scene_type === "TRANSITION") {
         (scene.transition_steps || []).forEach((step) => {
           if (
@@ -128,27 +121,24 @@ export default function StatsModal({
       }
     });
 
-    // Ordenar Globais (desc)
     const sortedGlobalMax = Object.entries(globalMaxMap)
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.count - a.count);
 
-    // Ordenar Elementos do Usuário (desc por qtd de cenas)
     const sortedUserElements = Object.entries(userElementsMap)
       .map(([name, data]) => ({ name, ...data, count: data.scenes.size }))
       .sort((a, b) => b.count - a.count);
 
     return {
-      globalMaxUsage: sortedGlobalMax, // Array Ordenado
+      globalMaxUsage: sortedGlobalMax,
       userStats: {
-        elements: sortedUserElements, // Array Ordenado
+        elements: sortedUserElements,
         stepsCount: userStepsCount,
       },
-      sceneStats: scenesData, // Array (cenas) de Arrays (elementos ordenados)
+      sceneStats: scenesData,
     };
   }, [presentation, loggedInUser]);
 
-  // Helper de Item
   const StatItem = ({
     icon,
     title,

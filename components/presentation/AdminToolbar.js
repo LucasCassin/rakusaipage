@@ -16,7 +16,7 @@ export default function AdminToolbar({
   onPrint,
 }) {
   if (!permissions.canEdit) {
-    return null; //
+    return null;
   }
 
   return (

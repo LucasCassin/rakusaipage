@@ -16,14 +16,13 @@ export default function SceneFormModal({
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    scene_type: "FORMATION", // Padrão
+    scene_type: "FORMATION",
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const { mode, scene } = modalData || {};
   const isCreate = mode === "create";
 
-  // Preenche o formulário
   useEffect(() => {
     if (isCreate) {
       setFormData({
@@ -32,11 +31,10 @@ export default function SceneFormModal({
         scene_type: "FORMATION",
       });
     } else if (scene) {
-      // Modo Edição: preenche com dados da cena
       setFormData({
         name: scene.name || "",
         description: scene.description || "",
-        scene_type: scene.scene_type, // (Não editável no modo Edição)
+        scene_type: scene.scene_type,
       });
     }
   }, [modalData, scene, isCreate]);
@@ -49,7 +47,7 @@ export default function SceneFormModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    await onSubmit(formData); // Chama a função 'saveScene' do hook
+    await onSubmit(formData);
     setIsLoading(false);
   };
 
@@ -78,7 +76,7 @@ export default function SceneFormModal({
               name="name"
               value={formData.name || ""}
               onChange={handleChange}
-              placeholder="Ex: Música Hajime"
+              placeholder="Ex: Hajime"
               required
               className="mt-1"
             />
@@ -118,7 +116,7 @@ export default function SceneFormModal({
               name="description"
               value={formData.description || ""}
               onChange={handleChange}
-              placeholder="Ex: Notas sobre a música ou transição"
+              placeholder="Adicione aqui algum complemento"
               className="mt-1"
             />
           </div>

@@ -15,7 +15,7 @@ export default function DeleteSceneModal({ scene, error, onClose, onDelete }) {
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    await onDelete(); // Chama 'deleteScene' do hook
+    await onDelete();
     setIsDeleting(false);
   };
 

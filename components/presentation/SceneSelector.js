@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "components/ui/Button"; //
+import Button from "components/ui/Button";
 
 /**
  * Renderiza a lista de Cenas (o "Roteiro") como uma barra de navegação.
@@ -24,11 +24,9 @@ export default function SceneSelector({
         {scenes.map((scene) => (
           <Button
             key={scene.id}
-            // Usamos a 'variant' para destacar a cena ativa
             variant={currentSceneId === scene.id ? "primary" : "secondary"}
             size="small"
             onClick={() => onSelectScene(scene.id)}
-            // Adicionamos classes para o texto não ficar todo maiúsculo
             className="font-semibold !text-sm"
           >
             {/* O 'order' já vem do findDeepById */}

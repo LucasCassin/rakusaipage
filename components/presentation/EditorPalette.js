@@ -1,4 +1,4 @@
-import React from "react"; // useState não é mais necessário aqui
+import React from "react";
 import PaletteItem from "./PaletteItem";
 import PaletteSection from "./PaletteSection";
 import KPICardSkeleton from "components/ui/KPICardSkeleton";
@@ -16,11 +16,10 @@ export default function EditorPalette({
     pool = [],
     elementTypes = [],
     isLoading,
-    openSections, // <-- Recebido do Hook
-    toggleSection, // <-- Recebido do Hook
+    openSections,
+    toggleSection,
   } = palette;
 
-  // Se o estado ainda não foi passado (ex: carregamento inicial), usa um default
   const activeSections = openSections || { pool: true, catalog: false };
   const safeToggle = toggleSection || (() => {});
 
@@ -35,7 +34,6 @@ export default function EditorPalette({
     );
   }
 
-  // Classes CSS para responsividade (Desktop vs Mobile)
   const containerClasses = isPaletteOpen
     ? "fixed inset-x-0 bottom-0 z-50 h-1/2 bg-white shadow-2xl rounded-t-2xl transform transition-transform duration-300 ease-out translate-y-0 lg:static lg:h-auto lg:shadow-none lg:transform-none lg:z-0 lg:block lg:translate-y-0"
     : "fixed inset-x-0 bottom-0 z-50 h-1/2 shadow-2xl rounded-t-2xl transform transition-transform duration-300 ease-in translate-y-full lg:static lg:h-auto lg:shadow-none lg:transform-none lg:z-0 lg:block lg:translate-y-0";
@@ -63,12 +61,11 @@ export default function EditorPalette({
           {/* 1. O Pool (Elementos Já Usados) */}
           <PaletteSection
             title="Usados nesta Apresentação"
-            isOpen={activeSections.pool} // <-- Usa estado do hook
-            onToggle={() => safeToggle("pool")} // <-- Chama handler do hook
+            isOpen={activeSections.pool}
+            onToggle={() => safeToggle("pool")}
           >
             {pool.length > 0 ? (
               pool.map((item) => {
-                // Pool items vêm do backend com configurações salvas
                 const itemData = {
                   name: `${item.display_name} (${item.element_type_name})`,
                   iconUrl: item.image_url,
@@ -98,8 +95,8 @@ export default function EditorPalette({
           {/* 2. O Catálogo (Genérico) */}
           <PaletteSection
             title="Catálogo (Genérico)"
-            isOpen={activeSections.catalog} // <-- Usa estado do hook
-            onToggle={() => safeToggle("catalog")} // <-- Chama handler do hook
+            isOpen={activeSections.catalog}
+            onToggle={() => safeToggle("catalog")}
           >
             {elementTypes.length > 0 ? (
               elementTypes.map((type) => {

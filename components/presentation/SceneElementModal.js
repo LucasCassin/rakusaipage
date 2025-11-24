@@ -4,7 +4,7 @@ import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX, FiTrash2 } from "react-icons/fi";
 import { settings } from "config/settings.js";
-import AssigneeSelect from "./AssigneeSelect"; // <--- IMPORTAR
+import AssigneeSelect from "./AssigneeSelect";
 
 export default function SceneElementModal({
   modalData,
@@ -27,7 +27,7 @@ export default function SceneElementModal({
     if (modalData) {
       setFormData({
         display_name: modalData.display_name || "",
-        assignees: modalData.assignees || [], // Array
+        assignees: modalData.assignees || [],
         element_type_id: modalData.element_type_id,
         position: modalData.position,
         isTemplate: modalData.isTemplate,
@@ -79,7 +79,7 @@ export default function SceneElementModal({
                 name="display_name"
                 value={formData.display_name || ""}
                 onChange={handleChange}
-                placeholder="Ex: Lucas C."
+                placeholder="Ex: Lucas"
                 maxLength={50}
                 disabled={isLoading || isDeleting}
               />

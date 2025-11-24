@@ -337,7 +337,6 @@ export function usePresentationEditor(presentationId) {
         image_url_highlight: visualData.image_url_highlight,
       };
 
-      // 1. Atualiza o Mapa (Otimista)
       setPresentation((prevPresentation) => {
         const newPresentation = JSON.parse(JSON.stringify(prevPresentation));
         const scene = newPresentation.scenes.find(
@@ -1090,7 +1089,6 @@ export function usePresentationEditor(presentationId) {
     ],
   );
 
-  // Efeito que lê o localStorage na montagem do hook
   useEffect(() => {
     try {
       const data = localStorage.getItem(CLIPBOARD_KEY);
@@ -1101,9 +1099,8 @@ export function usePresentationEditor(presentationId) {
       console.error("Erro ao ler clipboard:", e);
       localStorage.removeItem(CLIPBOARD_KEY);
     }
-  }, []); // Roda apenas uma vez
+  }, []);
 
-  // Função 1: COPIAR
   const copyScene = useCallback(
     (sceneToCopy) => {
       try {
@@ -1121,7 +1118,6 @@ export function usePresentationEditor(presentationId) {
     [setGlobalSuccessMessage],
   );
 
-  // Funções 2: Abrir/Fechar Modal de Colar
   const openPasteModal = () => {
     setPasteModalError(null);
     setIsPasteModalOpen(true);
@@ -1134,7 +1130,6 @@ export function usePresentationEditor(presentationId) {
   const openStatsModal = () => setIsStatsModalOpen(true);
   const closeStatsModal = () => setIsStatsModalOpen(false);
 
-  // Função 3: COLAR (Chamada de API)
   const handlePasteScene = useCallback(
     async (pasteOption) => {
       if (!clipboardContent) {
@@ -1202,24 +1197,19 @@ export function usePresentationEditor(presentationId) {
 
   const handleDownloadPng = useCallback(
     async (comments, isCompact) => {
-      // Define estados para renderizar o componente corretamente
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
-      setIsPrintModalOpen(false); // Fecha o modal
+      setIsPrintModalOpen(false);
 
-      // Pequeno delay para o React atualizar o DOM com os novos props (comments/compact)
       setTimeout(async () => {
         if (componentToPrintRef.current === null) return;
 
         try {
-          // Largura aproximada A4 em pixels (96 DPI): 794px (Retrato) / 1123px (Paisagem)
-          // Multiplicamos por 2 ou 3 no pixelRatio para alta qualidade
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 2, // Garante alta resolução (Retina)
+            pixelRatio: 2,
             backgroundColor: "white",
             style: {
-              // Truque: Sobrescreve o estilo 'fixed left-[-9999px]' APENAS na captura
               visibility: "visible",
               position: "static",
               left: "0",
@@ -1228,7 +1218,6 @@ export function usePresentationEditor(presentationId) {
             },
           });
 
-          // Cria o link falso para download
           const link = document.createElement("a");
           const modeName = isCompact ? "compacto" : "completo";
           link.download = `${presentation?.name || "apresentacao"}-${modeName}.png`;
@@ -1242,7 +1231,7 @@ export function usePresentationEditor(presentationId) {
           setGlobalErrorMessage("Erro ao gerar imagem.");
           setTimeout(() => clearGlobalErrorMessage(), 3000);
         }
-      }, 500); // 500ms é seguro para renderização de imagens pesadas
+      }, 500);
     },
     [presentation, setGlobalSuccessMessage, clearGlobalSuccessMessage],
   );

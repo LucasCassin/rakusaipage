@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "components/ui/Button"; //
+import Button from "components/ui/Button";
 import TransitionStepItem from "./TransitionStepItem";
 import { FiPlus } from "react-icons/fi";
 
@@ -10,11 +10,11 @@ import { FiPlus } from "react-icons/fi";
 export default function TransitionChecklist({
   steps = [],
   loggedInUser,
-  isEditorMode, // <-- NOVA PROP
-  permissions, // <-- NOVA PROP
-  onAddStep, // <-- NOVA PROP (chama modal.openStep('create'))
-  onEditStep, // <-- NOVA PROP
-  onDeleteStep, // <-- NOVA PROP
+  isEditorMode,
+  permissions,
+  onAddStep,
+  onEditStep,
+  onDeleteStep,
 }) {
   const canAdd = isEditorMode && permissions.canCreateStep;
 
@@ -23,11 +23,7 @@ export default function TransitionChecklist({
       {/* --- MUDANÇA: Botão de Adicionar --- */}
       {canAdd && (
         <div className="p-4">
-          <Button
-            variant="primary"
-            size="small"
-            onClick={() => onAddStep()} // Chama modal.openStep('create')
-          >
+          <Button variant="primary" size="small" onClick={() => onAddStep()}>
             <FiPlus className="mr-2" />
             Adicionar Passo
           </Button>
@@ -48,10 +44,10 @@ export default function TransitionChecklist({
             key={step.id}
             step={step}
             loggedInUser={loggedInUser}
-            isEditorMode={isEditorMode} // <-- PASSAR PROP
-            permissions={permissions} // <-- PASSAR PROP
-            onEdit={onEditStep} // <-- PASSAR PROP
-            onDelete={onDeleteStep} // <-- PASSAR PROP
+            isEditorMode={isEditorMode}
+            permissions={permissions}
+            onEdit={onEditStep}
+            onDelete={onDeleteStep}
           />
         ))
       )}

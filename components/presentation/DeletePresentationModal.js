@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Button from "components/ui/Button"; //
-import Alert from "components/ui/Alert"; //
-import FormInput from "components/forms/FormInput"; //
+import Button from "components/ui/Button";
+import Alert from "components/ui/Alert";
+import FormInput from "components/forms/FormInput";
 import { FiX, FiAlertTriangle } from "react-icons/fi";
 
 /**
@@ -21,7 +21,7 @@ export default function DeletePresentationModal({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    // Chama o 'deletePresentation' do hook
+
     await onDelete();
     setIsDeleting(false);
   };
@@ -84,7 +84,7 @@ export default function DeletePresentationModal({
           </Button>
           <Button
             type="button"
-            variant="danger" //
+            variant="danger"
             onClick={handleDelete}
             isLoading={isDeleting}
             disabled={!canDelete || isDeleting}

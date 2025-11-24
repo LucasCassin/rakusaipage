@@ -1,7 +1,7 @@
 import React from "react";
 import { useDrag } from "react-dnd";
 import { ItemTypes } from "./ItemTypes";
-import { FiX } from "react-icons/fi"; // <-- Importar o 'X'
+import { FiX } from "react-icons/fi";
 
 /**
  * Renderiza um elemento "Palco" como uma linha divisória horizontal.
@@ -9,7 +9,7 @@ import { FiX } from "react-icons/fi"; // <-- Importar o 'X'
 export default function StageLine({
   element,
   isEditorMode,
-  onDelete, // <-- 1. NOVA PROP (vem do 'deleteElement')
+  onDelete,
   globalScale,
 }) {
   const [{ isDragging }, drag] = useDrag(

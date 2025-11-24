@@ -3,16 +3,15 @@ import { FiChevronDown, FiCheck, FiX } from "react-icons/fi";
 import UserAvatar from "components/ui/UserAvatar";
 
 export default function AssigneeSelect({
-  cast = [], // Array de usuários do elenco (cast.viewers)
-  selectedIds = [], // Array de IDs já selecionados
-  onChange, // Função para atualizar o array
-  maxLimit, // Limite máximo de seleção
+  cast = [],
+  selectedIds = [],
+  onChange,
+  maxLimit,
   disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
-  // Fechar ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -28,10 +27,8 @@ export default function AssigneeSelect({
     let newSelectedIds;
 
     if (isSelected) {
-      // Remover
       newSelectedIds = selectedIds.filter((id) => id !== userId);
     } else {
-      // Adicionar (se respeitar limite)
       if (selectedIds.length >= maxLimit) return;
       newSelectedIds = [...selectedIds, userId];
     }

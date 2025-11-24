@@ -1,5 +1,3 @@
-// lucascassin/rakusaipage/rakusaipage-stage-map/components/presentation/PrintablePresentation.js
-
 import React from "react";
 import FormationMap from "./FormationMap";
 import TransitionChecklist from "./TransitionChecklist";
@@ -40,7 +38,6 @@ const PrintablePresentation = React.forwardRef(
     return (
       <div
         ref={ref}
-        // 1. Padding manual (p-[15mm]) substitui a margem da página para controlar o conteúdo
         className={`fixed left-[-9999px] top-[-9999px] print:static print:w-full print:block font-sans font-sans bg-white text-black [print-color-adjust:exact] [-webkit-print-color-adjust:exact]
           ${isCompact ? "w-[297mm] p-[10mm]" : "w-[210mm] p-[15mm]"}
           `}
@@ -84,7 +81,7 @@ const PrintablePresentation = React.forwardRef(
               style={{
                 columnCount: 3,
                 columnGap: "2rem",
-                columnRule: "1px solid black", // A linha preta vertical solicitada
+                columnRule: "1px solid black",
                 width: "100%",
               }}
             >
@@ -231,11 +228,8 @@ const PrintablePresentation = React.forwardRef(
             {/* Lista de Cenas */}
             <div className="space-y-8">
               {presentation.scenes.map((scene) => {
-                // 3. Lógica de Quebra de Página Condicional
                 const isFormation = scene.scene_type === "FORMATION";
 
-                // Formação: break-inside-avoid (Não quebra o mapa)
-                // Transição: permite quebra (remove a classe avoid)
                 const breakClass = isFormation
                   ? "page-break-inside-avoid break-inside-avoid"
                   : "";
@@ -257,7 +251,6 @@ const PrintablePresentation = React.forwardRef(
                     )}
 
                     {isFormation ? (
-                      // Mapa de Palco (Fixo)
                       <div className="w-full h-[500px] relative border-2 border-gray-800 rounded-lg overflow-hidden bg-gray-50 print:bg-white">
                         <FormationMap
                           elements={scene.scene_elements}
@@ -266,7 +259,6 @@ const PrintablePresentation = React.forwardRef(
                         />
                       </div>
                     ) : (
-                      // Checklist de Transição (Fluida, pode quebrar página)
                       <TransitionChecklist
                         steps={scene.transition_steps}
                         loggedInUser={null}

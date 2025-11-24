@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import Button from "components/ui/Button"; //
+import Button from "components/ui/Button";
 import { FiTrash2 } from "react-icons/fi";
 
 /**
@@ -12,13 +12,12 @@ function calculateParticipation(userId, scenes) {
   return scenes.reduce((count, scene) => {
     let participationInScene = 0;
 
-    // 1. Verifica Formações (scene_elements)
     if (scene.scene_type === "FORMATION" && scene.scene_elements) {
       const isUserInElement = scene.scene_elements.some(
-        (el) => el.assignees && el.assignees.includes(userId), // <-- MUDANÇA
+        (el) => el.assignees && el.assignees.includes(userId),
       );
       if (isUserInElement) {
-        participationInScene = 1; // Contamos 1 por CENA, não por elemento
+        participationInScene = 1;
       }
     }
 
@@ -32,14 +31,12 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
 
-  // Botão "Certeza?"
   useEffect(() => {
     if (!pendingAction) return;
     const timer = setTimeout(() => setPendingAction(null), 3000);
     return () => clearTimeout(timer);
   }, [pendingAction]);
 
-  // Recalcula a participação (agora usando a lógica M-N)
   const participationCount = useMemo(
     () => calculateParticipation(user.id, scenes),
     [user.id, scenes],
@@ -48,7 +45,7 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
   const isAssigned = participationCount > 0;
 
   const handleRemove = async () => {
-    if (isAssigned) return; // Segurança extra
+    if (isAssigned) return;
 
     if (pendingAction !== "delete") {
       setPendingAction("delete");
@@ -56,7 +53,7 @@ const CastUserItem = ({ user, scenes, onRemove }) => {
     }
     setIsProcessing(true);
     await onRemove(user.id);
-    // O 'usePresentationEditor' vai atualizar o estado e causar re-render.
+
     setIsProcessing(false);
     setPendingAction(null);
   };

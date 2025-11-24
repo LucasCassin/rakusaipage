@@ -7,12 +7,12 @@ import { FiX, FiClipboard } from "react-icons/fi";
  * Modal para selecionar as opções de colagem (Clone).
  */
 export default function PasteSceneModal({
-  sceneName, // Nome da cena no clipboard (para confirmação)
+  sceneName,
   error,
   onClose,
-  onSubmit, // (Função (pasteOption) => ...)
+  onSubmit,
 }) {
-  const [pasteOption, setPasteOption] = useState("with_users"); // Padrão
+  const [pasteOption, setPasteOption] = useState("with_users");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {

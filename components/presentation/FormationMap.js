@@ -328,9 +328,6 @@ export default function FormationMap({
       let minX = 100,
         maxX = 0;
 
-      // --- INÍCIO DA CORREÇÃO (Bug do Label) ---
-
-      // 1. Encontra o Y máximo (o centro mais baixo)
       let maxY = -Infinity;
       for (const el of group.elements) {
         const elY = parseFloat(el.position_y);
@@ -339,13 +336,11 @@ export default function FormationMap({
         }
       }
 
-      // 2. Filtra todos os elementos que estão nesse Y máximo
       const lowestElements = group.elements.filter(
         (el) => parseFloat(el.position_y) === maxY,
       );
 
-      // 3. Desses elementos, encontra o que tem a MAIOR escala
-      let elementToAnchor = lowestElements[0]; // Pega o primeiro como default
+      let elementToAnchor = lowestElements[0];
       if (lowestElements.length > 1) {
         for (const el of lowestElements) {
           if ((el.scale || 1.0) > (elementToAnchor.scale || 1.0)) {
@@ -354,21 +349,18 @@ export default function FormationMap({
         }
       }
 
-      // 4. (Encontra o X-range, como antes)
       for (const el of group.elements) {
         const elX = parseFloat(el.position_x);
         if (elX < minX) minX = elX;
         if (elX > maxX) maxX = elX;
       }
 
-      // 5. Usa o elemento âncora (com max Y e max scale)
       const scaleAtMaxY = elementToAnchor?.scale || 1.0;
       group.labelPosition = {
         x: (minX + maxX) / 2,
-        y: maxY, // O Y é o mesmo (maxY)
-        scale: scaleAtMaxY, // A escala é a do maior elemento nesse Y
+        y: maxY,
+        scale: scaleAtMaxY,
       };
-      // --- FIM DA CORREÇÃO ---
 
       groupsWithLabels.push(group);
     }
@@ -456,59 +448,53 @@ export default function FormationMap({
       )}
 
       {/* Loop de Renderização (Passando globalScale e snapAnchors) */}
-      {processedGroups.map(
-        (
-          group,
-          index, // MUDANÇA AQUI: index adicionado
-        ) => (
-          <React.Fragment key={group.group_id || `group-${index}`}>
-            {" "}
-            {/* MUDANÇA AQUI: Fallback de chave */}
-            {group.elements.map((element, elIndex) => {
-              // MUDANÇA AQUI: elIndex adicionado
-              if (element.element_type_name === "Palco") {
-                return (
-                  <StageLine
-                    key={element.id || `line-${elIndex}`} // MUDANÇA AQUI: Fallback de chave
-                    element={element}
-                    isEditorMode={isEditorMode}
-                    onDelete={onElementDelete}
-                    globalScale={globalScale}
-                  />
-                );
-              }
-
+      {processedGroups.map((group, index) => (
+        <React.Fragment key={group.group_id || `group-${index}`}>
+          {" "}
+          {/* MUDANÇA AQUI: Fallback de chave */}
+          {group.elements.map((element, elIndex) => {
+            if (element.element_type_name === "Palco") {
               return (
-                <StageElement
-                  key={element.id || `el-${elIndex}`} // MUDANÇA AQUI: Fallback de chave
+                <StageLine
+                  key={element.id || `line-${elIndex}`}
                   element={element}
-                  loggedInUser={loggedInUser}
                   isEditorMode={isEditorMode}
-                  onClick={onElementClick}
-                  onElementMerge={onElementMerge}
+                  onDelete={onElementDelete}
                   globalScale={globalScale}
-                  snapAnchors={snapAnchors}
                 />
               );
-            })}
-            {/* (Correção Bug 2) */}
-            {group.display_name && group.labelPosition && (
-              <GroupLabel
-                label={group.display_name}
-                x={group.labelPosition.x}
-                y={group.labelPosition.y}
-                scale={group.labelPosition.scale}
-                isHighlighted={
-                  loggedInUser &&
-                  group.assignees &&
-                  group.assignees.includes(loggedInUser.id)
-                }
+            }
+
+            return (
+              <StageElement
+                key={element.id || `el-${elIndex}`}
+                element={element}
+                loggedInUser={loggedInUser}
+                isEditorMode={isEditorMode}
+                onClick={onElementClick}
+                onElementMerge={onElementMerge}
                 globalScale={globalScale}
+                snapAnchors={snapAnchors}
               />
-            )}
-          </React.Fragment>
-        ),
-      )}
+            );
+          })}
+          {/* (Correção Bug 2) */}
+          {group.display_name && group.labelPosition && (
+            <GroupLabel
+              label={group.display_name}
+              x={group.labelPosition.x}
+              y={group.labelPosition.y}
+              scale={group.labelPosition.scale}
+              isHighlighted={
+                loggedInUser &&
+                group.assignees &&
+                group.assignees.includes(loggedInUser.id)
+              }
+              globalScale={globalScale}
+            />
+          )}
+        </React.Fragment>
+      ))}
 
       {/* --- (Feature 1: Guias Visuais Centrais) --- */}
       {snapGuides && snapGuides.y !== null && (

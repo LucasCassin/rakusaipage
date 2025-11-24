@@ -4,7 +4,7 @@ import FormInput from "components/forms/FormInput";
 import Alert from "components/ui/Alert";
 import { FiX } from "react-icons/fi";
 import { settings } from "config/settings.js";
-import AssigneeSelect from "./AssigneeSelect"; // <--- IMPORTAR
+import AssigneeSelect from "./AssigneeSelect";
 
 export default function TransitionStepModal({
   modalData,
@@ -24,12 +24,12 @@ export default function TransitionStepModal({
     if (isCreate) {
       setFormData({
         description: "",
-        assignees: [], // Array vazio
+        assignees: [],
       });
     } else if (step) {
       setFormData({
         description: step.description || "",
-        assignees: step.assignees || [], // Array existente
+        assignees: step.assignees || [],
         order: step.order,
       });
     }
@@ -40,7 +40,6 @@ export default function TransitionStepModal({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler específico para o AssigneeSelect
   const handleAssigneesChange = (newAssignees) => {
     setFormData((prev) => ({ ...prev, assignees: newAssignees }));
   };
@@ -70,7 +69,7 @@ export default function TransitionStepModal({
             name="description"
             value={formData.description || ""}
             onChange={handleChange}
-            placeholder="Ex: Tocar 1, 2, 3..."
+            placeholder="Ex: Entrar com shime"
             required
             maxLength={500}
             disabled={isLoading}

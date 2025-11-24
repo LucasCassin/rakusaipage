@@ -101,7 +101,6 @@ export default function StageElement({
     <div
       ref={(node) => drag(drop(node))}
       onClick={handleClick}
-      // 3. APLICAR CLASSE DE DESTAQUE
       className={`absolute flex flex-col items-center
         ${isEditorMode ? "cursor-move" : ""}
         ${isDragging ? "opacity-30" : "opacity-100"}
@@ -112,7 +111,7 @@ export default function StageElement({
         } 
         ${mergeHoverClasses}
         ${
-          isSnapAnchor // (A lógica de destaque que implementamos)
+          isSnapAnchor
             ? "ring-4 ring-rakusai-pink-light ring-inset animate-pulse"
             : ""
         } 

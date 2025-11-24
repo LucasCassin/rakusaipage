@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from "react";
-import Button from "components/ui/Button"; //
-import Alert from "components/ui/Alert"; //
-import Switch from "components/ui/Switch"; //
+import Button from "components/ui/Button";
+import Alert from "components/ui/Alert";
+import Switch from "components/ui/Switch";
 import { FiX, FiShare2, FiEye, FiEyeOff } from "react-icons/fi";
 
 /**
  * Modal para gerenciar a flag 'is_public' (Compartilhamento).
  *
  */
-export default function ShareModal({
-  presentation,
-  error,
-  onClose,
-  onSubmit, // (Vem do hook 'savePublicStatus')
-}) {
-  // Estado local para o 'Switch'
+export default function ShareModal({ presentation, error, onClose, onSubmit }) {
   const [isPublic, setIsPublic] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Quando o modal abre, seta o 'Switch' para o estado atual
   useEffect(() => {
     if (presentation) {
       setIsPublic(presentation.is_public || false);
@@ -28,7 +21,7 @@ export default function ShareModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    await onSubmit(isPublic); // Envia o novo valor (true ou false)
+    await onSubmit(isPublic);
     setIsLoading(false);
   };
 
@@ -86,7 +79,7 @@ export default function ShareModal({
                 readOnly
                 value={currentUrl}
                 className="mt-1 w-full rounded-md border border-gray-300 text-sm bg-gray-100"
-                onClick={(e) => e.target.select()} // Seleciona ao clicar
+                onClick={(e) => e.target.select()}
               />
             </div>
           )}

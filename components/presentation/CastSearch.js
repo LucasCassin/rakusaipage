@@ -60,12 +60,9 @@ const SingleSearchResult = ({ user, currentCastIds, onAdd, isAdding }) => {
  * A UI completa para a "Busca Híbrida"
  */
 export default function CastSearch({ castHook, searchHook, onAddUsers }) {
-  // Pega o hook de 'cast' para checar o elenco atual
   const { viewers, addUserToCast } = castHook;
 
-  // Pega TODOS os novos estados e funções do 'searchHook'
   const {
-    // Bulk
     processedUsers,
     isLoadingSearch,
     searchError: bulkSearchError,
@@ -74,7 +71,7 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
     clearSearch,
     selectedUserIds,
     handleToggleUser,
-    // Single
+
     searchTerm,
     setSearchTerm,
     isLoadingIndividual,
@@ -86,24 +83,21 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
   const [isAddingBulk, setIsAddingBulk] = useState(false);
   const [isAddingSingle, setIsAddingSingle] = useState(false);
 
-  // Mapeia os IDs do elenco atual para o <SingleSearchResult>
   const currentCastIds = useMemo(
     () => new Set(viewers.map((v) => v.id)),
     [viewers],
   );
 
-  // Handler para o botão "Adicionar" (Bulk)
   const handleAddBulkClick = async () => {
     setIsAddingBulk(true);
     await onAddUsers(Array.from(selectedUserIds));
     setIsAddingBulk(false);
   };
 
-  // Handler para o botão "+" (Single)
   const handleAddSingleClick = async (userId) => {
     setIsAddingSingle(true);
     await addUserToCast(userId);
-    // Limpa a busca individual após adicionar
+
     searchHook.clearSearch();
     setIsAddingSingle(false);
   };
@@ -111,6 +105,11 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     runSearchByUsername(searchTerm);
+  };
+
+  const handleSearchChange = (e) => {
+    searchHook.clearSearch();
+    setSearchTerm(e.target.value);
   };
 
   return (
@@ -129,8 +128,8 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
             type="text"
             placeholder="Digite o username..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 w-full rounded-md border border-gray-300 text-sm"
+            onChange={handleSearchChange}
+            className="flex-1 pl-2 w-full rounded-md border border-gray-300 text-sm"
             disabled={isLoadingIndividual}
           />
           <Button
@@ -144,9 +143,9 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
         </form>
         {/* Renderiza o Erro ou o Resultado da busca individual */}
         {individualSearchError && (
-          <Alert type="error" className="mt-2">
-            {individualSearchError}
-          </Alert>
+          <div className="mt-2">
+            <Alert type="error">{individualSearchError}</Alert>
+          </div>
         )}
         {individualSearchResult && (
           <SingleSearchResult

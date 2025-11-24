@@ -15,9 +15,8 @@ export default function TransitionStepItem({
   onDelete,
 }) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // 'delete'
+  const [pendingAction, setPendingAction] = useState(null);
 
-  // Reseta o botão "Certeza?"
   useEffect(() => {
     if (!pendingAction) return;
     const timer = setTimeout(() => setPendingAction(null), 3000);

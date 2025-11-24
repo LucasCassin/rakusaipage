@@ -34,33 +34,30 @@ function SelectedAssignee({ user, onRemove }) {
  * a partir de um elenco (cast) existente.
  */
 export default function AssigneeManager({
-  cast, // { viewers: [], isLoading: ... }
-  currentAssignees = [], // Array de IDs [uuid, uuid]
-  onChange, // fn(newAssignees)
+  cast,
+  currentAssignees = [],
+  onChange,
   maxLimit,
 }) {
   const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
 
-  // Deriva a lista de *objetos* de usuário dos IDs
   const selectedUsers = useMemo(() => {
     const castViewers = cast.viewers || [];
     const assigneeSet = new Set(currentAssignees || []);
     return castViewers.filter((user) => assigneeSet.has(user.id));
   }, [currentAssignees, cast.viewers]);
 
-  // Filtra o elenco disponível para adicionar
   const availableUsers = useMemo(() => {
     const castViewers = cast.viewers || [];
     const assigneeSet = new Set(currentAssignees || []);
 
     const filtered = castViewers.filter((user) => {
-      // 1. Não pode já estar selecionado
       if (assigneeSet.has(user.id)) return false;
-      // 2. Se não houver busca, não mostra ninguém
+
       if (searchTerm.trim() === "") return false;
-      // 3. Corresponder ao termo de busca
+
       return user.username.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
@@ -76,12 +73,11 @@ export default function AssigneeManager({
       return;
     }
 
-    // O 'Set' garante que não haja duplicatas
     const newAssigneeSet = new Set(currentAssignees);
     newAssigneeSet.add(user.id);
 
     onChange(Array.from(newAssigneeSet));
-    setSearchTerm(""); // Limpa a busca
+    setSearchTerm("");
     setError(null);
   };
 
@@ -91,7 +87,6 @@ export default function AssigneeManager({
     setError(null);
   };
 
-  // Adiciona o próprio usuário logado rapidamente
   const addSelf = () => {
     if (currentUser && !currentAssignees.includes(currentUser.id)) {
       handleSelectUser(currentUser);

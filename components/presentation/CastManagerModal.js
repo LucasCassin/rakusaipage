@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"; // <-- Importar useEffect
+import React, { useEffect } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import { FiX, FiUsers } from "react-icons/fi";
@@ -16,27 +16,20 @@ export default function CastManagerModal({
   onClose,
   castHook,
 }) {
-  // Desestruturação segura (como fizemos antes)
   const {
     viewers = [],
     isLoading: isLoadingCast = true,
     error: castError,
     addUserToCast,
     removeUserFromCast,
-    fetchViewers, // <-- 1. PEGAR O fetchViewers DO "CÉREBRO"
+    fetchViewers,
   } = castHook || {};
 
-  // --- MUDANÇA (Bug do Loading Infinito) ---
-  // 2. Chamar o 'fetchViewers' QUANDO o modal for aberto
   useEffect(() => {
-    // (O 'fetchViewers' é estável via 'useCallback'
-    // no 'usePE', então o 'eslint-disable' é seguro)
     if (fetchViewers) {
       fetchViewers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // <-- Roda UMA VEZ quando o modal é montado
-  // --- FIM DA MUDANÇA ---
+  }, []);
 
   const searchHook = useCastSearch(viewers);
 
