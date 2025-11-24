@@ -71,6 +71,7 @@ export function usePresentationEditor(presentationId) {
 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printComments, setPrintComments] = useState("");
+  const [printIsCompact, setPrintIsCompact] = useState(false);
 
   const {
     success: globalSuccessMessage,
@@ -1183,13 +1184,14 @@ export function usePresentationEditor(presentationId) {
   };
 
   const handleProcessPrint = useCallback(
-    (comments) => {
+    (comments, isCompact) => {
       setPrintComments(comments);
+      setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
         handlePrint();
-      }, 100);
+      }, 200);
     },
     [handlePrint],
   );
@@ -1296,6 +1298,7 @@ export function usePresentationEditor(presentationId) {
 
     printData: {
       comments: printComments,
+      isCompact: printIsCompact,
     },
 
     dropHandlers: {

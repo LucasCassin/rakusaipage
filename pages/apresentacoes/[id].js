@@ -395,6 +395,7 @@ export default function PresentationPage() {
         ref={editor.printHandlers.ref}
         presentation={presentation}
         finalComments={editor.printData.comments}
+        isCompact={editor.printData.isCompact}
       />
     </>
   );
