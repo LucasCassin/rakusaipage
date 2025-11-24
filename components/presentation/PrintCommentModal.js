@@ -98,27 +98,37 @@ export default function PrintCommentModal({
         </div>
 
         {/* Rodapé */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-between items-center gap-3 border-t border-gray-200">
-          <Button onClick={onClose} variant="secondary" size="small">
+        <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-200">
+          {/* Botão Cancelar: Ordem alterada e largura ajustada */}
+          <Button
+            onClick={onClose}
+            variant="secondary"
+            size="small"
+            className="order-last sm:order-first w-full sm:w-auto"
+          >
             Cancelar
           </Button>
+
+          {/* Botão Gerar PNG */}
           <Button
             onClick={handlePng}
             variant="primary"
-            className="gap-2"
             size="small"
+            className="gap-2 w-full sm:w-auto"
           >
             <FiImage />
-            Gerar PNG {isCompact ? "(Compacto)" : "(Completo)"}
+            Gerar PNG
           </Button>
+
+          {/* Botão Gerar PDF */}
           <Button
             onClick={handlePrint}
             variant="primary"
-            className="gap-2"
             size="small"
+            className="gap-2 w-full sm:w-auto"
           >
             <FiPrinter />
-            Gerar PDF {isCompact ? "(Compacto)" : "(Completo)"}
+            Gerar PDF
           </Button>
         </div>
       </div>
