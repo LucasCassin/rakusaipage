@@ -4,7 +4,7 @@ import UserListSkeleton from "components/ui/UserListSkeleton";
 import Alert from "components/ui/Alert";
 import Button from "components/ui/Button";
 import Switch from "components/ui/Switch";
-import { FiPlus, FiUserPlus, FiCheck } from "react-icons/fi";
+import { FiPlus, FiUserPlus } from "react-icons/fi";
 
 const STABLE_EMPTY_ARRAY = [];
 

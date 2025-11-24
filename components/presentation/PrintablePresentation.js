@@ -124,7 +124,7 @@ const PrintablePresentation = React.forwardRef(
 
                   {/* Lista Compacta (Sem bullets grandes, texto pequeno) */}
                   <div className="text-[10px] leading-tight text-gray-800 ml-1">
-                    {scene.transition_steps.map((step, i) => (
+                    {scene.transition_steps.map((step) => (
                       <div key={step.id} className="mb-0.5 flex">
                         <span className="mr-1 opacity-70">-</span>
                         <span>{step.description}</span>

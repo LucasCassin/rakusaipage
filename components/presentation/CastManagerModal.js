@@ -10,12 +10,7 @@ import CastSearch from "./CastSearch";
 /**
  * Modal para gerenciar o Elenco (presentation_viewers).
  */
-export default function CastManagerModal({
-  presentation,
-  permissions,
-  onClose,
-  castHook,
-}) {
+export default function CastManagerModal({ presentation, onClose, castHook }) {
   const {
     viewers = [],
     isLoading: isLoadingCast = true,

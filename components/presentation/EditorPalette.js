@@ -86,8 +86,7 @@ export default function EditorPalette({
               })
             ) : (
               <p className="text-sm text-gray-500 p-2">
-                Arraste um item do "Catálogo" para o palco para criar um
-                template.
+                Arraste um item do Catálogo para o palco para criar um template.
               </p>
             )}
           </PaletteSection>

@@ -80,8 +80,7 @@ export default function PasteSceneModal({
                   Instrumentos e Nomes
                 </span>
                 <span className="text-sm text-gray-600">
-                  Copia os nomes (ex: "Líder"), mas remove os usuários
-                  associados.
+                  Copia os nomes (ex: Lucas), mas remove os usuários associados.
                 </span>
               </div>
             </label>

@@ -52,7 +52,7 @@ export const settings = {
       BASE_ICON_SIZE_PX: 48,
     },
     STAGE_MAP_LOGIC: {
-      MAX_ASSIGNEES_PER_STEP: 10,
+      MAX_ASSIGNEES_PER_STEP: 20,
       MAX_ASSIGNEES_PER_GROUP: 2,
     },
   },

@@ -99,6 +99,7 @@ export function usePresentationsDashboard() {
       });
     } catch (e) {
       setModalError("Erro de conexão ao criar apresentação.");
+      console.error("Erro ao criar apresentação:", e);
     }
   };
 
@@ -127,6 +128,7 @@ export function usePresentationsDashboard() {
       });
     } catch (e) {
       setModalError("Erro de conexão ao atualizar apresentação.");
+      console.error("Erro ao atualizar apresentação:", e);
     }
   };
 
@@ -151,6 +153,7 @@ export function usePresentationsDashboard() {
       });
     } catch (e) {
       setModalError("Erro de conexão ao deletar apresentação.");
+      console.error("Erro ao deletar apresentação:", e);
     }
   };
 

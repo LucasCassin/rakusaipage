@@ -79,7 +79,6 @@ export function usePresentationEditor(presentationId) {
     setSuccess: setGlobalSuccessMessage,
     clearSuccess: clearGlobalSuccessMessage,
     setError: setGlobalErrorMessage,
-    error: globalErrorMessage,
     clearError: clearGlobalErrorMessage,
   } = useMessage();
 
@@ -148,6 +147,7 @@ export function usePresentationEditor(presentationId) {
       });
     } catch (e) {
       setCastError("Erro de conexão ao buscar elenco.");
+      console.error("Erro ao buscar elenco:", e);
     } finally {
       setIsLoadingViewers(false);
     }
@@ -184,6 +184,7 @@ export function usePresentationEditor(presentationId) {
         });
       } catch (e) {
         setCastError("Erro de conexão ao adicionar usuário.");
+        console.error("Erro ao adicionar usuário ao elenco:", e);
         return false;
       }
     },
@@ -207,6 +208,7 @@ export function usePresentationEditor(presentationId) {
         });
       } catch (e) {
         setCastError("Erro de conexão ao remover usuário.");
+        console.error("Erro ao remover usuário do elenco:", e);
       }
     },
     [presentationId, router, fetchViewers],
@@ -946,6 +948,7 @@ export function usePresentationEditor(presentationId) {
         });
       } catch (e) {
         setSceneFormModalError("Erro de conexão ao salvar a cena.");
+        console.error("Erro ao salvar cena:", e);
       }
     },
     [
@@ -982,6 +985,7 @@ export function usePresentationEditor(presentationId) {
       });
     } catch (e) {
       setDeleteSceneModalError("Erro de conexão ao deletar a cena.");
+      console.error("Erro ao deletar cena:", e);
     }
   }, [router, refetchPresentationData, deleteSceneModalData, currentSceneId]);
 
@@ -1168,6 +1172,7 @@ export function usePresentationEditor(presentationId) {
         });
       } catch (e) {
         setPasteModalError("Erro de conexão ao colar a cena.");
+        console.error("Erro ao colar cena:", e);
       }
     },
     [clipboardContent, presentationId, router, refetchPresentationData],

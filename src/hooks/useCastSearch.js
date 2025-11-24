@@ -26,7 +26,6 @@ export function useCastSearch(currentCastViewers = []) {
 
   const {
     isLoading: isLoadingIndividual,
-    userFound: individualUserFound,
     setUserFound: setIndividualUserFound,
     fetchUserData: runSearchByUsername,
   } = useUserSearch({

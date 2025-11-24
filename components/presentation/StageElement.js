@@ -63,7 +63,7 @@ export default function StageElement({
   const [{ isOver }, drop] = useDrop(
     () => ({
       accept: ItemTypes.STAGE_ELEMENT,
-      drop: (droppedItem, _) => {
+      drop: (droppedItem) => {
         if (onElementMerge && element.id !== droppedItem.id) {
           onElementMerge(element, droppedItem);
         }

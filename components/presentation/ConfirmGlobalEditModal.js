@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
-import { FiX, FiAlertTriangle } from "react-icons/fi";
+import { FiAlertTriangle } from "react-icons/fi";
 
 /**
  * Modal que pergunta se a edição de um elemento (nome/usuário)

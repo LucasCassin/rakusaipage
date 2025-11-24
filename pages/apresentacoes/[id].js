@@ -326,7 +326,6 @@ export default function PresentationPage() {
       {editor.modal.isCastOpen && (
         <CastManagerModal
           presentation={presentation}
-          permissions={permissions}
           onClose={editor.modal.closeCast}
           castHook={editor.castHook}
         />
