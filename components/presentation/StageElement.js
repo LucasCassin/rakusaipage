@@ -132,6 +132,8 @@ export default function StageElement({
           src={iconUrl}
           alt={element.element_type_name || ""}
           fill={true}
+          priority={true}
+          unoptimized={true}
           className={`object-contain transition-all duration-300`}
         />
       </div>

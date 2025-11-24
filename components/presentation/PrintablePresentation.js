@@ -5,19 +5,14 @@ import FormationMap from "./FormationMap";
 import TransitionChecklist from "./TransitionChecklist";
 import { FiUsers, FiCalendar, FiMapPin } from "react-icons/fi";
 
-/**
- * Este componente é uma "versão de impressão" escondida da apresentação.
- * Ele é formatado para A4 e renderiza TODAS as cenas.
- */
 const PrintablePresentation = React.forwardRef(({ presentation }, ref) => {
   if (!presentation) return null;
 
   return (
-    // CORREÇÃO: Em vez de 'hidden', usamos posicionamento absoluto fora da tela.
-    // Isso garante que o elemento exista no DOM com dimensões, permitindo que o react-to-print o capture.
     <div
       ref={ref}
-      className="fixed left-[-9999px] top-[-9999px] w-[210mm] print:static print:w-auto print:block p-8 font-sans bg-white text-black"
+      // ADIÇÃO: '[print-color-adjust:exact]' força a impressão de cores e backgrounds
+      className="fixed left-[-9999px] top-[-9999px] w-[210mm] print:static print:w-auto print:block p-8 font-sans bg-white text-black [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
     >
       {/* Cabeçalho */}
       <div className="border-b-2 border-gray-900 pb-4 mb-8">
@@ -42,7 +37,7 @@ const PrintablePresentation = React.forwardRef(({ presentation }, ref) => {
         </div>
       </div>
 
-      {/* Roteiro (Loop em TODAS as cenas) */}
+      {/* Roteiro */}
       <div className="space-y-10">
         {presentation.scenes.map((scene) => (
           <div
@@ -57,23 +52,25 @@ const PrintablePresentation = React.forwardRef(({ presentation }, ref) => {
               </span>
             </h2>
 
-            {/* Descrição da Cena (se houver) */}
             {scene.description && (
               <p className="mb-4 italic text-gray-600">{scene.description}</p>
             )}
 
-            {/* Renderiza o Mapa ou a Checklist (em modo "leitura") */}
+            {/* LÓGICA CORRIGIDA AQUI */}
             {scene.scene_type === "FORMATION" ? (
-              <FormationMap
-                elements={scene.scene_elements}
-                loggedInUser={null} // Sem destaque
-                isEditorMode={false} // Sem modo editor
-              />
+              // Wrapper com altura fixa e borda para delimitar o palco na impressão
+              <div className="w-full h-[500px] relative border-2 border-gray-800 rounded-lg overflow-hidden bg-gray-50">
+                <FormationMap
+                  elements={scene.scene_elements}
+                  loggedInUser={null}
+                  isEditorMode={false}
+                />
+              </div>
             ) : (
               <TransitionChecklist
                 steps={scene.transition_steps}
-                loggedInUser={null} // Sem destaque
-                isEditorMode={false} // Sem modo editor
+                loggedInUser={null}
+                isEditorMode={false}
               />
             )}
           </div>
