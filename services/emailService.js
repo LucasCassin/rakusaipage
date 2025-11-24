@@ -52,6 +52,53 @@ async function sendPasswordResetEmail(to, resetLink) {
   }
 }
 
+/**
+ * Envia e-mail com as credenciais de acesso
+ */
+async function sendAccountCreatedEmail({ to, username, password, loginLink }) {
+  if (!resend) {
+    console.warn("⚠️ RESEND_API_KEY não configurada.");
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[DEV] Welcome Email para ${to} | Senha: ${password}`);
+      return { success: true, mock: true };
+    }
+    return { success: false, error: "Service unavailable" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Rakusai Taiko <${EMAIL_FROM}>`,
+      to: [to],
+      subject: "Bem-vindo ao Site do Rakusai Taiko",
+      html: `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px;">
+          <h2 style="color: #E91E63;">Bem-vindo(a), ${username}!</h2>
+          <p>Sua conta foi criada com sucesso.</p>
+          <p>Abaixo estão suas credenciais provisórias:</p>
+          
+          <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Login:</strong> ${to}</p>
+            <p style="margin: 5px 0;"><strong>Senha Provisória:</strong> ${password}</p>
+          </div>
+
+          <p><strong>Importante:</strong> Por segurança, esta senha está expirada. Ao fazer login, você será solicitado a criar uma nova senha imediatamente.</p>
+
+          <a href="${loginLink}" style="display: inline-block; background-color: #E91E63; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-top: 10px;">Acessar Site</a>
+        </div>
+      `,
+    });
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error("Erro ao enviar email de boas-vindas:", error);
+    // Não lançamos erro aqui para não falhar a criação do usuário no banco
+    // Apenas logamos o erro
+    return { success: false, error };
+  }
+}
+
 export const emailService = {
   sendPasswordResetEmail,
+  sendAccountCreatedEmail,
 };
