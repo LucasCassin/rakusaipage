@@ -1,53 +1,57 @@
 import { Resend } from "resend";
-import { ServiceError } from "errors";
 
-// Inicializa o cliente Resend apenas se a chave existir
-// Isso evita erros no build se a chave não estiver configurada
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+const EMAIL_FROM =
+  process.env.EMAIL_FROM_DEFAULT || "sistema@rakusaitaiko.com.br";
+
 /**
- * Envia um e-mail transacional
- * @param {Object} params
- * @param {string} params.to - E-mail do destinatário
- * @param {string} params.subject - Assunto do e-mail
- * @param {string} params.html - Corpo do e-mail em HTML
- * @param {string} [params.text] - Versão texto puro (opcional, mas recomendada para acessibilidade)
+ * Envia e-mail de recuperação de senha
+ * @param {string} to - Email do destinatário
+ * @param {string} resetLink - Link completo para reset
  */
-export async function sendEmail({ to, subject, html, text }) {
+async function sendPasswordResetEmail(to, resetLink) {
   if (!resend) {
-    console.warn(
-      "⚠️ RESEND_API_KEY não configurada. O e-mail não será enviado.",
-    );
+    console.warn("⚠️ RESEND_API_KEY não configurada.");
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DEV EMAIL MOCK] Para: ${to} | Assunto: ${subject}`);
+      console.log(
+        `[DEV - EMAIL MOCK] Recuperação para ${to}. Link: ${resetLink}`,
+      );
+      return { success: true, mock: true };
     }
-    return { success: false, error: "Service not configured" };
+    return { success: false, error: "Service unavailable" };
   }
 
   try {
-    const fromEmail = process.env.EMAIL_FROM_DEFAULT || "onboarding@resend.dev"; // Fallback para testes
-
-    const data = await resend.emails.send({
-      from: `Rakusai Taiko <${fromEmail}>`,
-      to,
-      subject,
-      html,
-      text: text || html.replace(/<[^>]*>?/gm, ""), // Remove tags HTML simples para gerar texto
+    const { data, error } = await resend.emails.send({
+      from: `Rakusai Taiko <${EMAIL_FROM}>`,
+      to: [to],
+      subject: "Recuperação de Senha - Rakusai",
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Recuperação de Senha</h1>
+          <p>Você solicitou a redefinição de sua senha. Clique no botão abaixo para criar uma nova:</p>
+          <a href="${resetLink}" style="background-color: #E91E63; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">Redefinir Senha</a>
+          <p>Este link é válido por 30 minutos.</p>
+          <p style="font-size: 12px; color: #666;">Se você não solicitou isso, ignore este e-mail.</p>
+        </div>
+      `,
     });
 
-    if (data.error) {
-      console.error("Erro no envio do Resend:", data.error);
-      throw new ServiceError({
-        message: data.error.message,
-        cause: data.error,
-      });
+    if (error) {
+      console.error("Erro Resend:", error);
+      return { success: false, error };
     }
 
-    return { success: true, id: data.data?.id };
-  } catch (error) {
-    console.error("Falha ao enviar e-mail:", error);
-    return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    console.error("Erro ao enviar email:", err);
+    return { success: false, error: err.message };
   }
 }
+
+export const emailService = {
+  sendPasswordResetEmail,
+};

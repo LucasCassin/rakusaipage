@@ -196,6 +196,15 @@ const schemas = {
       }),
     }),
 
+  token_model: () =>
+    Joi.object({
+      token_model: Joi.string().length(64).alphanum().when("$required.token", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   created_at: () =>
     Joi.object({
       created_at: Joi.date().when("$required.created_at", {
