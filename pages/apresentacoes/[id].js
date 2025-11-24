@@ -24,6 +24,7 @@ import TransitionStepModal from "components/presentation/TransitionStepModal";
 import PasteSceneModal from "components/presentation/PasteSceneModal";
 import Alert from "components/ui/Alert";
 import StatsModal from "components/presentation/StatsModal";
+import PrintCommentModal from "components/presentation/PrintCommentModal";
 
 // 2. IMPORTAR ÍCONES PARA O BOTÃO MOBILE
 import {
@@ -382,9 +383,18 @@ export default function PresentationPage() {
         />
       )}
 
+      {editor.modal.isPrintOpen && (
+        <PrintCommentModal
+          isOpen={editor.modal.isPrintOpen}
+          onClose={editor.modal.closePrint}
+          onConfirmPrint={editor.modal.processPrint}
+        />
+      )}
+
       <PrintablePresentation
         ref={editor.printHandlers.ref}
         presentation={presentation}
+        finalComments={editor.printData.comments}
       />
     </>
   );

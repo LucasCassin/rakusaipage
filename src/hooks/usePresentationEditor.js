@@ -69,6 +69,9 @@ export function usePresentationEditor(presentationId) {
 
   const [clipboardContent, setClipboardContent] = useState(null);
 
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printComments, setPrintComments] = useState("");
+
   const {
     success: globalSuccessMessage,
     setSuccess: setGlobalSuccessMessage,
@@ -76,6 +79,7 @@ export function usePresentationEditor(presentationId) {
   } = useMessage();
 
   const componentToPrintRef = useRef(null);
+
   const handlePrint = useReactToPrint({
     contentRef: componentToPrintRef,
     documentTitle: presentation?.name || "Apresentação Rakusai",
@@ -1169,6 +1173,27 @@ export function usePresentationEditor(presentationId) {
     [clipboardContent, presentationId, router, refetchPresentationData],
   );
 
+  const openPrintModal = () => {
+    setPrintComments("");
+    setIsPrintModalOpen(true);
+  };
+
+  const closePrintModal = () => {
+    setIsPrintModalOpen(false);
+  };
+
+  const handleProcessPrint = useCallback(
+    (comments) => {
+      setPrintComments(comments);
+
+      setIsPrintModalOpen(false);
+      setTimeout(() => {
+        handlePrint();
+      }, 100);
+    },
+    [handlePrint],
+  );
+
   return {
     presentation,
     isLoading: isLoadingData,
@@ -1262,6 +1287,15 @@ export function usePresentationEditor(presentationId) {
       closeStats: closeStatsModal,
 
       handleCopy: copyScene,
+
+      isPrintOpen: isPrintModalOpen,
+      openPrint: openPrintModal,
+      closePrint: closePrintModal,
+      processPrint: handleProcessPrint,
+    },
+
+    printData: {
+      comments: printComments,
     },
 
     dropHandlers: {
@@ -1276,7 +1310,7 @@ export function usePresentationEditor(presentationId) {
 
     printHandlers: {
       ref: componentToPrintRef,
-      onPrint: handlePrint,
+      onPrint: openPrintModal,
     },
     reorderHandlers: {
       moveScene: moveScene,
