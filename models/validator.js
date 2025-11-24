@@ -511,6 +511,350 @@ const schemas = {
           otherwise: Joi.optional(),
         }),
     }),
+
+  presentation_id: () =>
+    // Referência ao ID de uma apresentação
+    Joi.object({
+      presentation_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.presentation_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  date: () =>
+    // Schema genérico para datas
+    Joi.object({
+      date: Joi.date()
+        .iso()
+        .when("$required.date", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
+
+  location: () =>
+    // Schema genérico para localizações/strings curtas
+    Joi.object({
+      location: Joi.string()
+        .trim()
+        .min(1)
+        .max(255)
+        .when("$required.location", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null, ""),
+        }),
+    }),
+
+  meet_time: () =>
+    // Schema para horários de encontro
+    Joi.object({
+      meet_time: Joi.date()
+        .iso()
+        .when("$required.meet_time", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
+
+  meet_location: () =>
+    // Schema genérico para localizações/strings curtas
+    Joi.object({
+      meet_location: Joi.string()
+        .trim()
+        .min(1)
+        .max(255)
+        .when("$required.meet_location", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null, ""),
+        }),
+    }),
+
+  is_public: () =>
+    // Para o booleano de visibilidade
+    Joi.object({
+      is_public: Joi.boolean().when("$required.is_public", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  order: () =>
+    // Para ordenação de cenas/passos
+    Joi.object({
+      order: Joi.number().integer().min(0).when("$required.order", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  newOrder: () =>
+    // Para ordenação de cenas/passos
+    Joi.object({
+      newOrder: Joi.number().integer().min(0).when("$required.newOrder", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  scene_type: () =>
+    Joi.object({
+      scene_type: Joi.string()
+        .trim()
+        .valid("FORMATION", "TRANSITION")
+        .when("$required.scene_type", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pasteOption: () =>
+    Joi.object({
+      pasteOption: Joi.string()
+        .trim()
+        .valid("elements_only", "with_names", "with_users")
+        .when("$required.pasteOption", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  scene_id: () =>
+    // Referência ao ID de uma cena
+    Joi.object({
+      scene_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.scene_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  scene_ids: () =>
+    Joi.object({
+      scene_ids: Joi.array()
+        .items(
+          Joi.string().trim().guid({ version: "uuidv4" }), // O item é apenas a string
+        )
+        .min(0)
+        .when("$required.scene_ids", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  element_type_id: () =>
+    // Referência ao ID de um tipo de elemento
+    Joi.object({
+      element_type_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.element_type_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  position_x: () =>
+    // Coordenada X
+    Joi.object({
+      position_x: Joi.number()
+        .precision(2) // Permite casas decimais para %
+        .min(0)
+        .max(100) // Assumindo que é porcentagem
+        .when("$required.position_x", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  position_y: () =>
+    // Coordenada Y
+    Joi.object({
+      position_y: Joi.number()
+        .precision(2)
+        .min(0)
+        .max(100)
+        .when("$required.position_y", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  display_name: () =>
+    // Nome de exibição (ex: "Lucas")
+    Joi.object({
+      display_name: Joi.string()
+        .trim()
+        .min(1)
+        .max(50)
+        .when("$required.display_name", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null, ""),
+        }),
+    }),
+
+  // assigned_user_id: () =>
+  //   // ID do usuário associado (opcional)
+  //   Joi.object({
+  //     assigned_user_id: Joi.string()
+  //       .trim()
+  //       .guid({ version: "uuidv4" })
+  //       .when("$required.assigned_user_id", {
+  //         is: "required",
+  //         then: Joi.required(),
+  //         otherwise: Joi.optional().allow(null), // Permite ser nulo
+  //       }),
+  //   }),
+
+  assignees: () =>
+    // Array de IDs de usuários associados (opcional)
+    Joi.object({
+      assignees: Joi.array()
+        .items(
+          Joi.string().trim().guid({ version: "uuidv4" }), // Valida cada item como UUID
+        )
+        .min(0) // Permite um array vazio []
+        .when("$required.assignees", {
+          is: "required",
+          then: Joi.required(), // Se for obrigatório, deve ter ao menos 1
+          otherwise: Joi.optional().allow(null), // Permite ser undefined ou null
+        }),
+    }),
+
+  group_id: () =>
+    // Referência ao ID de um grupo de elementos
+    Joi.object({
+      group_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.group_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  targetGroupId: () =>
+    // Referência ao ID do grupo alvo
+    Joi.object({
+      targetGroupId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.targetGroupId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  sourceGroupId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      sourceGroupId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.sourceGroupId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  targetPresentationId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      targetPresentationId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.targetPresentationId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  sourceSceneId: () =>
+    // Referência ao ID do grupo fonte
+    Joi.object({
+      sourceSceneId: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.sourceSceneId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  scale: () =>
+    // Para escala
+    Joi.object({
+      scale: Joi.number().precision(2).min(0).max(100).when("$required.scale", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  image_url: () =>
+    // URL para imagens de ícones
+    Joi.object({
+      image_url: Joi.string()
+        .trim()
+        .min(5)
+        .max(500)
+        .when("$required.image_url", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  image_url_highlight: () =>
+    // URL para imagens de ícones
+    Joi.object({
+      image_url: Joi.string()
+        .trim()
+        .min(5)
+        .max(500)
+        .when("$required.image_url", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  // sceneData: () =>
+  //   Joi.object().concat(schemas.presentation_id()).concat(schemas.id()),
+  sceneData: () =>
+    // URL para imagens de ícones
+    Joi.object({
+      sceneData: Joi.object().when("$required.sceneData", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

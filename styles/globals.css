@@ -50,3 +50,16 @@ body {
 .comunicado-swiper .swiper-button-prev:hover {
   color: #1f2937 !important; /* text-gray-800 */
 }
+
+@layer utilities {
+  /* Esconde a barra de rolagem no Chrome, Safari e Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Esconde a barra de rolagem no IE, Edge e Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}

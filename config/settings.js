@@ -25,6 +25,12 @@ export const settings = {
         FINANCIALS_KPI: "/api/v1/financials_kpi",
         PAYMENT_PLANS_STATS: "/api/v1/payment-plans",
         TASKS: "/api/v1/tasks",
+        PRESENTATIONS: "/api/v1/presentations",
+        SCENES: "/api/v1/scenes",
+        SCENE_ELEMENTS: "/api/v1/scene_elements",
+        TRANSITION_STEPS: "/api/v1/transition_steps",
+        ELEMENT_TYPES: "/api/v1/element-types",
+        ELEMENT_GROUPS: "/api/v1/element_groups",
       },
     },
     REDIRECTS: {
@@ -38,6 +44,16 @@ export const settings = {
       TABLES: "/tables",
       MIGRATIONS: "/migrations",
       STATUS: "/status",
+    },
+    STAGE_MAP_SNAP: {
+      SNAP_Y_THRESHOLD: 3,
+      SNAP_X_THRESHOLD: 3,
+      SNAP_MAX_DISTANCE_PERCENT: 100,
+      BASE_ICON_SIZE_PX: 48,
+    },
+    STAGE_MAP_LOGIC: {
+      MAX_ASSIGNEES_PER_STEP: 20,
+      MAX_ASSIGNEES_PER_GROUP: 2,
     },
   },
 
@@ -323,6 +339,11 @@ export const settings = {
           ["nivel:fue:intermediario"],
           ["nivel:fue:avancado"],
         ],
+      },
+      {
+        name: "Apresentações",
+        href: "/apresentacoes",
+        FEATURES: [["read:presentation"]],
       },
     ],
     OTHER_NAVS: [

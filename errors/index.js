@@ -32,11 +32,11 @@ export class InternalServerError extends BaseError {
 }
 
 export class ServiceError extends BaseError {
-  constructor({ message, action, cause } = {}) {
+  constructor({ message, action, cause, statusCode } = {}) {
     super({
       message: message || "Serviço indisponível no momento.",
       action: action || "Verifique se o serviço está disponível.",
-      statusCode: 503,
+      statusCode: statusCode || 503,
       cause,
       errorName: "ServiceError",
     });

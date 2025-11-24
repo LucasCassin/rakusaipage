@@ -86,7 +86,7 @@ describe("DELETE /api/v1/payment-plans/[id]", () => {
 
     // O erro de FK (Foreign Key) do banco de dados resultará em um erro de servidor (500)
     // se não for tratado especificamente para um 409 (Conflict), o que é aceitável.
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(403);
   });
 
   it("should return 403 for a regular user", async () => {

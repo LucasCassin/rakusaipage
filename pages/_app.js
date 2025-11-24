@@ -10,7 +10,22 @@ import { FinancialsDashboardProvider } from "src/contexts/FinancialsDashboardCon
 import { useRouter } from "next/router";
 import Script from "next/script";
 
-// --- Função Helper para o Google Analytics ---
+// --- (NOVO) Imports para DND Dinâmico ---
+import dynamic from "next/dynamic";
+import Loader from "components/ui/Loader"; // Usaremos seu loader
+
+// --- (NOVO) Importar o DndProvider dinamicamente ---
+// Isso garante que ele e seus 'backends' (HTML5Backend, TouchBackend)
+// NUNCA sejam incluídos no 'bundle' do servidor.
+const DndProviderWrapper = dynamic(
+  () => import("components/DndProviderWrapper"), // O caminho para o novo arquivo
+  {
+    ssr: false, // A CHAVE: Desabilita a Renderização no Servidor
+    loading: () => <Loader />, // Mostra um loader enquanto o cliente hidrata
+  },
+);
+
+// --- Função Helper para o Google Analytics (Sua função original) ---
 const pageview = (url) => {
   if (window.gtag && process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID) {
     window.gtag("config", process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID, {
@@ -21,11 +36,11 @@ const pageview = (url) => {
 
 /**
  * Componente principal da aplicação
- * Envolve todo o app com o provedor de autenticação e layout comum
  */
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
 
+  // --- (Sua lógica original do Google Analytics) ---
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID) {
       return;
@@ -44,6 +59,7 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <>
+      {/* --- (Sua lógica original do Google Analytics Scripts) --- */}
       {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
         <>
           <Script
@@ -67,14 +83,18 @@ function MyApp({ Component, pageProps }) {
         </>
       )}
 
+      {/* --- (Sua estrutura de Providers original) --- */}
       <div className={`${poppins.variable} ${caveat.variable} font-sans`}>
         <AuthProvider>
           <ViewProvider>
-            <Layout>
-              <FinancialsDashboardProvider>
-                <Component {...pageProps} />
-              </FinancialsDashboardProvider>
-            </Layout>
+            {/* O DndProviderWrapper (client-side only) envolve o Layout */}
+            <DndProviderWrapper>
+              <Layout>
+                <FinancialsDashboardProvider>
+                  <Component {...pageProps} />
+                </FinancialsDashboardProvider>
+              </Layout>
+            </DndProviderWrapper>
             <RouteChangeLoading />
           </ViewProvider>
         </AuthProvider>

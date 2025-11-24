@@ -82,6 +82,39 @@ const availableFeatures = new Set([
   "update:payment:indicate_paid",
   "update:payment:confirm_paid",
 
+  // Apresentações (Leitura)
+  "read:presentation", // Chave padrão para Aluno/Anônimo
+  "read:presentation:admin", // Chave mestra para Admin
+
+  // Apresentações (Escrita)
+  "create:presentation",
+  "update:presentation",
+  "delete:presentation",
+
+  // Elenco (Viewers)
+  "create:viewer",
+  "read:viewer",
+  "delete:viewer",
+
+  // Cenas
+  "create:scene",
+  "update:scene",
+  "delete:scene",
+
+  // Elementos de Cena
+  "create:element",
+  "update:element",
+  "delete:element",
+  "read:element",
+
+  // Passos de Transição
+  "create:step",
+  "update:step",
+  "delete:step",
+
+  // Tipos de Elementos (admin global)
+  "manage:element_types",
+
   //Feature para teste
   "test:feature",
   "test:feature:2",

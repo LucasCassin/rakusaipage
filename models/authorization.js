@@ -360,6 +360,183 @@ const profiles = {
     allowedInputFields: ["payment_id"],
     allowedOutputFields: ["id", "status", "confirmed_at"],
   },
+
+  // ### Presentation Features (Base) ###
+  "create:presentation": {
+    allowedInputFields: [
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_by_user_id",
+      "created_at",
+    ],
+  },
+  // Perfil de Leitura Padrão (para "read:presentation")
+  "read:presentation": {
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_at",
+      // 'scenes', 'elements', 'viewers' são populados na API
+    ],
+  },
+  // Perfil de Leitura Admin (para "read:presentation:admin")
+  "read:presentation:admin": {
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "created_by_user_id",
+      "created_at",
+      "updated_at",
+    ],
+  },
+  "update:presentation": {
+    allowedInputFields: [
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "date",
+      "location",
+      "meet_time",
+      "meet_location",
+      "description",
+      "is_public",
+      "updated_at",
+    ],
+  },
+  "delete:presentation": {
+    allowedOutputFields: ["id"],
+  },
+
+  // ### Presentation Features (Viewers / Elenco) ###
+  "create:viewer": {
+    allowedInputFields: ["user_id"],
+    allowedOutputFields: ["id", "presentation_id", "user_id"],
+  },
+  "read:viewer": {
+    allowedOutputFields: ["id", "username"], // Saída do findByPresentationId
+  },
+  "delete:viewer": {
+    allowedOutputFields: ["id"],
+  },
+
+  // ### Presentation Features (Scenes) ###
+  "create:scene": {
+    allowedInputFields: [
+      "presentation_id",
+      "name",
+      "scene_type",
+      "order",
+      "description",
+    ],
+    allowedOutputFields: [
+      "id",
+      "presentation_id",
+      "name",
+      "scene_type",
+      "order",
+      "description",
+    ],
+  },
+  "update:scene": {
+    allowedInputFields: ["name", "order", "description"],
+    allowedOutputFields: ["id", "name", "scene_type", "order", "description"],
+  },
+  "delete:scene": {
+    allowedOutputFields: ["id"],
+  },
+
+  // ### Presentation Features (Elements) ###
+  "create:element": {
+    allowedInputFields: [
+      "scene_id",
+      "element_type_id",
+      "position_x",
+      "position_y",
+      "display_name",
+      "assignees",
+    ],
+    allowedOutputFields: [
+      "id",
+      "scene_id",
+      "element_type_id",
+      "position_x",
+      "position_y",
+      "display_name",
+      "assignees",
+    ],
+  },
+  "update:element": {
+    allowedInputFields: [
+      "position_x",
+      "position_y",
+      "display_name",
+      "assignees",
+    ],
+    allowedOutputFields: [
+      "id",
+      "position_x",
+      "position_y",
+      "display_name",
+      "assignees",
+    ],
+  },
+  "delete:element": {
+    allowedOutputFields: ["id"],
+  },
+
+  // ### Presentation Features (Steps) ###
+  "create:step": {
+    allowedInputFields: ["scene_id", "order", "description", "assignees"],
+    allowedOutputFields: [
+      "id",
+      "scene_id",
+      "order",
+      "description",
+      "assignees",
+    ],
+  },
+  "update:step": {
+    allowedInputFields: ["order", "description", "assignees"],
+    allowedOutputFields: ["id", "order", "description", "assignees"],
+  },
+  "delete:step": {
+    allowedOutputFields: ["id"],
+  },
 };
 
 function can(user, feature, resource) {
@@ -384,6 +561,8 @@ function can(user, feature, resource) {
     case "read:subscription:self":
     case "read:payment:self":
       return resource?.user_id && user.id === resource.user_id;
+
+    // A VERIFICAÇÃO DE "DONO" DA APRESENTAÇÃO FOI REMOVIDA DAQUI
   }
 
   return true;
@@ -417,7 +596,22 @@ function filterInput(user, feature, input, target) {
 function filterOutput(user, feature, output) {
   validateOutput(output);
 
-  const profile = profiles[feature];
+  // --- LÓGICA DE FILTRAGEM ATUALIZADA ---
+  // A lógica de leitura é especial:
+  // "read:presentation" (padrão) e "read:presentation:admin" (mestra)
+  // existem, mas usam perfis de saída diferentes.
+  let profileFeature = feature;
+
+  if (feature === "read:presentation") {
+    // Se a feature for a de admin, use o perfil de admin (mais campos)
+    if (user.features.includes("read:presentation:admin")) {
+      profileFeature = "read:presentation:admin";
+    }
+    // Se não, "read:presentation" (padrão) já é o correto.
+  }
+  // --- FIM DA ATUALIZAÇÃO ---
+
+  const profile = profiles[profileFeature];
   if (!profile || !profile.allowedOutputFields) {
     validateUser(user);
     validateFeature(feature);
@@ -426,6 +620,7 @@ function filterOutput(user, feature, output) {
 
   // MUDANÇA: A verificação 'can' agora acontece ANTES de filtrar.
   // Se a permissão for negada, retorna um objeto vazio, passando no teste.
+  // (Para 'presentation', o 'can' não usa 'resource', então sempre passará)
   if (!can(user, feature, output)) {
     return {};
   }

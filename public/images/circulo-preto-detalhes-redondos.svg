@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="24"
+   height="24"
+   viewBox="0 0 24.000001 24.000001"
+   version="1.1"
+   id="svg1"
+   inkscape:export-filename="circulo-preto.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   sodipodi:docname="circulo-preto-detalhes-redondos.svg"
+   inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="24.483572"
+     inkscape:cx="5.7793854"
+     inkscape:cy="9.4553196"
+     inkscape:window-width="2560"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Camada 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g2">
+      <g
+         id="g1"
+         transform="matrix(1.035538,0,0,1.035538,-0.42645583,-0.42645583)">
+        <path
+           style="color:#000000;fill:#000000;stroke:#000000;stroke-width:0.755906;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           d="m 12,0.88497891 c -3.0656314,0 -5.8443866,1.24593959 -7.856734,3.25828709 C 2.1309185,6.1556134 0.88497891,8.9343686 0.88497891,12 c 0,3.065631 1.24593959,5.844386 3.25828709,7.856734 2.0123474,2.012347 4.7911026,3.258287 7.856734,3.258287 3.065631,0 5.844386,-1.24594 7.856734,-3.258287 2.012347,-2.012348 3.258287,-4.791103 3.258287,-7.856734 0,-3.0656314 -1.24594,-5.8443866 -3.258287,-7.856734 C 17.844386,2.1309185 15.065631,0.88497891 12,0.88497891 Z M 12,2.145744 c 2.725046,0 5.18861,1.1010407 6.970913,2.883343 1.782302,1.7823023 2.883343,4.2458663 2.883343,6.970913 0,2.725046 -1.101041,5.18861 -2.883343,6.970913 C 17.18861,20.753215 14.725046,21.854256 12,21.854256 c -2.7250467,0 -5.1886107,-1.101041 -6.970913,-2.883343 C 3.2467847,17.18861 2.145744,14.725046 2.145744,12 2.145744,9.2749533 3.2467847,6.8113893 5.029087,5.029087 6.8113893,3.2467847 9.2749533,2.145744 12,2.145744 Z"
+           id="path1"
+           sodipodi:nodetypes="ssssssssssssssssss" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle4-6"
+           cx="12.000001"
+           cy="22.477394"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle4-6-8"
+           cx="1.5109296"
+           cy="12.000001"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle4"
+           cx="12.000001"
+           cy="1.5081158"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle4-6-5"
+           cx="22.484133"
+           cy="12.000001"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle28"
+           cx="19.413336"
+           cy="4.5830421"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle29"
+           cx="19.407902"
+           cy="19.411526"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle30"
+           cx="4.5902877"
+           cy="19.416958"
+           r="0.35160092" />
+        <circle
+           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.302362;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none"
+           id="circle4-6-5-8"
+           cx="4.5848536"
+           cy="4.5884762"
+           r="0.35160092" />
+      </g>
+    </g>
+  </g>
+</svg>
