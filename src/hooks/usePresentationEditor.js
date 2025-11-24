@@ -77,7 +77,7 @@ export function usePresentationEditor(presentationId) {
 
   const componentToPrintRef = useRef(null);
   const handlePrint = useReactToPrint({
-    content: () => componentToPrintRef.current,
+    contentRef: componentToPrintRef,
     documentTitle: presentation?.name || "Apresentação Rakusai",
   });
 

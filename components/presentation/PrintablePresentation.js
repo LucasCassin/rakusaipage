@@ -1,6 +1,8 @@
+// lucascassin/rakusaipage/rakusaipage-stage-map/components/presentation/PrintablePresentation.js
+
 import React from "react";
-import FormationMap from "./FormationMap"; //
-import TransitionChecklist from "./TransitionChecklist"; //
+import FormationMap from "./FormationMap";
+import TransitionChecklist from "./TransitionChecklist";
 import { FiUsers, FiCalendar, FiMapPin } from "react-icons/fi";
 
 /**
@@ -11,8 +13,12 @@ const PrintablePresentation = React.forwardRef(({ presentation }, ref) => {
   if (!presentation) return null;
 
   return (
-    // Escondido na tela, visível apenas na impressão
-    <div ref={ref} className="hidden print:block p-8 font-sans">
+    // CORREÇÃO: Em vez de 'hidden', usamos posicionamento absoluto fora da tela.
+    // Isso garante que o elemento exista no DOM com dimensões, permitindo que o react-to-print o capture.
+    <div
+      ref={ref}
+      className="fixed left-[-9999px] top-[-9999px] w-[210mm] print:static print:w-auto print:block p-8 font-sans bg-white text-black"
+    >
       {/* Cabeçalho */}
       <div className="border-b-2 border-gray-900 pb-4 mb-8">
         <h1 className="text-4xl font-bold text-gray-900">
@@ -39,7 +45,10 @@ const PrintablePresentation = React.forwardRef(({ presentation }, ref) => {
       {/* Roteiro (Loop em TODAS as cenas) */}
       <div className="space-y-10">
         {presentation.scenes.map((scene) => (
-          <div key={scene.id} className="page-break-inside-avoid">
+          <div
+            key={scene.id}
+            className="page-break-inside-avoid break-inside-avoid"
+          >
             {/* Título da Cena */}
             <h2 className="text-2xl font-bold text-gray-800 mb-3 border-b border-gray-300 pb-2">
               {`${scene.order + 1}. ${scene.name}`}
