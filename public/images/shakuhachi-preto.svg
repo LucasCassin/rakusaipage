@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="24"
+   height="24"
+   viewBox="0 0 24.000001 24.000001"
+   version="1.1"
+   id="svg1"
+   inkscape:export-filename="tetsu-rosa.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   sodipodi:docname="circulo-preto.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Camada 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="color:#000000;fill:#000000;stroke-linecap:round;stroke-miterlimit:3.6;-inkscape-stroke:none"
+       d="m 11.335938,0.18359375 c -0.322148,0 -0.584861,0.26773511 -0.589844,0.58984375 L 10.403589,22.914062 c -0.005,0.32211 0.267696,0.589844 0.589844,0.589844 h 2.252087 c 0.322147,0 0.594665,-0.267732 0.589843,-0.589844 L 13.503906,0.7734375 C 13.499084,0.45132641 13.23621,0.18359375 12.914063,0.18359375 Z m 0,0.45898437 h 1.578125 c 0.07655,0 0.129713,0.0543131 0.130859,0.13085938 l 0.331457,22.1406245 c 0.0011,0.07654 -0.0543,0.13086 -0.130859,0.13086 h -2.252087 c -0.07656,0 -0.132044,-0.05431 -0.13086,-0.13086 L 11.205078,0.7734375 c 0.0012,-0.0765457 0.0543,-0.13085938 0.13086,-0.13085938 z"
+       id="rect109"
+       sodipodi:nodetypes="ssssssssssssssssss" />
+    <ellipse
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.61701;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+       id="path109"
+       cx="12.119473"
+       cy="0.63415289"
+       rx="0.71221054"
+       ry="0.25490171" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+       d="m 10.84375,8.4280222 h 2.531251"
+       id="path110" />
+    <g
+       id="g112">
+      <path
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         d="m 10.907645,14.359994 h 2.531251"
+         id="path110-1" />
+      <path
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         d="m 10.835722,19.873858 h 2.531251"
+         id="path110-0" />
+    </g>
+    <path
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+       d="m 10.819257,22.575761 h 2.531251"
+       id="path110-5" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+       d="m 10.846878,22.736285 h 2.531251"
+       id="path110-3" />
+    <g
+       id="g113">
+      <circle
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         id="path111"
+         cx="12.119473"
+         cy="10.873987"
+         r="0.30935922" />
+      <circle
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         id="path111-0"
+         cx="12.119473"
+         cy="13.02811"
+         r="0.30935922" />
+    </g>
+    <g
+       id="g114">
+      <circle
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.113386;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         id="path111-5"
+         cx="12.119473"
+         cy="15.540856"
+         r="0.30935922" />
+      <ellipse
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.113489;stroke-linecap:round;stroke-miterlimit:3.6;stroke-dasharray:none;stroke-opacity:1"
+         id="path111-54"
+         cx="12.120035"
+         cy="18.692982"
+         rx="0.30992126"
+         ry="0.30935922" />
+    </g>
+  </g>
+</svg>

@@ -2,7 +2,7 @@
 // Adicionamos 'scale' e 'image_url_highlight'
 const elementTypes = [
   {
-    name: "Odaiko",
+    name: "Oodaiko",
     image_url: "/images/circulo-preto.svg",
     scale: 1.5,
     image_url_highlight: "/images/circulo-rosa.svg",
@@ -10,7 +10,7 @@ const elementTypes = [
   {
     name: "Shime",
     image_url: "/images/circulo-preto.svg",
-    scale: 0.7,
+    scale: 0.6,
     image_url_highlight: "/images/circulo-rosa.svg",
   },
   {
@@ -21,39 +21,88 @@ const elementTypes = [
   },
   {
     name: "Katsugi",
-    image_url: "/images/Katsugi.svg",
+    image_url: "/images/retangulo-preto.svg",
     scale: 1.0,
-    image_url_highlight: "/images/Katsugi.svg",
+    image_url_highlight: "/images/retangulo-rosa.svg",
   },
   {
     name: "Chappa",
-    image_url: "/images/Chappa.svg",
-    scale: 0.6,
-    image_url_highlight: "/images/Chappa.svg",
+    image_url: "/images/chappa-preto.svg",
+    scale: 0.8,
+    image_url_highlight: "/images/chappa-rosa.svg",
   },
   {
     name: "Shinobue",
-    image_url: "/images/Shinobue.svg",
+    image_url: "/images/shinobue-preto.svg",
     scale: 1.0,
-    image_url_highlight: "/images/Shinobue.svg",
+    image_url_highlight: "/images/shinobue-rosa.svg",
   },
   {
     name: "Ippon",
-    image_url: "/images/Ippon.svg",
+    image_url: "/images/retangulo-preenchido-preto.svg",
     scale: 1.0,
-    image_url_highlight: "/images/Ippon.svg",
+    image_url_highlight: "/images/retangulo-preenchido-rosa.svg",
   },
   {
-    name: "Person",
-    image_url: "/images/Person.svg",
+    name: "Pessoa",
+    image_url: "/images/pessoa-preto.svg",
     scale: 1.0,
-    image_url_highlight: "/images/Person.svg",
+    image_url_highlight: "/images/pessoa-rosa.svg",
   },
   {
     name: "Palco",
     image_url: "/images/stage-line.svg",
     scale: 1.0,
     image_url_highlight: "/images/stage-line.svg",
+  },
+
+  {
+    name: "Nagado Daiko",
+    image_url: "/images/circulo-preto-detalhes-redondos.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/circulo-rosa-detalhes-redondos.svg",
+  },
+  {
+    name: "Uchiwa Daiko",
+    image_url: "/images/uchiwa-preto.svg",
+    scale: 0.8,
+    image_url_highlight: "/images/uchiwa-rosa.svg",
+  },
+  {
+    name: "Chan-chiki",
+    image_url: "/images/chanchiki-preto.svg",
+    scale: 0.8,
+    image_url_highlight: "/images/chanchiki-rosa.svg",
+  },
+  {
+    name: "Tetsu-zutsu",
+    image_url: "/images/tetsu-preto.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/tetsu-rosa.svg",
+  },
+  {
+    name: "Shakuhachi",
+    image_url: "/images/shakuhachi-preto.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/shakuhachi-rosa.svg",
+  },
+  {
+    name: "Shamisen",
+    image_url: "/images/shamisen-preto.svg",
+    scale: 1.2,
+    image_url_highlight: "/images/shamisen-rosa.svg",
+  },
+  {
+    name: "Hyoshigi",
+    image_url: "/images/hyoshigi-preto.svg",
+    scale: 0.8,
+    image_url_highlight: "/images/hyoshigi-rosa.svg",
+  },
+  {
+    name: "Koto",
+    image_url: "/images/koto-preto.svg",
+    scale: 1.0,
+    image_url_highlight: "/images/koto-rosa.svg",
   },
 ];
 
