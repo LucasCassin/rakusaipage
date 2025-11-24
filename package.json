@@ -55,6 +55,7 @@
     "react-select": "5.10.2",
     "react-textarea-autosize": "8.5.9",
     "react-to-print": "3.2.0",
+    "resend": "6.5.2",
     "swiper": "11.2.10",
     "swr": "2.3.3",
     "tailwind-scrollbar": "3.0.5",
