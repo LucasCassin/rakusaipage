@@ -1,19 +1,36 @@
 import React, { useState } from "react";
-import { FiPrinter, FiX, FiMaximize, FiMinimize } from "react-icons/fi";
+import {
+  FiPrinter,
+  FiX,
+  FiMaximize,
+  FiMinimize,
+  FiImage,
+} from "react-icons/fi";
 import Button from "components/ui/Button";
 import TextareaAutosize from "react-textarea-autosize";
 import Switch from "components/ui/Switch";
 
-export default function PrintCommentModal({ isOpen, onClose, onConfirmPrint }) {
+export default function PrintCommentModal({
+  isOpen,
+  onClose,
+  onConfirmPrint,
+  onConfirmPng,
+}) {
   const [comments, setComments] = useState("");
   const [isCompact, setIsCompact] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
+  const handlePrint = () => {
     onConfirmPrint(comments, isCompact);
-    // Limpa o comentário após confirmar (opcional, dependendo da preferência)
-    // setComments("");
+    setComments("");
+  };
+
+  const handlePng = () => {
+    if (onConfirmPng) {
+      onConfirmPng(comments, isCompact);
+      setComments("");
+    }
   };
 
   return (
@@ -50,9 +67,7 @@ export default function PrintCommentModal({ isOpen, onClose, onConfirmPrint }) {
                   Modo Compacto
                 </span>
                 <span className="text-xs text-gray-500">
-                  {isCompact
-                    ? "Paisagem, 3 colunas, resumido."
-                    : "Retrato, 1 coluna, detalhado."}
+                  {isCompact ? "Paisagem, resumido." : "Retrato, detalhado."}
                 </span>
               </div>
             </div>
@@ -88,7 +103,16 @@ export default function PrintCommentModal({ isOpen, onClose, onConfirmPrint }) {
             Cancelar
           </Button>
           <Button
-            onClick={handleSubmit}
+            onClick={handlePng}
+            variant="primary"
+            className="gap-2"
+            size="small"
+          >
+            <FiImage />
+            Gerar PNG {isCompact ? "(Compacto)" : "(Completo)"}
+          </Button>
+          <Button
+            onClick={handlePrint}
             variant="primary"
             className="gap-2"
             size="small"

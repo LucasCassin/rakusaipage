@@ -388,6 +388,7 @@ export default function PresentationPage() {
           isOpen={editor.modal.isPrintOpen}
           onClose={editor.modal.closePrint}
           onConfirmPrint={editor.modal.processPrint}
+          onConfirmPng={editor.modal.processPng}
         />
       )}
 

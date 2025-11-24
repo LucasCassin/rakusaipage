@@ -5,6 +5,7 @@ import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
+import { toPng } from "html-to-image";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -77,6 +78,9 @@ export function usePresentationEditor(presentationId) {
     success: globalSuccessMessage,
     setSuccess: setGlobalSuccessMessage,
     clearSuccess: clearGlobalSuccessMessage,
+    setError: setGlobalErrorMessage,
+    error: globalErrorMessage,
+    clearError: clearGlobalErrorMessage,
   } = useMessage();
 
   const componentToPrintRef = useRef(null);
@@ -1196,6 +1200,53 @@ export function usePresentationEditor(presentationId) {
     [handlePrint],
   );
 
+  const handleDownloadPng = useCallback(
+    async (comments, isCompact) => {
+      // Define estados para renderizar o componente corretamente
+      setPrintComments(comments);
+      setPrintIsCompact(isCompact);
+      setIsPrintModalOpen(false); // Fecha o modal
+
+      // Pequeno delay para o React atualizar o DOM com os novos props (comments/compact)
+      setTimeout(async () => {
+        if (componentToPrintRef.current === null) return;
+
+        try {
+          // Largura aproximada A4 em pixels (96 DPI): 794px (Retrato) / 1123px (Paisagem)
+          // Multiplicamos por 2 ou 3 no pixelRatio para alta qualidade
+          const dataUrl = await toPng(componentToPrintRef.current, {
+            cacheBust: true,
+            pixelRatio: 2, // Garante alta resolução (Retina)
+            backgroundColor: "white",
+            style: {
+              // Truque: Sobrescreve o estilo 'fixed left-[-9999px]' APENAS na captura
+              visibility: "visible",
+              position: "static",
+              left: "0",
+              top: "0",
+              transform: "none",
+            },
+          });
+
+          // Cria o link falso para download
+          const link = document.createElement("a");
+          const modeName = isCompact ? "compacto" : "completo";
+          link.download = `${presentation?.name || "apresentacao"}-${modeName}.png`;
+          link.href = dataUrl;
+          link.click();
+
+          setGlobalSuccessMessage("Imagem gerada com sucesso!");
+          setTimeout(() => clearGlobalSuccessMessage(), 3000);
+        } catch (err) {
+          console.error("Erro ao gerar imagem:", err);
+          setGlobalErrorMessage("Erro ao gerar imagem.");
+          setTimeout(() => clearGlobalErrorMessage(), 3000);
+        }
+      }, 500); // 500ms é seguro para renderização de imagens pesadas
+    },
+    [presentation, setGlobalSuccessMessage, clearGlobalSuccessMessage],
+  );
+
   return {
     presentation,
     isLoading: isLoadingData,
@@ -1294,6 +1345,7 @@ export function usePresentationEditor(presentationId) {
       openPrint: openPrintModal,
       closePrint: closePrintModal,
       processPrint: handleProcessPrint,
+      processPng: handleDownloadPng,
     },
 
     printData: {

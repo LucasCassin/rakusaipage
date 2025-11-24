@@ -130,14 +130,7 @@ const PrintablePresentation = React.forwardRef(
                     {scene.transition_steps.map((step, i) => (
                       <div key={step.id} className="mb-0.5 flex">
                         <span className="mr-1 opacity-70">-</span>
-                        <span>
-                          {step.description}
-                          {step.assignees && step.assignees.length > 0 && (
-                            <span className="text-gray-500 text-[9px] ml-1">
-                              ({step.assignees.length})
-                            </span>
-                          )}
-                        </span>
+                        <span>{step.description}</span>
                       </div>
                     ))}
                     {scene.transition_steps.length === 0 && (
