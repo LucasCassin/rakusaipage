@@ -98,7 +98,97 @@ async function sendAccountCreatedEmail({ to, username, password, loginLink }) {
   }
 }
 
+/**
+ * Envia notificação de novo pagamento gerado (Fatura)
+ */
+async function sendPaymentGeneratedEmail({
+  to,
+  username,
+  planName,
+  totalValue,
+  discount,
+  finalValue,
+  dueDate,
+  paymentLink,
+}) {
+  if (!resend) {
+    console.warn("⚠️ RESEND_API_KEY não configurada.");
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[DEV] Email Pagamento para ${to} | Valor: ${finalValue}`);
+      return { success: true, mock: true };
+    }
+    return { success: false, error: "Service unavailable" };
+  }
+
+  // Formatação de Moeda (BRL)
+  const formatMoney = (val) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(val);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Rakusai Financeiro <${EMAIL_FROM}>`,
+      to: [to],
+      subject: `Fatura Disponível - ${planName}`,
+      html: `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #E91E63; margin-top: 0;">Olá, ${username}!</h2>
+          <p>Uma nova fatura referente ao seu plano <strong>${planName}</strong> foi gerada e já está disponível.</p>
+          
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Valor Bruto:</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">${formatMoney(totalValue)}</td>
+              </tr>
+              ${
+                discount > 0
+                  ? `
+              <tr>
+                <td style="padding: 8px 0; color: #22c55e;">Desconto:</td>
+                <td style="padding: 8px 0; text-align: right; color: #22c55e;">- ${formatMoney(discount)}</td>
+              </tr>
+              `
+                  : ""
+              }
+              <tr style="border-top: 1px solid #ddd;">
+                <td style="padding: 12px 0; font-size: 1.1em; font-weight: bold;">Valor Final:</td>
+                <td style="padding: 12px 0; text-align: right; font-size: 1.1em; font-weight: bold; color: #E91E63;">
+                  ${formatMoney(finalValue)}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Vencimento:</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">${dueDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${paymentLink}" style="background-color: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Ver Fatura
+            </a>
+          </div>
+          
+          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 30px;">
+            Se você já realizou o pagamento e indicou no site do Rakusai, por favor desconsidere este e-mail.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error("Erro ao enviar email de pagamento:", error);
+    return { success: false, error };
+  }
+}
+
 export const emailService = {
   sendPasswordResetEmail,
   sendAccountCreatedEmail,
+  sendPaymentGeneratedEmail,
 };
