@@ -13,6 +13,7 @@ import PasswordForm from "components/forms/PasswordForm";
 import { usePasswordHook } from "src/hooks/usePasswordHook";
 import { useMessage } from "src/hooks/useMessage";
 import { useSetFieldError } from "src/hooks/useSetFieldError";
+import Link from "next/link";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -212,6 +213,14 @@ export default function LoginForm() {
           <div className="space-y-4">
             {EmailField}
             {PasswordField}
+          </div>
+          <div className="flex justify-start text-sm mt-1 mb-4">
+            <Link
+              href="/login/forgot-password"
+              className="text-rakusai-purple hover:text-rakusai-purple-dark transition-colors"
+            >
+              Esqueci minha senha.
+            </Link>
           </div>
           {SubmitButton}
         </>

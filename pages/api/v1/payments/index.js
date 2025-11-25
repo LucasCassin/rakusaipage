@@ -54,7 +54,6 @@ async function getHandler(req, res) {
       req.context.user.username.toUpperCase() === username.toUpperCase()
         ? "read:payment:self"
         : "read:payment:other";
-    console.log(feature);
     const filteredOutput = payments.map((p) =>
       authorization.filterOutput(req.context.user, feature, p),
     );

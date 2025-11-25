@@ -5,7 +5,6 @@
 import session from "models/session.js";
 import { InternalServerError, MethodNotAllowedError } from "errors/index.js";
 import ERROR_MESSAGES from "models/error-messages.js";
-
 /**
  * Handler for requests that do not match any route.
  * @param {Object} req - HTTP request object.

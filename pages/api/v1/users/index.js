@@ -4,6 +4,7 @@ import authentication from "models/authentication";
 import user from "models/user.js";
 import authorization from "models/authorization";
 import validator from "models/validator.js";
+import { emailService } from "services/emailService";
 
 const router = createRouter().use(authentication.injectAnonymousOrUser);
 router.post(
@@ -47,6 +48,18 @@ async function postHandler(req, res) {
   );
 
   const newUser = await user.create(validatedInputData);
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_WEB_URL || `http://${req.headers.host}`;
+  const loginLink = `${baseUrl}/login`;
+
+  await emailService.sendAccountCreatedEmail({
+    to: newUser.email,
+    username: newUser.username,
+    password: rawInputData.password,
+    loginLink: loginLink,
+  });
+
   const filteredOutputData = authorization.filterOutput(
     newUser,
     "read:user:self",
