@@ -4,7 +4,6 @@ import PublicHeader from "components/PublicHeader";
 import FormInput from "components/forms/FormInput";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
-import { texts } from "src/utils/texts";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
