@@ -155,9 +155,15 @@ export default function PresentationsDashboardPage() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Apresentações
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Crie, edite e gerencie seus mapas de palco.
-          </p>
+          {permissions.canCreate ? (
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Crie, edite e gerencie seus mapas de palco.
+            </p>
+          ) : (
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Acompanhe suas apresentações.
+            </p>
+          )}
         </div>
 
         {permissions.canCreate && (
