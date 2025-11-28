@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useRef } from "react";
 import Image from "next/image";
 import { useDrag } from "react-dnd";
 import { ItemTypes } from "./ItemTypes";
+import { useViewportSize } from "src/hooks/useViewportSize";
 
-/**
- * Renderiza um item individual na paleta (ex: "Odaiko" ou "Renan (Odaiko)").
- * Agora é um item arrastável (draggable).
- */
-export default function PaletteItem({ itemData }) {
+export default function PaletteItem({
+  itemData,
+  onManualAdd,
+  onTogglePalette,
+}) {
   const {
     name,
     iconUrl,
@@ -20,37 +21,72 @@ export default function PaletteItem({ itemData }) {
     element_type_name,
   } = itemData;
 
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.PALETTE_ITEM,
+  const { width } = useViewportSize();
+  const isMobile = width < 768;
 
-    item: {
+  const lastClickTimeRef = useRef(0);
+
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
       type: ItemTypes.PALETTE_ITEM,
-      element_type_id,
-      display_name,
-      assignees,
-      image_url: iconUrl,
-
-      element_type_name: element_type_name,
-
-      scale: scale,
-      image_url_highlight: image_url_highlight,
-
-      isTemplate,
-    },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+      canDrag: !isMobile,
+      item: {
+        type: ItemTypes.PALETTE_ITEM,
+        element_type_id,
+        display_name,
+        assignees,
+        image_url: iconUrl,
+        element_type_name: element_type_name,
+        scale: scale,
+        image_url_highlight: image_url_highlight,
+        isTemplate,
+      },
+      collect: (monitor) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
     }),
-  }));
+    [isMobile],
+  );
+
+  const handleMobileClick = (e) => {
+    if (!isMobile) return;
+
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+
+    if (timeSinceLastClick > 0 && timeSinceLastClick < 300) {
+      e.preventDefault();
+
+      if (onManualAdd) {
+        onManualAdd(itemData);
+        onTogglePalette();
+      }
+
+      lastClickTimeRef.current = 0;
+    } else {
+      lastClickTimeRef.current = now;
+    }
+  };
 
   return (
     <div
-      ref={drag}
-      className={`flex items-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-300 cursor-grab active:cursor-grabbing shadow-sm ${
+      ref={isMobile ? null : drag}
+      onClick={handleMobileClick}
+      className={`flex items-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-300 shadow-sm ${
         isDragging ? "opacity-50" : "opacity-100"
-      }`}
-      style={{ touchAction: "none" }}
+      } ${isMobile ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
+      style={
+        isMobile
+          ? {
+              userSelect: "none",
+
+              touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
+            }
+          : { touchAction: "none" }
+      }
     >
-      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-inner overflow-hidden">
+      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-inner overflow-hidden pointer-events-none">
         <Image
           src={iconUrl || "/favicon.svg"}
           alt={name}
@@ -60,7 +96,9 @@ export default function PaletteItem({ itemData }) {
           style={{ transform: `scale(${scale || 1.0})` }}
         />
       </div>
-      <span className="ml-3 font-medium text-sm text-gray-700">{name}</span>
+      <span className="ml-3 font-medium text-sm text-gray-700 pointer-events-none">
+        {name}
+      </span>
     </div>
   );
 }

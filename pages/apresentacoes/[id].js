@@ -272,6 +272,7 @@ export default function PresentationPage() {
                 palette={editor.palette}
                 isPaletteOpen={isPaletteOpen}
                 onTogglePalette={togglePalette}
+                onMobileAdd={editor.dropHandlers.onMobileAdd}
               />
             )}
           </div>

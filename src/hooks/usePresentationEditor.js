@@ -6,6 +6,7 @@ import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
+import { calculateAutoPosition } from "components/presentation/FormationMap";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -306,6 +307,35 @@ export function usePresentationEditor(presentationId) {
       setIsElementModalOpen(true);
     }
   };
+
+  const handleMobileAddElement = useCallback(
+    async (itemData) => {
+      if (!currentSceneId || !presentation) return;
+
+      // 1. Encontrar a cena atual
+      const currentScene = presentation.scenes.find(
+        (s) => s.id === currentSceneId,
+      );
+      if (!currentScene) return;
+
+      const existingElements = currentScene.elements || [];
+
+      // 2. Calcular posição livre
+      const position = calculateAutoPosition(
+        existingElements,
+        itemData.scale || 1.0,
+      );
+
+      const dropItem = {
+        ...itemData,
+        image_url: itemData.iconUrl,
+      };
+
+      // 4. Reutilizar a lógica de criação
+      await handlePaletteDrop(dropItem, position);
+    },
+    [currentSceneId, presentation, handlePaletteDrop],
+  );
 
   const openElementEditor = (element) => {
     setModalData({
@@ -1351,6 +1381,7 @@ export function usePresentationEditor(presentationId) {
       onPaletteDrop: handlePaletteDrop,
       onElementMove: moveElement,
       onElementMerge: mergeElements,
+      onMobileAdd: handleMobileAddElement,
     },
 
     stepHandlers: {

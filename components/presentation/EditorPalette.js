@@ -11,6 +11,7 @@ export default function EditorPalette({
   palette,
   isPaletteOpen,
   onTogglePalette,
+  onMobileAdd,
 }) {
   const {
     pool = [],
@@ -81,6 +82,8 @@ export default function EditorPalette({
                   <PaletteItem
                     key={`${item.element_type_id}-${item.display_name}-${(item.assignees || []).join("-")}`}
                     itemData={itemData}
+                    onManualAdd={onMobileAdd}
+                    onTogglePalette={onTogglePalette}
                   />
                 );
               })
@@ -110,7 +113,14 @@ export default function EditorPalette({
                   element_type_name: type.name,
                   isTemplate: false,
                 };
-                return <PaletteItem key={type.id} itemData={itemData} />;
+                return (
+                  <PaletteItem
+                    key={type.id}
+                    itemData={itemData}
+                    onManualAdd={onMobileAdd}
+                    onTogglePalette={onTogglePalette}
+                  />
+                );
               })
             ) : (
               <p className="text-sm text-gray-500 p-2">
