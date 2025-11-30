@@ -29,6 +29,7 @@ const PrintablePresentation = React.forwardRef(
           timeZone: "America/Sao_Paulo",
           day: "2-digit",
           month: "2-digit",
+          year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
         })
@@ -105,17 +106,36 @@ const PrintablePresentation = React.forwardRef(
            ================================================================================= */}
         {isCompact ? (
           <div className="h-full flex flex-col">
-            <div className="mb-4 border-b-2 border-black pb-1 flex justify-between items-end">
-              <div>
-                <h1 className="font-bold text-lg uppercase leading-none text-black">
-                  {presentation.name}
-                </h1>
-                <div className="flex gap-3 text-xs text-gray-700 mt-1 font-medium">
-                  {formattedDate && <span>{formattedDate}</span>}
+            {/* Cabeçalho Compacto com Info Extra */}
+            <div className="mb-4 border-b-2 border-black pb-2">
+              <h1 className="font-bold text-lg uppercase leading-none text-black mb-2">
+                {presentation.name}
+              </h1>
+
+              <div className="flex flex-wrap gap-x-8 gap-y-1 text-xs text-gray-800">
+                {/* Grupo Apresentação */}
+                <div className="flex items-center gap-1">
+                  <span className="font-bold uppercase text-[10px] text-gray-600 tracking-wider">
+                    Apresentação:
+                  </span>
                   {presentation.location && (
-                    <span>• {presentation.location}</span>
+                    <span>{presentation.location}</span>
                   )}
+                  {formattedDate && <span>| {formattedDate}</span>}
                 </div>
+
+                {/* Grupo Encontro (Só aparece se existir) */}
+                {(formattedMeetTime || presentation.meet_location) && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold uppercase text-[10px] text-gray-600 tracking-wider">
+                      Encontro:
+                    </span>
+                    {presentation.meet_location && (
+                      <span>{presentation.meet_location}</span>
+                    )}
+                    {formattedMeetTime && <span>| {formattedMeetTime}</span>}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -151,10 +171,11 @@ const PrintablePresentation = React.forwardRef(
                 </div>
               )}
 
-              {transitionScenes.map((scene) => (
+              {/* Transições com numeração sequencial (idx + 1) */}
+              {transitionScenes.map((scene, idx) => (
                 <div key={scene.id} className="mb-3">
                   <h3 className="font-bold text-xs text-black mb-0.5 break-after-avoid">
-                    {scene.order + 1}. {scene.name}
+                    {idx + 1}. {scene.name}
                   </h3>
                   <div className="text-[10px] leading-tight text-gray-800 ml-1">
                     {scene.transition_steps.map((step) => (
@@ -368,7 +389,7 @@ const PrintablePresentation = React.forwardRef(
 
               <div className="flex gap-10 h-full">
                 <div className="w-1/2 pr-6 border-r border-gray-200">
-                  <h3 className="text-xl font-bold text-rakusai-purple mb-6 flex items-center gap-2">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                     Ordem das músicas
                   </h3>
                   <ul className="space-y-4">

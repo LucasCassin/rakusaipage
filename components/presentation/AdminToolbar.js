@@ -39,7 +39,7 @@ export default function AdminToolbar({
         </Button>
 
         <Button size="small" variant="ghost" onClick={onPrint}>
-          <FiDownload className="mr-2" /> Baixar PDF
+          <FiDownload className="mr-2" /> Baixar
         </Button>
       </div>
     </div>
