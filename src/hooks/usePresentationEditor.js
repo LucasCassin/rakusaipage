@@ -1247,8 +1247,9 @@ export function usePresentationEditor(presentationId) {
         try {
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 5,
+            pixelRatio: 3,
             backgroundColor: "white",
+            quality: 1.0,
             style: {
               visibility: "visible",
               position: "static",
