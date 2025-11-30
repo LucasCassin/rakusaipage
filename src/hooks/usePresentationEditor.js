@@ -7,6 +7,7 @@ import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
 import { calculateAutoPosition } from "components/presentation/FormationMap";
+import { set } from "date-fns";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -74,6 +75,7 @@ export function usePresentationEditor(presentationId) {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printComments, setPrintComments] = useState("");
   const [printIsCompact, setPrintIsCompact] = useState(false);
+  const [isLoadingPrint, setIsLoadingPrint] = useState(false);
 
   const {
     success: globalSuccessMessage,
@@ -1219,19 +1221,22 @@ export function usePresentationEditor(presentationId) {
 
   const handleProcessPrint = useCallback(
     (comments, isCompact) => {
+      setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
         handlePrint();
-      }, 200);
+        setIsLoadingPrint(false);
+      }, 500);
     },
     [handlePrint],
   );
 
   const handleDownloadPng = useCallback(
     async (comments, isCompact) => {
+      setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
       setIsPrintModalOpen(false);
@@ -1242,7 +1247,7 @@ export function usePresentationEditor(presentationId) {
         try {
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 2,
+            pixelRatio: 5,
             backgroundColor: "white",
             style: {
               visibility: "visible",
@@ -1250,6 +1255,11 @@ export function usePresentationEditor(presentationId) {
               left: "0",
               top: "0",
               transform: "none",
+              fontSmoothing: "antialiased",
+              WebkitFontSmoothing: "antialiased",
+              MozOsxFontSmoothing: "grayscale",
+              textRendering: "geometricPrecision",
+              imageRendering: "high-quality",
             },
           });
 
@@ -1265,8 +1275,10 @@ export function usePresentationEditor(presentationId) {
           console.error("Erro ao gerar imagem:", err);
           setGlobalErrorMessage("Erro ao gerar imagem.");
           setTimeout(() => clearGlobalErrorMessage(), 3000);
+        } finally {
+          setIsLoadingPrint(false);
         }
-      }, 500);
+      }, 1000);
     },
     [presentation, setGlobalSuccessMessage, clearGlobalSuccessMessage],
   );
@@ -1375,6 +1387,7 @@ export function usePresentationEditor(presentationId) {
     printData: {
       comments: printComments,
       isCompact: printIsCompact,
+      isLoading: isLoadingPrint,
     },
 
     dropHandlers: {
