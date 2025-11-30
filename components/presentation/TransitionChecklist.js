@@ -23,7 +23,12 @@ export default function TransitionChecklist({
       {/* --- MUDANÇA: Botão de Adicionar --- */}
       {canAdd && (
         <div className="p-4">
-          <Button variant="primary" size="small" onClick={() => onAddStep()}>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => onAddStep()}
+            className="w-full sm:w-auto"
+          >
             <FiPlus className="mr-2" />
             Adicionar Passo
           </Button>

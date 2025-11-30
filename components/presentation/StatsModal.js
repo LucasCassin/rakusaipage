@@ -258,7 +258,8 @@ export default function StatsModal({
                       </p>
                       <p className="text-xs text-blue-700">Checklist</p>
                     </div>
-                    <span className="ml-auto text-lg font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                    {/* Aqui */}
+                    <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold text-blue-700 bg-blue-100">
                       {stats?.userStats.stepsCount || 0}
                     </span>
                   </div>
@@ -378,7 +379,12 @@ export default function StatsModal({
         </div>
 
         <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end">
-          <Button variant="secondary" onClick={onClose}>
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            size="small"
+            className="w-full sm:w-auto"
+          >
             Fechar
           </Button>
         </div>

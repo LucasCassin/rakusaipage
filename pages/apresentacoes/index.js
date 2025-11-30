@@ -168,7 +168,12 @@ export default function PresentationsDashboardPage() {
 
         {permissions.canCreate && (
           <div className="mt-8 text-right">
-            <Button variant="primary" size="small" onClick={openCreateModal}>
+            <Button
+              variant="primary"
+              size="small"
+              onClick={openCreateModal}
+              className="w-full sm:w-auto"
+            >
               <FiPlus className="mr-2" />
               Criar Nova Apresentação
             </Button>

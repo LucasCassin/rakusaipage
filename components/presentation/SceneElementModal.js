@@ -105,45 +105,47 @@ export default function SceneElementModal({
 
           {error && <Alert type="error">{error}</Alert>}
 
-          <div className="flex justify-between items-center pt-4">
-            <div>
-              {!isCreate && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={handleDelete}
-                  isLoading={isDeleting}
-                  disabled={isLoading || isDeleting}
-                  size="small"
-                >
-                  <FiTrash2 className="mr-2" />
-                  Excluir
-                </Button>
-              )}
-            </div>
-
-            <div className="flex gap-2">
+          <div className="w-full flex flex-col sm:flex-row sm:justify-between items-center pt-4 gap-3 sm:gap-0">
+            {!isCreate ? (
               <Button
                 type="button"
-                variant="secondary"
-                onClick={onClose}
+                variant="danger"
+                onClick={handleDelete}
+                isLoading={isDeleting}
                 disabled={isLoading || isDeleting}
                 size="small"
+                className="w-full sm:w-auto order-1 justify-center"
               >
-                Cancelar
+                <FiTrash2 className="mr-2" />
+                Excluir
               </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={isLoading}
-                disabled={
-                  isLoading || isDeleting || (isLoadingCast && !isStageLine)
-                }
-                size="small"
-              >
-                {isCreate ? "Adicionar ao Palco" : "Salvar Alterações"}
-              </Button>
-            </div>
+            ) : (
+              <div className="hidden sm:block w-auto order-1" />
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isLoading}
+              disabled={
+                isLoading || isDeleting || (isLoadingCast && !isStageLine)
+              }
+              size="small"
+              className="w-full sm:w-auto order-2 sm:order-3 justify-center"
+            >
+              {isCreate ? "Adicionar ao Palco" : "Salvar Alterações"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isLoading || isDeleting}
+              size="small"
+              className="w-full sm:w-auto order-3 sm:order-2 justify-center"
+            >
+              Cancelar
+            </Button>
           </div>
         </form>
       </div>

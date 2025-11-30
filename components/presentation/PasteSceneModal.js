@@ -106,13 +106,14 @@ export default function PasteSceneModal({
 
           {error && <Alert type="error">{error}</Alert>}
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3 sm:gap-0 pt-4">
             <Button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isLoading}
               size="small"
+              className="w-full sm:w-auto" // Adicionado
             >
               Cancelar
             </Button>
@@ -122,6 +123,7 @@ export default function PasteSceneModal({
               isLoading={isLoading}
               disabled={isLoading}
               size="small"
+              className="w-full sm:w-auto" // Adicionado
             >
               Colar Cena
             </Button>

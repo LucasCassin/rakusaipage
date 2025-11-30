@@ -96,7 +96,7 @@ export default function SceneFormModal({
                 name="scene_type"
                 value={formData.scene_type}
                 onChange={handleChange}
-                className="mt-1 py-2 w-full rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+                className="mt-1 py-2 px-3 w-full rounded-md border border-gray-300 text-sm font-medium text-gray-700"
               >
                 <option value="FORMATION">Formação (Mapa de Palco)</option>
                 <option value="TRANSITION">Transição (Checklist)</option>
@@ -123,13 +123,14 @@ export default function SceneFormModal({
 
           {error && <Alert type="error">{error}</Alert>}
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3 sm:gap-0 pt-4">
             <Button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isLoading}
               size="small"
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
@@ -139,6 +140,7 @@ export default function SceneFormModal({
               isLoading={isLoading}
               disabled={isLoading}
               size="small"
+              className="w-full sm:w-auto"
             >
               {isCreate ? "Adicionar Cena" : "Salvar Alterações"}
             </Button>

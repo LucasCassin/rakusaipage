@@ -66,32 +66,44 @@ export default function PresentationListItem({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto justify-end">
+      <div className="flex flex-col sm:flex-row items-stretch gap-2 mt-4 sm:mt-0 w-full sm:w-auto sm:justify-end">
         {/* 1. Botão ABRIR EDITOR (Principal) */}
         {permissions.canUpdate ? (
           <Link href={`/apresentacoes/${presentation.id}`} passHref>
-            <Button variant="secondary" size="small" as="a">
+            <Button
+              variant="secondary"
+              size="small"
+              as="a"
+              className="w-full sm:w-auto justify-center" // Adicionado
+            >
               <FiEdit className="mr-2" />
               Editor
             </Button>
           </Link>
         ) : (
           <Link href={`/apresentacoes/${presentation.id}`} passHref>
-            <Button variant="secondary" size="small" as="a">
+            <Button
+              variant="secondary"
+              size="small"
+              as="a"
+              className="w-full sm:w-auto justify-center" // Adicionado
+            >
               <FiEye className="mr-2" />
               Abrir
             </Button>
           </Link>
         )}
 
-        {/* 2. Botão EDITAR INFORMAÇÕES (Novo) */}
+        {/* 2. Botão EDITAR INFORMAÇÕES */}
         {permissions.canUpdate && (
           <Button
             variant="warning"
             size="small"
             onClick={onEditInfoClick}
             title="Editar Informações"
-            className="text-gray-500"
+            // Adicionado w-full, sm:w-auto e justify-center.
+            // Mantive text-gray-500 que já existia.
+            className="text-gray-500 w-full sm:w-auto justify-center"
           >
             <FiSettings />
           </Button>
@@ -104,6 +116,7 @@ export default function PresentationListItem({
             size="small"
             onClick={onDeleteClick}
             title="Excluir Apresentação"
+            className="w-full sm:w-auto justify-center" // Adicionado
           >
             <FiTrash2 />
           </Button>
