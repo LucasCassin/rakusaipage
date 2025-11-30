@@ -21,7 +21,7 @@ export default function AdminToolbar({
 
   return (
     <div className="bg-gray-800 text-white p-3 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 justify-center sm:justify-start">
         <FiEdit className="h-5 w-5 text-rakusai-yellow-dark" />
         <span className="font-bold">Modo Editor</span>
         <Switch checked={isEditorMode} onChange={onToggleEditorMode} />
@@ -39,7 +39,7 @@ export default function AdminToolbar({
         </Button>
 
         <Button size="small" variant="ghost" onClick={onPrint}>
-          <FiDownload className="mr-2" /> Baixar PDF
+          <FiDownload className="mr-2" /> Baixar
         </Button>
       </div>
     </div>

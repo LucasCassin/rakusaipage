@@ -127,6 +127,12 @@ export default function PresentationPage() {
         maxWidth="max-w-7xl"
       >
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {editor.printData.isLoading && (
+            <div className="flex items-center justify-center min-h-screen">
+              <InitialLoading message="Preparando impressão..." />
+            </div>
+          )}
+
           {editor.globalSuccessMessage && (
             <Alert type="success" className="mb-4">
               {editor.globalSuccessMessage}
@@ -272,6 +278,7 @@ export default function PresentationPage() {
                 palette={editor.palette}
                 isPaletteOpen={isPaletteOpen}
                 onTogglePalette={togglePalette}
+                onMobileAdd={editor.dropHandlers.onMobileAdd}
               />
             )}
           </div>

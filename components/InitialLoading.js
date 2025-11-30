@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Loading from "./Loading";
 
-export default function InitialLoading() {
+export default function InitialLoading({ message } = {}) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,5 +16,7 @@ export default function InitialLoading() {
     return () => clearTimeout(timer);
   }, []);
 
-  return loading ? <Loading /> : null;
+  return loading ? (
+    <Loading message={message ? message : "Carregando..."} />
+  ) : null;
 }

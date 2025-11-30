@@ -6,6 +6,7 @@ import { handleApiResponse } from "src/utils/handleApiResponse";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
+import { calculateAutoPosition } from "components/presentation/FormationMap";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -73,6 +74,7 @@ export function usePresentationEditor(presentationId) {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printComments, setPrintComments] = useState("");
   const [printIsCompact, setPrintIsCompact] = useState(false);
+  const [isLoadingPrint, setIsLoadingPrint] = useState(false);
 
   const {
     success: globalSuccessMessage,
@@ -306,6 +308,35 @@ export function usePresentationEditor(presentationId) {
       setIsElementModalOpen(true);
     }
   };
+
+  const handleMobileAddElement = useCallback(
+    async (itemData) => {
+      if (!currentSceneId || !presentation) return;
+
+      // 1. Encontrar a cena atual
+      const currentScene = presentation.scenes.find(
+        (s) => s.id === currentSceneId,
+      );
+      if (!currentScene) return;
+
+      const existingElements = currentScene.elements || [];
+
+      // 2. Calcular posição livre
+      const position = calculateAutoPosition(
+        existingElements,
+        itemData.scale || 1.0,
+      );
+
+      const dropItem = {
+        ...itemData,
+        image_url: itemData.iconUrl,
+      };
+
+      // 4. Reutilizar a lógica de criação
+      await handlePaletteDrop(dropItem, position);
+    },
+    [currentSceneId, presentation, handlePaletteDrop],
+  );
 
   const openElementEditor = (element) => {
     setModalData({
@@ -1189,19 +1220,22 @@ export function usePresentationEditor(presentationId) {
 
   const handleProcessPrint = useCallback(
     (comments, isCompact) => {
+      setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
         handlePrint();
-      }, 200);
+        setIsLoadingPrint(false);
+      }, 500);
     },
     [handlePrint],
   );
 
   const handleDownloadPng = useCallback(
     async (comments, isCompact) => {
+      setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
       setIsPrintModalOpen(false);
@@ -1212,14 +1246,20 @@ export function usePresentationEditor(presentationId) {
         try {
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 2,
+            pixelRatio: 3,
             backgroundColor: "white",
+            quality: 1.0,
             style: {
               visibility: "visible",
               position: "static",
               left: "0",
               top: "0",
               transform: "none",
+              fontSmoothing: "antialiased",
+              WebkitFontSmoothing: "antialiased",
+              MozOsxFontSmoothing: "grayscale",
+              textRendering: "geometricPrecision",
+              imageRendering: "high-quality",
             },
           });
 
@@ -1235,8 +1275,10 @@ export function usePresentationEditor(presentationId) {
           console.error("Erro ao gerar imagem:", err);
           setGlobalErrorMessage("Erro ao gerar imagem.");
           setTimeout(() => clearGlobalErrorMessage(), 3000);
+        } finally {
+          setIsLoadingPrint(false);
         }
-      }, 500);
+      }, 1000);
     },
     [presentation, setGlobalSuccessMessage, clearGlobalSuccessMessage],
   );
@@ -1345,12 +1387,14 @@ export function usePresentationEditor(presentationId) {
     printData: {
       comments: printComments,
       isCompact: printIsCompact,
+      isLoading: isLoadingPrint,
     },
 
     dropHandlers: {
       onPaletteDrop: handlePaletteDrop,
       onElementMove: moveElement,
       onElementMerge: mergeElements,
+      onMobileAdd: handleMobileAddElement,
     },
 
     stepHandlers: {

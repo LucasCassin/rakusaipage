@@ -7,7 +7,7 @@ import { settings } from "config/settings.js";
 
 const VIRTUAL_WIDTH = 1000;
 const BASE_ICON_SIZE_PX = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
-
+const VIRTUAL_HEIGHT = VIRTUAL_WIDTH * (3 / 4);
 const BASE_LABEL_MARGIN_PX = 3;
 
 /**
@@ -73,7 +73,7 @@ export default function FormationMap({
 
   const [dimensions, setDimensions] = useState({
     width: VIRTUAL_WIDTH,
-    height: VIRTUAL_WIDTH * (3 / 4),
+    height: VIRTUAL_HEIGHT,
   });
   const [snapGuides, setSnapGuides] = useState(null);
   const [snapAnchors, setSnapAnchors] = useState(null);
@@ -527,4 +527,65 @@ export default function FormationMap({
       )}
     </div>
   );
+}
+
+/**
+ * LÓGICA DE POSICIONAMENTO AUTOMÁTICO (MOBILE)
+ * Calcula a primeira posição disponível baseada em colisão circular.
+ */
+export function calculateAutoPosition(existingElements, newItemScale = 1.0) {
+  const PADDING_FACTOR = 1.1; // 10% de folga extra para não colar demais
+
+  // Função auxiliar para verificar colisão em um ponto específico
+  const hasCollision = (xPercent, yPercent, currentScale) => {
+    const candidateX = (xPercent / 100) * VIRTUAL_WIDTH;
+    const candidateY = (yPercent / 100) * VIRTUAL_HEIGHT;
+    const candidateRadius = (BASE_ICON_SIZE_PX * currentScale) / 2;
+
+    for (const el of existingElements) {
+      const elX = (parseFloat(el.position_x) / 100) * VIRTUAL_WIDTH;
+      const elY = (parseFloat(el.position_y) / 100) * VIRTUAL_HEIGHT;
+      const elScale = el.scale || 1.0;
+      const elRadius = (BASE_ICON_SIZE_PX * elScale) / 2;
+
+      const dx = candidateX - elX;
+      const dy = candidateY - elY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const minDistance = (candidateRadius + elRadius) * PADDING_FACTOR;
+
+      if (distance < minDistance) {
+        return true; // Colisão detectada
+      }
+    }
+    return false; // Sem colisão
+  };
+
+  // Grid de busca (Grid de 10x10 para performance e distribuição)
+  const gridSteps = 10;
+  const startMargin = 10; // Começa em 10%
+  const endMargin = 90; // Termina em 90%
+
+  // 1. Tentativa com Scale Original
+  for (let y = startMargin; y <= endMargin; y += gridSteps) {
+    for (let x = startMargin; x <= endMargin; x += gridSteps) {
+      if (!hasCollision(x, y, newItemScale)) {
+        return { x, y };
+      }
+    }
+  }
+
+  // 2. Tentativa ignorando Scale (Scale = 1.0)
+  // Caso o objeto seja muito grande, tentamos encaixá-lo como se fosse padrão
+  if (newItemScale !== 1.0) {
+    for (let y = startMargin; y <= endMargin; y += gridSteps) {
+      for (let x = startMargin; x <= endMargin; x += gridSteps) {
+        if (!hasCollision(x, y, 1.0)) {
+          return { x, y };
+        }
+      }
+    }
+  }
+
+  // 3. Fallback: Centro da Tela
+  return { x: 50, y: 50 };
 }
