@@ -86,15 +86,16 @@ const PrintablePresentation = React.forwardRef(
         <style type="text/css" media="print">
           {`
           @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-          
-          @page { 
-            size: landscape; 
+
+          @page {
+            size: A4 landscape; 
             margin: 0; 
           }
           body { 
             margin: 0; 
             font-family: 'Poppins', sans-serif !important;
             -webkit-print-color-adjust: exact;
+            width: 100%;
           }
           .page-break {
             break-after: page;
@@ -104,7 +105,7 @@ const PrintablePresentation = React.forwardRef(
         </style>
 
         {/* =================================================================================
-            MODO COMPACTO (MANTIDO ORIGINALMENTE)
+            MODO COMPACTO
            ================================================================================= */}
         {isCompact ? (
           <div className="h-full flex flex-col">
@@ -173,7 +174,6 @@ const PrintablePresentation = React.forwardRef(
                 </div>
               )}
 
-              {/* Transições com numeração sequencial (idx + 1) */}
               {transitionScenes.map((scene, idx) => (
                 <div key={scene.id} className="mb-3">
                   <h3 className="font-bold text-xs text-black mb-0.5 break-after-avoid">
@@ -214,6 +214,9 @@ const PrintablePresentation = React.forwardRef(
             </div>
           </div>
         ) : (
+          /* =================================================================================
+             MODO DETALHADO
+             ================================================================================= */
           <>
             {/* PÁGINA 1: CAPA */}
             <div className="w-[297mm] h-[210mm] relative flex flex-col page-break bg-white p-[10mm]">
@@ -243,7 +246,7 @@ const PrintablePresentation = React.forwardRef(
                     {formattedDate && (
                       <div className="flex items-center gap-3">
                         <FiCalendar className="text-rakusai-purple text-xl" />
-                        <span className="text-lg font-semibold text-gray-800">
+                        <span className="text-lg text-gray-800">
                           {formattedDate}
                         </span>
                       </div>
@@ -265,7 +268,7 @@ const PrintablePresentation = React.forwardRef(
                     {formattedMeetTime ? (
                       <div className="flex items-center gap-3">
                         <FiClock className="text-blue-600 text-xl" />
-                        <span className="text-lg font-semibold text-gray-800">
+                        <span className="text-lg text-gray-800">
                           {formattedMeetTime}
                         </span>
                       </div>
@@ -288,13 +291,12 @@ const PrintablePresentation = React.forwardRef(
               </div>
             </div>
 
-            {/* PÁGINAS DE FORMAÇÃO (Loop) */}
+            {/* PÁGINAS DE FORMAÇÃO */}
             {detailedPages.map((pageData) => (
               <div
                 key={pageData.formation.id}
                 className="w-[297mm] h-[210mm] page-break flex flex-col p-[10mm] box-border relative"
               >
-                {/* --- Cabeçalho da Cena (10% altura) --- */}
                 <div className="h-[10%] flex flex-col justify-center border-b-2 border-gray-800 mb-2 pb-1">
                   <div className="flex items-baseline gap-3">
                     <span className="text-4xl font-black text-gray-900 leading-none">
@@ -311,9 +313,7 @@ const PrintablePresentation = React.forwardRef(
                   )}
                 </div>
 
-                {/* --- Corpo Principal: Flex Row para divisão Esquerda/Direita (90% altura) --- */}
                 <div className="h-[90%] flex flex-row gap-4">
-                  {/* Esquerda: Mapa */}
                   <div
                     style={{ width: MAP_WIDTH }}
                     className="h-full relative border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50"
@@ -325,7 +325,6 @@ const PrintablePresentation = React.forwardRef(
                     />
                   </div>
 
-                  {/* Direita: Transições Anteriores */}
                   <div
                     style={{ width: TRANSITIONS_WIDTH }}
                     className="h-full bg-white border border-gray-200 rounded-lg p-3 flex flex-col overflow-hidden"
@@ -383,7 +382,7 @@ const PrintablePresentation = React.forwardRef(
               </div>
             ))}
 
-            {/* PÁGINA FINAL: NOTAS E SETLIST */}
+            {/* PÁGINA FINAL */}
             <div className="w-[297mm] h-[210mm] p-[15mm] flex flex-col justify-center box-border">
               <h1 className="text-3xl font-bold text-gray-900 mb-8 pb-4 border-b-2 border-gray-200 uppercase">
                 Resumo Final
