@@ -7,7 +7,6 @@ import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
 import { calculateAutoPosition } from "components/presentation/FormationMap";
-import { set } from "date-fns";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 

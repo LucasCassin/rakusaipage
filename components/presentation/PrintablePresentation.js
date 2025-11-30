@@ -1,17 +1,13 @@
 import React, { useMemo } from "react";
 import FormationMap from "./FormationMap";
-import TransitionChecklist from "./TransitionChecklist";
 import { FiCalendar, FiMapPin, FiClock, FiNavigation } from "react-icons/fi";
 
-// --- CONFIGURAÇÃO DE LAYOUT (MODO DETALHADO) ---
 // Ajuste a porcentagem aqui para alterar a divisão da tela
 const MAP_WIDTH = "75%"; // Largura do Mapa
 const TRANSITIONS_WIDTH = "25%"; // Largura da lista de Transições
 
 const PrintablePresentation = React.forwardRef(
   ({ presentation, finalComments, isCompact }, ref) => {
-    if (!presentation) return null;
-
     // --- Formatadores de Data ---
     const formattedDate = presentation.date
       ? new Date(presentation.date).toLocaleString("pt-BR", {
@@ -71,6 +67,8 @@ const PrintablePresentation = React.forwardRef(
     const setlist = presentation.scenes.filter(
       (s) => s.scene_type === "FORMATION",
     );
+
+    if (!presentation) return null;
 
     return (
       <div
