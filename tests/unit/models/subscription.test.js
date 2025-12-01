@@ -183,8 +183,6 @@ describe("User Subscription Model", () => {
       expect(results[0].username).toBe("AlphaUser");
       expect(results[1].username).toBe("ZebraUser");
 
-      // Verifica se os campos extras do JOIN vieram
-      expect(results[0]).toHaveProperty("email", "alpha@test.com");
       expect(results[0]).toHaveProperty("user_id", userB.id); // Testando sua modificação específica
     });
   });

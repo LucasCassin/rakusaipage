@@ -242,7 +242,7 @@ async function findByPlanId(planId) {
   const validatedId = validator({ id: planId }, { id: "required" });
   const query = {
     text: `
-      SELECT sub.*, u.username, u.email, u.id as user_id
+      SELECT sub.*, u.username
       FROM user_subscriptions sub
       JOIN users u ON sub.user_id = u.id
       WHERE sub.plan_id = $1
