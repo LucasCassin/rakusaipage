@@ -25,11 +25,12 @@ async function getHandler(req, res) {
   }
 
   const subscriptions = await subscription.findByPlanId(id);
-
-  const filteredOutput = await authorization.filterOutput(
-    req.context.user,
-    "read:subscription:other",
-    subscriptions,
+  const filteredOutput = subscriptions.map((sub) =>
+    authorization.filterOutput(
+      req.context.user,
+      "read:subscription:other",
+      sub,
+    ),
   );
 
   res.status(200).json(filteredOutput);
