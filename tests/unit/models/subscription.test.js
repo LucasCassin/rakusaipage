@@ -121,4 +121,71 @@ describe("User Subscription Model", () => {
       expect(updatedSub.discount_value).toBe("15.00");
     });
   });
+
+  describe("findByPlanId()", () => {
+    it("should return subscriptions for a specific plan with user details", async () => {
+      // 1. Setup: Criar Planos
+      const planTarget = await plan.create({
+        name: "Plano Alvo",
+        full_value: 100.0,
+        period_unit: "month",
+        period_value: 1,
+      });
+      const planOther = await plan.create({
+        name: "Outro Plano",
+        full_value: 50.0,
+        period_unit: "month",
+        period_value: 1,
+      });
+
+      // 2. Setup: Criar Usuários (nomes propositalmente fora de ordem alfabética para testar o sort)
+      const userA = await user.create({
+        username: "ZebraUser",
+        email: "zebra@test.com",
+        password: "StrongPassword123@",
+      });
+      const userB = await user.create({
+        username: "AlphaUser",
+        email: "alpha@test.com",
+        password: "StrongPassword123@",
+      });
+
+      // 3. Setup: Criar Assinaturas
+      // userA e userB assinam o plano alvo
+      await subscription.create({
+        user_id: userA.id,
+        plan_id: planTarget.id,
+        payment_day: 10,
+        start_date: "2023-01-01",
+      });
+      await subscription.create({
+        user_id: userB.id,
+        plan_id: planTarget.id,
+        payment_day: 10,
+        start_date: "2023-01-01",
+      });
+
+      // userA também assina o outro plano (para garantir que não venha no resultado)
+      await subscription.create({
+        user_id: userA.id,
+        plan_id: planOther.id,
+        payment_day: 15,
+        start_date: "2023-01-01",
+      });
+
+      // 4. Execução
+      const results = await subscription.findByPlanId(planTarget.id);
+
+      // 5. Verificações
+      expect(results).toHaveLength(2);
+
+      // Verifica ordenação (Alpha deve vir antes de Zebra)
+      expect(results[0].username).toBe("AlphaUser");
+      expect(results[1].username).toBe("ZebraUser");
+
+      // Verifica se os campos extras do JOIN vieram
+      expect(results[0]).toHaveProperty("email", "alpha@test.com");
+      expect(results[0]).toHaveProperty("user_id", userB.id); // Testando sua modificação específica
+    });
+  });
 });
