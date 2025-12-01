@@ -235,11 +235,31 @@ async function del(subscriptionId) {
   return results.rows[0];
 }
 
+/**
+ * Busca todas as assinaturas vinculadas a um plano específico.
+ */
+async function findByPlanId(planId) {
+  const validatedId = validator({ id: planId }, { id: "required" });
+  const query = {
+    text: `
+      SELECT sub.*, u.username, u.email, u.id as user_id
+      FROM user_subscriptions sub
+      JOIN users u ON sub.user_id = u.id
+      WHERE sub.plan_id = $1
+      ORDER BY u.username ASC;
+    `,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
 export default {
   create,
   findById,
   findByUserId,
   findByUsername,
+  findByPlanId,
   update,
   findAll,
   del,
