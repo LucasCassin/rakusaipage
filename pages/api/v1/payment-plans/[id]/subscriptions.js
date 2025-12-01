@@ -11,7 +11,7 @@ const router = createRouter()
   .use(authentication.checkIfUserPasswordExpired);
 
 // Protegido por permissão de leitura de planos de pagamento
-router.get(authorization.canRequest("read:payment_plan"), getHandler);
+router.get(authorization.canRequest("read:subscription:other"), getHandler);
 
 export default router.handler(controller.errorsHandlers);
 
@@ -26,5 +26,11 @@ async function getHandler(req, res) {
 
   const subscriptions = await subscription.findByPlanId(id);
 
-  res.status(200).json(subscriptions);
+  const filteredOutput = await authorization.filterOutput(
+    req.context.user,
+    "read:subscription:other",
+    subscriptions,
+  );
+
+  res.status(200).json(filteredOutput);
 }
