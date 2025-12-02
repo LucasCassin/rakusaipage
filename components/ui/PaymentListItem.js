@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import Button from "./Button";
+import { usePaymentNotification } from "src/hooks/usePaymentNotification";
 
 const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+
+  // [Novo] Hooks necessários para funcionar
+  const { notifyPayment, isNotifying } = usePaymentNotification();
 
   const formattedAmount = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(payment.amount_due);
 
-  // Alterei para 'toLocaleString' para incluir a hora,
-  // mas 'toLocaleDateString' (como está no seu) também funciona
   const formattedDate = new Date(payment.due_date).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
   });
@@ -38,6 +40,21 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
     }
     setIsProcessing(true);
     await onDeleteClick(payment.id);
+  };
+
+  // [Novo] Função handleNotify com lógica de confirmação de 3s
+  const handleNotify = async () => {
+    if (pendingAction !== "notify") {
+      setPendingAction("notify");
+      return;
+    }
+
+    // Chama o hook de notificação
+    await notifyPayment(payment.id, {
+      onSuccess: () => {
+        setPendingAction(null); // Reseta o estado após sucesso
+      },
+    });
   };
 
   return (
@@ -84,6 +101,33 @@ const PaymentListItem = ({ payment, onConfirmClick, onDeleteClick }) => {
       <div className="flex items-center gap-2 w-full sm:w-auto">
         {payment.status !== "CONFIRMED" && (
           <>
+            {/* [Novo] Botão de Notificar adicionado aqui */}
+            <Button
+              size="small"
+              variant={
+                pendingAction === "notify"
+                  ? "warning"
+                  : payment.status === "OVERDUE"
+                    ? "danger"
+                    : "secondary"
+              }
+              className="w-1/2 sm:w-auto"
+              onClick={handleNotify}
+              disabled={
+                isNotifying ||
+                isProcessing ||
+                (pendingAction && pendingAction !== "notify")
+              }
+            >
+              {isNotifying
+                ? "Enviando..."
+                : pendingAction === "notify"
+                  ? "Certeza?"
+                  : payment.status === "OVERDUE"
+                    ? "Cobrar"
+                    : "Lembrar"}
+            </Button>
+
             <Button
               size="small"
               variant={pendingAction === "confirm" ? "warning" : "primary"}

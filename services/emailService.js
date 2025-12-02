@@ -187,8 +187,112 @@ async function sendPaymentGeneratedEmail({
   }
 }
 
+/**
+ * Envia notificação de cobrança (Lembrete ou Atraso)
+ */
+async function sendPaymentWarning({
+  to,
+  username,
+  planName,
+  amount,
+  dueDate,
+  paymentLink,
+  isOverdue,
+}) {
+  if (!resend) {
+    console.warn("⚠️ RESEND_API_KEY não configurada.");
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `[DEV] Email Aviso (${isOverdue ? "Atraso" : "Lembrete"}) para ${to}`,
+      );
+      return { success: true, mock: true };
+    }
+    return { success: false, error: "Service unavailable" };
+  }
+
+  const formatMoney = (val) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(val);
+
+  const subject = isOverdue
+    ? "Aviso de Pendência - Rakusai Taiko"
+    : "Lembrete de Pagamento - Rakusai Taiko";
+
+  const statusColor = isOverdue ? "#c53030" : "#E91E63"; // Vermelho ou Rosa
+
+  const messageBody = isOverdue
+    ? `
+      <p>Consta em nosso sistema uma pendência referente à sua assinatura.</p>
+      <p style="color: #c53030; font-weight: bold;">O prazo para indicação de pagamento pelo site expirou.</p>
+      <p>Por favor, entre em contato com os professores via <strong>WhatsApp</strong> para regularizar sua situação o mais breve possível.</p>
+    `
+    : `
+      <p>Este é um lembrete sobre seu próximo pagamento.</p>
+      <p>Você pode realizar o pagamento e indicar o comprovante diretamente através do nosso site.</p>
+    `;
+
+  // Se atrasado, não mostramos botão de pagar, pois ele deve contatar via Whats
+  const actionButton = isOverdue
+    ? ""
+    : `
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${paymentLink}" style="background-color: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          Indicar Pagamento
+        </a>
+      </div>
+    `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Rakusai Financeiro <${EMAIL_FROM}>`,
+      to: [to],
+      subject: subject,
+      html: `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+          <h2 style="color: ${statusColor}; margin-top: 0;">Olá, ${username}!</h2>
+          ${messageBody}
+          
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Plano:</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">${planName}</td>
+              </tr>
+              <tr style="border-top: 1px solid #ddd;">
+                <td style="padding: 12px 0; font-size: 1.1em; font-weight: bold;">Valor:</td>
+                <td style="padding: 12px 0; text-align: right; font-size: 1.1em; font-weight: bold; color: ${statusColor};">
+                  ${formatMoney(amount)}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Vencimento:</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">${dueDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${actionButton}
+          
+          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 30px;">
+            Mensagem automática do site do Rakusai.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error("Erro ao enviar aviso de pagamento:", error);
+    return { success: false, error };
+  }
+}
+
 export const emailService = {
   sendPasswordResetEmail,
   sendAccountCreatedEmail,
   sendPaymentGeneratedEmail,
+  sendPaymentWarning,
 };
