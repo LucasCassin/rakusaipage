@@ -84,7 +84,7 @@ export default function UserSubscriptionStatus() {
       </div>
 
       {/* List Content */}
-      <div className="max-h-96 overflow-y-auto">
+      <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {currentList.length === 0 ? (
           <p className="p-8 text-center text-gray-500">
             Nenhum usuário nesta lista.
