@@ -31,6 +31,7 @@ export const settings = {
         TRANSITION_STEPS: "/api/v1/transition_steps",
         ELEMENT_TYPES: "/api/v1/element-types",
         ELEMENT_GROUPS: "/api/v1/element_groups",
+        USERS_SUB_STATUS: "/api/v1/subscriptions/users-status",
       },
     },
     REDIRECTS: {

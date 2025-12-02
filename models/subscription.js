@@ -235,11 +235,52 @@ async function del(subscriptionId) {
   return results.rows[0];
 }
 
+/**
+ * Busca todas as assinaturas vinculadas a um plano específico.
+ */
+async function findByPlanId(planId) {
+  const validatedId = validator({ id: planId }, { id: "required" });
+  const query = {
+    text: `
+      SELECT sub.*, u.username
+      FROM user_subscriptions sub
+      JOIN users u ON sub.user_id = u.id
+      WHERE sub.plan_id = $1
+      ORDER BY u.username ASC;
+    `,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+/**
+ * Busca todos os usuários e a quantidade de planos ativos que cada um possui.
+ */
+async function findUsersWithSubscriptionCount() {
+  const query = {
+    text: `
+      SELECT 
+        u.id, 
+        u.username, 
+        COUNT(s.id)::int as active_count
+      FROM users u
+      LEFT JOIN user_subscriptions s ON u.id = s.user_id AND s.is_active = true
+      GROUP BY u.id, u.username
+      ORDER BY u.username ASC;
+    `,
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
 export default {
   create,
   findById,
   findByUserId,
   findByUsername,
+  findByPlanId,
+  findUsersWithSubscriptionCount,
   update,
   findAll,
   del,

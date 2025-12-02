@@ -12,6 +12,7 @@ import PaymentManagement from "components/finance/PaymentManagement";
 import UserFinancials from "components/finance/UserFinancials";
 import PlanManagement from "components/finance/PlanManagement";
 import Alert from "components/ui/Alert";
+import UserSubscriptionStatus from "components/finance/UserSubscriptionStatus";
 
 // ... (Definições de permissões permanecem iguais) ...
 const PERMISSIONS_KPI_SECTION = [
@@ -148,6 +149,14 @@ export default function FinancialDashboardPage() {
                   canViewOther: userPermissions.canViewOther,
                 }}
               />
+            </div>
+          )}
+          {userPermissions.canViewOther && (
+            <div className="my-20 border-t border-gray-200 pt-12">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Status de Assinaturas por Usuário
+              </h3>
+              <UserSubscriptionStatus />
             </div>
           )}
           {/* --- FIM DA ATUALIZAÇÃO --- */}

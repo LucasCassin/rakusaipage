@@ -29,6 +29,25 @@ export function calculateNextDueDate(
   return nextDate;
 }
 
+function calculateLastDueDate(startDate, paymentDay, periodUnit, periodValue) {
+  const lastDate = new Date(startDate);
+  lastDate.setUTCHours(0, 0, 0, 0);
+
+  if (periodUnit === "month") {
+    lastDate.setUTCMonth(lastDate.getUTCMonth() - periodValue);
+    lastDate.setUTCDate(paymentDay);
+  } else if (periodUnit === "week") {
+    lastDate.setUTCDate(lastDate.getUTCDate() - periodValue * 7);
+  } else if (periodUnit === "day") {
+    lastDate.setUTCDate(lastDate.getUTCDate() - periodValue);
+  } else if (periodUnit === "year") {
+    lastDate.setUTCFullYear(lastDate.getUTCFullYear() - periodValue);
+    lastDate.setUTCDate(paymentDay);
+  }
+
+  return lastDate;
+}
+
 /**
  * Cria uma nova cobrança genérica. Usado pela tarefa agendada (cron job).
  */
@@ -59,8 +78,15 @@ async function create(paymentData) {
  * Cria a primeira cobrança para uma nova assinatura.
  */
 async function createInitialPayment(subscription, plan, client) {
-  const dueDate = calculateNextDueDate(
+  const lastDueDate = calculateLastDueDate(
     subscription.start_date,
+    subscription.payment_day,
+    plan.period_unit,
+    plan.period_value,
+  );
+
+  const dueDate = calculateNextDueDate(
+    lastDueDate,
     subscription.payment_day,
     plan.period_unit,
     plan.period_value,

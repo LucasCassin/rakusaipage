@@ -299,6 +299,7 @@ const profiles = {
       "username",
       "plan_description",
       "plan_full_value",
+      "active_count",
     ],
   },
   "update:subscription": {

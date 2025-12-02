@@ -97,7 +97,7 @@ export default function UserFinancials({ mode, permissions }) {
     if (userFound) {
       return (
         <>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <h4 className="text-md font-semibold text-gray-800">Assinaturas</h4>
             {mode === "other" && (
               <Button
@@ -105,6 +105,7 @@ export default function UserFinancials({ mode, permissions }) {
                 variant="primary"
                 onClick={() => openSubModal("create")}
                 disabled={isLoadingPlans}
+                className="w-full sm:w-auto"
               >
                 + Adicionar Plano
               </Button>
