@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Spinner from "components/ui/Spinner";
 import Alert from "components/ui/Alert";
 import UserAvatar from "components/ui/UserAvatar";
 import { useUserSubscriptionStatus } from "src/hooks/useUserSubscriptionStatus"; // Importando o hook
@@ -19,8 +18,41 @@ export default function UserSubscriptionStatus() {
 
   if (isLoading)
     return (
-      <div className="py-8 text-center">
-        <Spinner />
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden my-8 animate-pulse">
+        {/* Tabs Skeleton */}
+        <div className="flex border-b border-gray-200">
+          <div className="flex-1 py-3 flex justify-center border-b-2 border-transparent">
+            <div className="h-4 w-24 bg-gray-200 rounded"></div>
+          </div>
+          <div className="flex-1 py-3 flex justify-center border-b-2 border-transparent">
+            <div className="h-4 w-24 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+
+        {/* List Content Skeleton */}
+        <div className="max-h-96 overflow-y-auto">
+          <ul className="divide-y divide-gray-100">
+            {[...Array(5)].map((_, index) => (
+              <li
+                key={index}
+                className="px-6 py-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  {/* Avatar Skeleton */}
+                  <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                  {/* Username Skeleton */}
+                  <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                </div>
+
+                {/* Badge/Count Skeleton */}
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:block h-3 w-10 bg-gray-200 rounded"></div>
+                  <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   if (error) return <Alert type="error">{error}</Alert>;

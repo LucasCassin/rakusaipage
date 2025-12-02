@@ -4,8 +4,10 @@ import Spinner from "components/ui/Spinner";
 import Switch from "components/ui/Switch";
 import Alert from "components/ui/Alert";
 import { useMessage } from "src/hooks/useMessage";
+import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext";
 
 export default function PlanUsersModal({ plan, onClose }) {
+  const { triggerKpiRefetch } = useFinancialsDashboard();
   const [activeTab, setActiveTab] = useState("active"); // 'active' | 'inactive'
   const [subscriptions, setSubscriptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +59,8 @@ export default function PlanUsersModal({ plan, onClose }) {
 
       if (!response.ok) {
         throw new Error("Falha ao atualizar status.");
+      } else {
+        triggerKpiRefetch();
       }
     } catch (err) {
       // Reverte em caso de erro

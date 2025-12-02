@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { settings } from "config/settings";
 import { handleApiResponse } from "src/utils/handleApiResponse";
 import { useRouter } from "next/router";
+import { useFinancialsDashboard } from "src/contexts/FinancialsDashboardContext";
 
 export function useUserSubscriptionStatus() {
+  const { kpiTrigger } = useFinancialsDashboard();
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +32,7 @@ export function useUserSubscriptionStatus() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [kpiTrigger]);
 
   useEffect(() => {
     fetchStatus();
