@@ -209,7 +209,6 @@ const SubscriptionFormModal = ({
                   name="start_date"
                   type="date"
                   value={formData.start_date || ""}
-                  min={today} // <-- ADICIONADO
                   onChange={handleChange}
                   className="mt-1"
                 />
