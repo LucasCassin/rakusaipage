@@ -23,7 +23,7 @@ export default function PaymentManagement({ user, canFetch }) {
   return (
     // --- SEPARADOR ADICIONADO ---
     <div className="my-20 border-t border-gray-200 pt-12">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <h3 className="text-lg leading-6 font-medium text-gray-900">
           Gestão de Pagamentos
         </h3>
@@ -32,6 +32,7 @@ export default function PaymentManagement({ user, canFetch }) {
           variant="secondary"
           onClick={runManualTasks}
           disabled={isTaskRunning}
+          className="w-full sm:w-auto justify-center"
         >
           <FiRefreshCw
             className={`mr-2 ${isTaskRunning ? "animate-spin" : ""}`}
