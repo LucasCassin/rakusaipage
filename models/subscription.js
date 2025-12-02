@@ -254,12 +254,33 @@ async function findByPlanId(planId) {
   return results.rows;
 }
 
+/**
+ * Busca todos os usuários e a quantidade de planos ativos que cada um possui.
+ */
+async function findUsersWithSubscriptionCount() {
+  const query = {
+    text: `
+      SELECT 
+        u.id, 
+        u.username, 
+        COUNT(s.id)::int as active_count
+      FROM users u
+      LEFT JOIN user_subscriptions s ON u.id = s.user_id AND s.is_active = true
+      GROUP BY u.id, u.username
+      ORDER BY u.username ASC;
+    `,
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
 export default {
   create,
   findById,
   findByUserId,
   findByUsername,
   findByPlanId,
+  findUsersWithSubscriptionCount,
   update,
   findAll,
   del,
