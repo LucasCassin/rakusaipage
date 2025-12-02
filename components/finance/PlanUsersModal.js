@@ -67,6 +67,7 @@ export default function PlanUsersModal({ plan, onClose }) {
       setSubscriptions(originalSubscriptions);
       setError("Erro ao atualizar o status da assinatura.");
       setTimeout(() => setError(null), 2000);
+      console.error("Erro ao atualizar o status da assinatura: ", err);
     }
   }
 
