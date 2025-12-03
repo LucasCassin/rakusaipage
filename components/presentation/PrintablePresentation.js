@@ -106,7 +106,7 @@ const PrintablePresentation = React.forwardRef(
             MODO COMPACTO
            ================================================================================= */}
         {isCompact ? (
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col pdf-page-container">
             {/* Cabeçalho Compacto com Info Extra */}
             <div className="mb-4 border-b-2 border-black pb-2">
               <h1 className="font-bold text-lg uppercase leading-none text-black mb-2">
@@ -217,7 +217,7 @@ const PrintablePresentation = React.forwardRef(
              ================================================================================= */
           <>
             {/* PÁGINA 1: CAPA */}
-            <div className="w-[297mm] h-[210mm] relative flex flex-col page-break bg-white p-[10mm]">
+            <div className="w-[297mm] h-[210mm] relative flex flex-col page-break bg-white p-[10mm] pdf-page-container">
               <div className="flex-1 flex flex-col justify-center items-center p-10">
                 <div className="bg-gray-800 p-12 rounded-2xl mb-8 shadow-xl flex items-center justify-center">
                   <img
@@ -293,7 +293,7 @@ const PrintablePresentation = React.forwardRef(
             {detailedPages.map((pageData) => (
               <div
                 key={pageData.formation.id}
-                className="w-[297mm] h-[210mm] page-break flex flex-col p-[10mm] box-border relative"
+                className="w-[297mm] h-[210mm] page-break flex flex-col p-[10mm] box-border relative pdf-page-container"
               >
                 <div className="h-[10%] flex flex-col justify-center border-b-2 border-gray-800 mb-2 pb-1">
                   <div className="flex items-baseline gap-3">
@@ -381,7 +381,7 @@ const PrintablePresentation = React.forwardRef(
             ))}
 
             {/* PÁGINA FINAL */}
-            <div className="w-[297mm] h-[210mm] p-[15mm] flex flex-col justify-center box-border">
+            <div className="w-[297mm] h-[210mm] p-[15mm] flex flex-col justify-center box-border pdf-page-container">
               <h1 className="text-3xl font-bold text-gray-900 mb-8 pb-4 border-b-2 border-gray-200 uppercase">
                 Resumo Final
               </h1>
