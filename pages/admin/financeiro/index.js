@@ -4,7 +4,7 @@ import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
 
 import PageLayout from "components/layouts/PageLayout";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading.js";
 
 // Importe os NOVOS componentes "inteligentes"
 import DashboardKPIs from "components/finance/DashboardKPIs";
@@ -87,13 +87,13 @@ export default function FinancialDashboardPage() {
   }, [user, isLoadingAuth, userPermissions.canAccessPage, router]);
 
   if (isLoadingAuth || !showContent) {
-    // ... (Renderização do InitialLoading permanece igual)
+    // ... (Renderização do Loading permanece igual)
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         {authError ? (
           <Alert type="error">{authError}</Alert>
         ) : (
-          <InitialLoading message="Verificando permissões..." />
+          <Loading message="Verificando permissões..." />
         )}
       </div>
     );

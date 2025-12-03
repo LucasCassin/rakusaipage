@@ -1215,6 +1215,7 @@ export function usePresentationEditor(presentationId) {
 
   const handlePrintConfirm = async (pixelRatio) => {
     try {
+      setIsLoadingPrint(true);
       // A ref vem do PrintablePresentation (que deve estar renderizado, mesmo que off-screen)
       const element = componentToPrintRef.current;
 
@@ -1233,14 +1234,13 @@ export function usePresentationEditor(presentationId) {
 
   const handleProcessPrint = useCallback(
     (comments, isCompact, pixelRatio = 3) => {
-      setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
         handlePrintConfirm(pixelRatio);
-      }, 500);
+      }, 1000);
     },
     [handlePrintConfirm],
   );

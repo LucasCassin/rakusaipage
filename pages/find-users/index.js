@@ -7,7 +7,7 @@ import useUrlManager from "src/hooks/useUrlManager"; //
 
 import PageLayout from "components/layouts/PageLayout";
 import Alert from "components/ui/Alert";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading.js";
 import FeatureSelectionForm from "components/forms/FeatureSelectionForm";
 import UserList from "components/ui/UserList";
 import UserListSkeleton from "components/ui/UserListSkeleton";
@@ -87,7 +87,7 @@ export default function FindUsersPage() {
         {authError ? (
           <Alert type="error">{authError}</Alert>
         ) : (
-          <InitialLoading message="Verificando permissões..." />
+          <Loading message="Verificando permissões..." />
         )}
       </div>
     );
