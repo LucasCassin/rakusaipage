@@ -225,8 +225,8 @@ export default function PrintCommentModal({
             />
 
             <p className="text-xs text-gray-500 mt-2 ml-1">
-              *Qualidades acima de "Boa" geram arquivos maiores e levam mais
-              tempo.
+              *Qualidades acima de &quot;Boa&quot; geram arquivos maiores e
+              levam mais tempo.
             </p>
           </div>
         </div>
