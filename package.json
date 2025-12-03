@@ -41,6 +41,7 @@
     "exceljs": "4.4.0",
     "html-to-image": "1.11.13",
     "joi": "17.13.3",
+    "jspdf": "3.0.4",
     "next": "15.2.3",
     "next-connect": "1.0.0",
     "node-pg-migrate": "7.9.1",
