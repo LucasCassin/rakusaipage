@@ -12,6 +12,7 @@ export const generatePDF = async (
   elementRef,
   fileName = "apresentacao.pdf",
   isCompact = false,
+  pixelRatio = 3,
 ) => {
   if (!elementRef) return;
 
@@ -31,7 +32,7 @@ export const generatePDF = async (
         width: 1123, // Largura A4 aprox em px (96 DPI) - ajustável pelo pixelRatio
         height: 794,
         cacheBust: true,
-        pixelRatio: 4,
+        pixelRatio: pixelRatio,
         backgroundColor: "white",
         quality: 1.0,
         style: {

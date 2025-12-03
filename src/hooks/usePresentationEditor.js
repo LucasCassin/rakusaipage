@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useReactToPrint } from "react-to-print";
 import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
@@ -7,6 +6,7 @@ import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
 import { calculateAutoPosition } from "components/presentation/FormationMap";
+import { generatePDF } from "src/utils/pdfGenerator";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -85,11 +85,6 @@ export function usePresentationEditor(presentationId) {
   } = useMessage();
 
   const componentToPrintRef = useRef(null);
-
-  const handlePrint = useReactToPrint({
-    contentRef: componentToPrintRef,
-    documentTitle: presentation?.name || "Apresentação Rakusai",
-  });
 
   useEffect(() => {
     if (
@@ -1218,6 +1213,24 @@ export function usePresentationEditor(presentationId) {
     setIsPrintModalOpen(false);
   };
 
+  const handlePrintConfirm = async () => {
+    try {
+      // A ref vem do PrintablePresentation (que deve estar renderizado, mesmo que off-screen)
+      const element = componentToPrintRef.current;
+
+      // Nome do arquivo
+      const fileName = `${presentation.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+
+      // Chama o gerador
+      await generatePDF(element, fileName, printIsCompact);
+      closePrintModal(); // Fecha o modal de comentários
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingPrint(false);
+    }
+  };
+
   const handleProcessPrint = useCallback(
     (comments, isCompact) => {
       setIsLoadingPrint(true);
@@ -1226,11 +1239,10 @@ export function usePresentationEditor(presentationId) {
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
-        handlePrint();
-        setIsLoadingPrint(false);
+        handlePrintConfirm();
       }, 500);
     },
-    [handlePrint],
+    [handlePrintConfirm],
   );
 
   const handleDownloadPng = useCallback(
