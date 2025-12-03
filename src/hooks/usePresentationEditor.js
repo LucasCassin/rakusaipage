@@ -1213,7 +1213,7 @@ export function usePresentationEditor(presentationId) {
     setIsPrintModalOpen(false);
   };
 
-  const handlePrintConfirm = async () => {
+  const handlePrintConfirm = async (pixelRatio) => {
     try {
       // A ref vem do PrintablePresentation (que deve estar renderizado, mesmo que off-screen)
       const element = componentToPrintRef.current;
@@ -1222,7 +1222,7 @@ export function usePresentationEditor(presentationId) {
       const fileName = `${presentation.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
 
       // Chama o gerador
-      await generatePDF(element, fileName, printIsCompact);
+      await generatePDF(element, fileName, printIsCompact, pixelRatio);
       closePrintModal(); // Fecha o modal de comentários
     } catch (error) {
       console.error(error);
@@ -1232,21 +1232,21 @@ export function usePresentationEditor(presentationId) {
   };
 
   const handleProcessPrint = useCallback(
-    (comments, isCompact) => {
+    (comments, isCompact, pixelRatio = 3) => {
       setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
-        handlePrintConfirm();
+        handlePrintConfirm(pixelRatio);
       }, 500);
     },
     [handlePrintConfirm],
   );
 
   const handleDownloadPng = useCallback(
-    async (comments, isCompact) => {
+    async (comments, isCompact, pixelRatio = 3) => {
       setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
@@ -1258,7 +1258,7 @@ export function usePresentationEditor(presentationId) {
         try {
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 3,
+            pixelRatio: pixelRatio,
             backgroundColor: "white",
             quality: 1.0,
             style: {
