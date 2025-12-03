@@ -4,7 +4,7 @@ import { usePresentationEditor } from "src/hooks/usePresentationEditor";
 import PageLayout from "components/layouts/PageLayout";
 import ErrorPage from "components/ui/ErrorPage";
 import { texts } from "src/utils/texts";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading.js";
 import Link from "next/link";
 // Imports dos Componentes da Página
 import AdminToolbar from "components/presentation/AdminToolbar";
@@ -54,7 +54,7 @@ export default function PresentationPage() {
   if (editor.isLoading || !router.isReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <InitialLoading message="Carregando apresentação..." />
+        <Loading message="Carregando apresentação..." />
       </div>
     );
   }
@@ -126,13 +126,12 @@ export default function PresentationPage() {
         description={`Mapa de palco para ${presentation?.name || "apresentação"}.`}
         maxWidth="max-w-7xl"
       >
+        {editor.printData.isLoading && (
+          <div className="flex items-center justify-center min-h-screen">
+            <Loading message="Preparando impressão..." />
+          </div>
+        )}
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          {editor.printData.isLoading && (
-            <div className="flex items-center justify-center min-h-screen">
-              <InitialLoading message="Preparando impressão..." />
-            </div>
-          )}
-
           {editor.globalSuccessMessage && (
             <Alert type="success" className="mb-4">
               {editor.globalSuccessMessage}

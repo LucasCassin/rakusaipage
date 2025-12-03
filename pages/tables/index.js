@@ -5,7 +5,7 @@ import { settings } from "config/settings.js";
 import { texts } from "src/utils/texts.js";
 import Alert from "components/ui/Alert";
 import LoadingSpinner from "components/ui/LoadingSpinner";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading";
 import useTableManager from "src/hooks/useTableManager";
 import { useMessage } from "src/hooks/useMessage";
 import Table from "components/tables/Table";
@@ -186,7 +186,7 @@ export default function Tables() {
   };
 
   if (isLoadingAuth) {
-    return <InitialLoading />;
+    return <Loading />;
   }
 
   return (

@@ -4,7 +4,7 @@ import { useAuth } from "src/contexts/AuthContext.js";
 import { settings } from "config/settings.js";
 
 import PageLayout from "components/layouts/PageLayout";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading.js";
 import Alert from "components/ui/Alert";
 import UserFinancialsSkeleton from "components/ui/UserFinancialsSkeleton";
 import PaymentHistoryList from "components/ui/PaymentHistoryList";
@@ -118,7 +118,7 @@ export default function StudentFinancePage() {
         {authError ? (
           <Alert type="error">{authError}</Alert>
         ) : (
-          <InitialLoading message="Verificando permissões..." />
+          <Loading message="Verificando permissões..." />
         )}
       </div>
     );

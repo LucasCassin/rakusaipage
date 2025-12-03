@@ -6,7 +6,7 @@ import { settings } from "config/settings.js";
 import { usePresentationsDashboard } from "src/hooks/usePresentationsDashboard";
 
 import PageLayout from "components/layouts/PageLayout";
-import InitialLoading from "components/InitialLoading";
+import Loading from "components/Loading.js";
 import Alert from "components/ui/Alert";
 import Button from "components/ui/Button";
 import { FiPlus } from "react-icons/fi";
@@ -138,7 +138,7 @@ export default function PresentationsDashboardPage() {
         {authError ? (
           <Alert type="error">{authError}</Alert>
         ) : (
-          <InitialLoading message="Verificando permissões..." />
+          <Loading message="Verificando permissões..." />
         )}
       </div>
     );

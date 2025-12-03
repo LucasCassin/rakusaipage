@@ -1,30 +1,16 @@
-const { fontFamily } = require("tailwindcss/defaultTheme");
+const theme = require("./styles/theme");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./pages/**/*.{js,jsx}",
-    "./components/**/*.{js,jsx}",
-    "./src/**/*.{js,jsx}",
-  ],
+  content: theme.content,
   theme: {
     extend: {
       colors: {
-        "rakusai-yellow-light": "#ffd800",
-        "rakusai-yellow-dark": "#f7bf22",
-        "rakusai-pink": "#e40788",
-        "rakusai-pink-light": "#ee86c4ff",
-        "rakusai-purple": "#b000b0",
-        "rakusai-purple-light": "#c472c4ff",
+        ...theme.theme.extend.colors,
       },
       fontFamily: {
-        sans: ["var(--font-poppins)", ...fontFamily.sans],
-        handwriting: ["var(--font-caveat)", "cursive"],
+        ...theme.theme.extend.fontFamily,
       },
     },
   },
-  plugins: [
-    require("tailwind-scrollbar"),
-    require("@tailwindcss/typography"),
-    require("@tailwindcss/aspect-ratio"),
-  ],
+  plugins: theme.plugins,
 };

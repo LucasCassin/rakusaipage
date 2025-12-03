@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useReactToPrint } from "react-to-print";
 import { useRouter } from "next/navigation";
 import { usePresentation } from "./usePresentation";
 import { handleApiResponse } from "src/utils/handleApiResponse";
@@ -7,6 +6,7 @@ import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
 import { calculateAutoPosition } from "components/presentation/FormationMap";
+import { generatePDF } from "src/utils/pdfGenerator";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -85,11 +85,6 @@ export function usePresentationEditor(presentationId) {
   } = useMessage();
 
   const componentToPrintRef = useRef(null);
-
-  const handlePrint = useReactToPrint({
-    contentRef: componentToPrintRef,
-    documentTitle: presentation?.name || "Apresentação Rakusai",
-  });
 
   useEffect(() => {
     if (
@@ -1218,23 +1213,40 @@ export function usePresentationEditor(presentationId) {
     setIsPrintModalOpen(false);
   };
 
-  const handleProcessPrint = useCallback(
-    (comments, isCompact) => {
+  const handlePrintConfirm = async (pixelRatio) => {
+    try {
       setIsLoadingPrint(true);
+      // A ref vem do PrintablePresentation (que deve estar renderizado, mesmo que off-screen)
+      const element = componentToPrintRef.current;
+
+      // Nome do arquivo
+      const fileName = `${presentation.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+
+      // Chama o gerador
+      await generatePDF(element, fileName, printIsCompact, pixelRatio);
+      closePrintModal(); // Fecha o modal de comentários
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingPrint(false);
+    }
+  };
+
+  const handleProcessPrint = useCallback(
+    (comments, isCompact, pixelRatio = 3) => {
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
 
       setIsPrintModalOpen(false);
       setTimeout(() => {
-        handlePrint();
-        setIsLoadingPrint(false);
-      }, 500);
+        handlePrintConfirm(pixelRatio);
+      }, 1000);
     },
-    [handlePrint],
+    [handlePrintConfirm],
   );
 
   const handleDownloadPng = useCallback(
-    async (comments, isCompact) => {
+    async (comments, isCompact, pixelRatio = 3) => {
       setIsLoadingPrint(true);
       setPrintComments(comments);
       setPrintIsCompact(isCompact);
@@ -1246,7 +1258,7 @@ export function usePresentationEditor(presentationId) {
         try {
           const dataUrl = await toPng(componentToPrintRef.current, {
             cacheBust: true,
-            pixelRatio: 3,
+            pixelRatio: pixelRatio,
             backgroundColor: "white",
             quality: 1.0,
             style: {

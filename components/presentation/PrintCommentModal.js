@@ -1,14 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiPrinter,
   FiX,
   FiMaximize,
   FiMinimize,
   FiImage,
+  FiCpu,
 } from "react-icons/fi";
 import Button from "components/ui/Button";
 import TextareaAutosize from "react-textarea-autosize";
 import Switch from "components/ui/Switch";
+import Select from "react-select";
+import { theme } from "../../styles/theme";
+import { poppins } from "src/utils/fonts";
 
 export default function PrintCommentModal({
   isOpen,
@@ -18,19 +22,118 @@ export default function PrintCommentModal({
 }) {
   const [comments, setComments] = useState("");
   const [isCompact, setIsCompact] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState({
+    value: 3,
+    label: "Boa (Padrão)",
+  });
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    onConfirmPrint(comments, isCompact);
+    onConfirmPrint(comments, isCompact, selectedQuality.value);
     setComments("");
   };
 
   const handlePng = () => {
     if (onConfirmPng) {
-      onConfirmPng(comments, isCompact);
+      onConfirmPng(comments, isCompact, selectedQuality.value);
       setComments("");
     }
+  };
+
+  const qualityOptions = [
+    { value: 1, label: "Baixa (Rápido, Rascunho)" },
+    { value: 2, label: "Média" },
+    { value: 3, label: "Boa (Padrão)" },
+    { value: 4, label: "Ótima" },
+    { value: 5, label: "Melhor (Alta Definição - Lento)" },
+  ];
+
+  const colors = theme.extend.colors;
+
+  const TW_COLORS = {
+    gray50: "#f9fafb",
+    gray300: "#d1d5db",
+    gray400: "#9ca3af",
+    purple50: "#faf5ff",
+    purple100: "#f3e8ff",
+    textMain: "#1F2937",
+  };
+
+  const FONT_FAMILY =
+    "var(--font-poppins), ui-sans-serif, system-ui, sans-serif";
+
+  const customStyles = {
+    control: (base, state) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      minHeight: "42px",
+      borderRadius: "0.375rem",
+      fontSize: "0.875rem",
+      backgroundColor: "white",
+      borderColor: state.isFocused
+        ? colors["rakusai-purple"]
+        : TW_COLORS.gray300,
+      boxShadow: state.isFocused
+        ? `0 0 0 1px ${colors["rakusai-purple"]}`
+        : "none",
+      "&:hover": {
+        borderColor: state.isFocused
+          ? colors["rakusai-purple"]
+          : TW_COLORS.gray400,
+      },
+    }),
+    option: (base, state) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      fontSize: "0.875rem",
+      cursor: "pointer",
+      backgroundColor: state.isSelected
+        ? TW_COLORS.purple50
+        : state.isFocused
+          ? TW_COLORS.gray50
+          : "white",
+      color: state.isSelected ? colors["rakusai-purple"] : TW_COLORS.textMain,
+      fontWeight: state.isSelected ? 500 : 400,
+      ":active": {
+        backgroundColor: TW_COLORS.purple100,
+      },
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      color: TW_COLORS.textMain,
+      fontWeight: 500,
+    }),
+    menu: (base) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      zIndex: 9999,
+      borderRadius: "0.375rem",
+      overflow: "hidden",
+      boxShadow:
+        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    }),
+    // O Portal em si não precisa de estilo extra aqui se usarmos o classNames abaixo
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      color: "#9CA3AF",
+    }),
+    input: (base) => ({
+      ...base,
+      fontFamily: FONT_FAMILY,
+      color: TW_COLORS.textMain,
+    }),
   };
 
   return (
@@ -95,8 +198,38 @@ export default function PrintCommentModal({
               onChange={(e) => setComments(e.target.value)}
             />
           </div>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <FiCpu className="text-gray-500" />
+              Qualidade da Exportação
+            </label>
 
+            <Select
+              id="quality-select"
+              instanceId="quality-select"
+              options={qualityOptions}
+              value={selectedQuality}
+              onChange={setSelectedQuality}
+              styles={customStyles}
+              // 2. CORREÇÃO DEFINITIVA:
+              // Aplica a classe da variável (poppins.variable) E a classe font-sans ao Portal.
+              // Isso garante que o contexto do Portal tenha a variável definida.
+              classNames={{
+                menuPortal: () => `${poppins.variable} font-sans`,
+              }}
+              isSearchable={false}
+              placeholder="Selecione a qualidade..."
+              menuPortalTarget={mounted ? document.body : null}
+              menuPosition="fixed"
+              menuPlacement="auto"
+            />
+
+            <p className="text-xs text-gray-500 mt-2 ml-1">
+              *Qualidades acima de &quot;Boa&quot; geram arquivos maiores e
+              levam mais tempo.
+            </p>
+          </div>
+        </div>
         {/* Rodapé */}
         <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-200">
           {/* Botão Cancelar: Ordem alterada e largura ajustada */}
