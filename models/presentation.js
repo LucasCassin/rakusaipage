@@ -1,10 +1,6 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
-import {
-  NotFoundError,
-  ForbiddenError,
-  ValidationError,
-} from "errors/index.js";
+import { NotFoundError, ValidationError } from "errors/index.js";
 import { settings } from "config/settings.js";
 
 // --- HELPER INTERNO PARA ASSIGNEES ---
@@ -59,14 +55,15 @@ async function create(data, created_by_user_id) {
     meet_location: "optional",
     description: "optional",
     is_public: "optional",
+    is_active: "optional",
   });
 
   const query = {
     text: `
       INSERT INTO presentations 
-        (name, date, location, meet_time, meet_location, description, is_public, created_by_user_id)
+        (name, date, location, meet_time, meet_location, description, is_public, created_by_user_id, is_active)
       VALUES 
-        ($1, $2, $3, $4, $5, $6, $7, $8)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *;
     `,
     values: [
@@ -78,6 +75,7 @@ async function create(data, created_by_user_id) {
       validatedData.description || null,
       validatedData.is_public || false,
       validatedUserId.user_id,
+      validatedData.is_active || false,
     ],
   };
 
@@ -94,6 +92,7 @@ async function update(presentationId, data) {
     meet_location: "optional",
     description: "optional",
     is_public: "optional",
+    is_active: "optional",
   });
 
   const updateFields = Object.keys(validatedData)

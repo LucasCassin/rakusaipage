@@ -52,12 +52,14 @@ describe("Test /api/v1/presentations routes", () => {
           body: JSON.stringify({
             name: "Show de Teste (Admin)",
             is_public: false,
+            is_active: true,
           }),
         },
       );
       const resBody = await res.json();
       expect(res.status).toBe(201);
       expect(resBody.name).toBe("Show de Teste (Admin)");
+      expect(resBody.is_active).toBe(true);
       expect(resBody.created_by_user_id).toBe(adminUser.id);
     });
 
