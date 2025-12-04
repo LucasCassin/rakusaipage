@@ -232,6 +232,7 @@ const SubscriptionFormModal = ({
                   type="date"
                   value={formData.start_date || ""}
                   onChange={handleChange}
+                  min={"2022-01-01"}
                   className="mt-1"
                 />
               </div>
