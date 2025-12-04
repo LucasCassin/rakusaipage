@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import Switch from "components/ui/Switch";
-import { FiX, FiShare2, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiX, FiShare2, FiEye, FiEyeOff, FiPower } from "react-icons/fi";
 
 /**
  * Modal para gerenciar a flag 'is_public' (Compartilhamento).
@@ -10,18 +10,20 @@ import { FiX, FiShare2, FiEye, FiEyeOff } from "react-icons/fi";
  */
 export default function ShareModal({ presentation, error, onClose, onSubmit }) {
   const [isPublic, setIsPublic] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (presentation) {
       setIsPublic(presentation.is_public || false);
+      setIsActive(presentation.is_active || false);
     }
   }, [presentation]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    await onSubmit(isPublic);
+    await onSubmit(isPublic, isActive);
     setIsLoading(false);
   };
 
@@ -63,49 +65,61 @@ export default function ShareModal({ presentation, error, onClose, onSubmit }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-4 bg-gray-50 rounded-lg border">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-800">Link Público</span>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2 text-gray-800 font-semibold">
+                <FiPower
+                  className={isActive ? "text-green-600" : "text-red-500"}
+                />
+                <span>Apresentação Ativa</span>
+              </div>
+              <Switch
+                checked={isActive}
+                onChange={() => setIsActive(!isActive)}
+                disabled={isLoading}
+              />
+            </div>
+            <p className="text-sm text-gray-500 text-justify">
+              Se desativada, a apresentação ficará <strong>invisível</strong>{" "}
+              para todos os usuários (incluindo o elenco), exceto para você.
+            </p>
+          </div>
+          {/* ------------------------------------- */}
+
+          {/* Controle de Público/Privado (Existente, com leve ajuste de layout) */}
+          <div className="bg-white p-2">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-700 font-medium flex items-center gap-2">
+                {isPublic ? <FiEye /> : <FiEyeOff />}
+                {isPublic ? "Público" : "Privado"}
+              </span>
               <Switch
                 checked={isPublic}
                 onChange={() => setIsPublic(!isPublic)}
                 disabled={isLoading}
               />
             </div>
-            <p className="mt-2 text-sm text-gray-600">
-              {isPublic ? (
-                <span className="flex items-center gap-2 text-green-700">
-                  <FiEye />
-                  Qualquer pessoa com o link pode ver.
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-red-700">
-                  <FiEyeOff />
-                  Apenas membros do elenco podem ver.
-                </span>
-              )}
+            <p className="text-sm text-gray-500 mb-4">
+              {isPublic
+                ? "Qualquer pessoa com o link pode visualizar."
+                : "Apenas usuários adicionados ao elenco podem visualizar."}
             </p>
-          </div>
 
-          {/* Mostra a URL se estiver público */}
-          {isPublic && (
-            <div>
-              <label
-                htmlFor="share-url"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Copie este link:
-              </label>
-              <input
-                id="share-url"
-                type="text"
-                readOnly
-                value={currentUrl}
-                className="mt-1 w-full rounded-md border border-gray-300 text-sm bg-gray-100"
-                onClick={(e) => e.target.select()}
-              />
-            </div>
-          )}
+            {isPublic && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  Link para compartilhamento
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={currentUrl}
+                  className="w-full rounded-md border border-gray-300 text-sm bg-gray-100 px-3 py-2 text-gray-600 focus:outline-none cursor-copy"
+                  onClick={(e) => e.target.select()}
+                />
+              </div>
+            )}
+          </div>
 
           {error && <Alert type="error">{error}</Alert>}
 

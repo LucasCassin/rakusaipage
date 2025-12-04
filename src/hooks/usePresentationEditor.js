@@ -872,8 +872,8 @@ export function usePresentationEditor(presentationId) {
     setShareModalError(null);
   };
 
-  const setPresentationPublicStatus = useCallback(
-    async (isPublic) => {
+  const setPresentationPublicActiveStatus = useCallback(
+    async (isPublic, isActive) => {
       setShareModalError(null);
       try {
         const response = await fetch(
@@ -881,7 +881,7 @@ export function usePresentationEditor(presentationId) {
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ is_public: isPublic }),
+            body: JSON.stringify({ is_public: isPublic, is_active: isActive }),
           },
         );
         await handleApiResponse({
@@ -1361,7 +1361,7 @@ export function usePresentationEditor(presentationId) {
       shareError: shareModalError,
       openShare: openShareModal,
       closeShare: closeShareModal,
-      savePublicStatus: setPresentationPublicStatus,
+      savePublicActiveStatus: setPresentationPublicActiveStatus,
 
       isSceneFormOpen: isSceneFormModalOpen,
       sceneFormModalData: sceneFormModalData,

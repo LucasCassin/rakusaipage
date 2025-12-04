@@ -341,7 +341,7 @@ export default function PresentationPage() {
           presentation={presentation}
           error={editor.modal.shareError}
           onClose={editor.modal.closeShare}
-          onSubmit={editor.modal.savePublicStatus}
+          onSubmit={editor.modal.savePublicActiveStatus}
         />
       )}
       {editor.modal.isSceneFormOpen && (
