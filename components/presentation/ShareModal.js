@@ -27,6 +27,29 @@ export default function ShareModal({ presentation, error, onClose, onSubmit }) {
 
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isLoading) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter") {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        handleSubmit(event);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, handleSubmit, isLoading]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
