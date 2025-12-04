@@ -2,6 +2,15 @@ import database from "infra/database.js";
 import validator from "models/validator.js";
 import { NotFoundError, ForbiddenError } from "errors/index.js";
 
+const validateData = (dataRecebida) => {
+  // Garante que é um objeto Date (caso venha como string "2021-05-10")
+  const data = new Date(dataRecebida);
+  const hoje = new Date();
+
+  // Se o ano for menor que 2022, retorna HOJE, senão retorna a data original
+  return data.getFullYear() < 2022 ? hoje : data;
+};
+
 /**
  * Calcula a próxima data de vencimento.
  */
@@ -79,7 +88,7 @@ async function create(paymentData) {
  */
 async function createInitialPayment(subscription, plan, client) {
   const lastDueDate = calculateLastDueDate(
-    subscription.start_date,
+    validateData(subscription.start_date),
     subscription.payment_day,
     plan.period_unit,
     plan.period_value,

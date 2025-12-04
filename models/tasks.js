@@ -11,7 +11,7 @@ import paymentPlanModel from "models/payment_plan";
 async function generateNextPayments() {
   const today = new Date();
   const generationLimitDate = new Date();
-  generationLimitDate.setDate(today.getDate() + 10); // Hoje + 10 dias
+  generationLimitDate.setDate(today.getDate() + 30); // Hoje + 30 dias
 
   // 1. Busca todas as assinaturas ativas com seus planos e o último pagamento gerado
   const query = `

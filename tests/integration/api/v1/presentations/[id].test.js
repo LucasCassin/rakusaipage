@@ -6,7 +6,7 @@ import presentationViewer from "models/presentation_viewer.js";
 
 describe("Test /api/v1/presentations/[id] routes", () => {
   let adminUser, alunoUser;
-  let presAdmin, presPublica, presPrivadaElenco;
+  let presAdmin, presPublica, presPrivadaElenco, presInativa;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -41,20 +41,25 @@ describe("Test /api/v1/presentations/[id] routes", () => {
     // 3. Criar apresentações de teste
     // Admin cria todas para testar a lógica de "não-dono"
     presAdmin = await presentation.create(
-      { name: "Show Privado do Admin" },
+      { name: "Show Privado do Admin", is_active: true },
       adminUser.id,
     );
     presPublica = await presentation.create(
-      { name: "Show Público", is_public: true },
+      { name: "Show Público", is_public: true, is_active: true },
       adminUser.id,
     );
     presPrivadaElenco = await presentation.create(
-      { name: "Show Privado (Aluno no Elenco)" },
+      { name: "Show Privado (Aluno no Elenco)", is_active: true },
+      adminUser.id,
+    );
+    presInativa = await presentation.create(
+      { name: "Show Inativo", is_active: false },
       adminUser.id,
     );
 
     // Adicionar "alunoUser" ao elenco da apresentação privada
     await presentationViewer.addViewer(presPrivadaElenco.id, alunoUser.id);
+    await presentationViewer.addViewer(presInativa.id, alunoUser.id);
   });
 
   describe("GET /api/v1/presentations/[id]", () => {
@@ -70,6 +75,20 @@ describe("Test /api/v1/presentations/[id] routes", () => {
       const resBody = await res.json();
       expect(res.status).toBe(200);
       expect(resBody.name).toBe("Show Privado (Aluno no Elenco)");
+      expect(resBody.created_by_user_id).toBe(adminUser.id); // Admin vê todos os campos
+    });
+
+    it("should allow an Admin (read:presentation:admin) to GET any private presentation and inactive", async () => {
+      const newSession = await session.create(adminUser);
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/presentations/${presInativa.id}`, // Acessando a apresentação do elenco
+        {
+          headers: { cookie: `session_id=${newSession.token}` },
+        },
+      );
+      const resBody = await res.json();
+      expect(res.status).toBe(200);
+      expect(resBody.name).toBe(presInativa.name);
       expect(resBody.created_by_user_id).toBe(adminUser.id); // Admin vê todos os campos
     });
 
@@ -103,6 +122,18 @@ describe("Test /api/v1/presentations/[id] routes", () => {
       const newSession = await session.create(alunoUser);
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations/${presAdmin.id}`, // Tentando acessar o show privado do admin
+        {
+          headers: { cookie: `session_id=${newSession.token}` },
+        },
+      );
+      // 403 (Forbidden) pois ele está logado mas não tem permissão
+      expect(res.status).toBe(403);
+    });
+
+    it("should return 403 for an Aluno (in elenco, but inactive presentation) trying to GET a private presentation", async () => {
+      const newSession = await session.create(alunoUser);
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/presentations/${presInativa.id}`, // Tentando acessar o show privado do admin
         {
           headers: { cookie: `session_id=${newSession.token}` },
         },

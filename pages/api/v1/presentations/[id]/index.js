@@ -77,6 +77,7 @@ async function getHandler(req, res) {
     // Precisa ter a chave "read:presentation" E atender aos critérios
     if (authorization.can(user, "read:presentation")) {
       const isPublic = presentationData.is_public;
+      const isActive = presentationData.is_active;
       let isViewer = false;
 
       // Só podemos checar o elenco se o usuário estiver logado (tem user.id)
@@ -87,7 +88,7 @@ async function getHandler(req, res) {
       }
 
       // PERMITE o acesso se for pública OU (logado E no elenco)
-      if (isPublic || isViewer) {
+      if ((isPublic || isViewer) && isActive) {
         const filteredOutput = authorization.filterOutput(
           user,
           "read:presentation", // Usa o perfil padrão (menos campos)
