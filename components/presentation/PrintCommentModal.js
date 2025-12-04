@@ -136,6 +136,21 @@ export default function PrintCommentModal({
     }),
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Cleanup para remover o listener quando o modal desmontar
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 z-[60] flex items-center justify-center p-4 font-sans animate-fade-in">
       <div
