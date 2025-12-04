@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
-import { FiEdit2, FiTrash2, FiAlertCircle } from "react-icons/fi";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
 /**
  * Renderiza um único item da "checklist" de transição.
