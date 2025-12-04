@@ -8,6 +8,7 @@ import {
   FiMapPin,
   FiEye,
   FiSettings,
+  FiEyeOff, // --- ADIÇÃO: Ícone para inativo ---
 } from "react-icons/fi";
 
 export default function PresentationListItem({
@@ -28,6 +29,10 @@ export default function PresentationListItem({
       })
     : null;
 
+  // --- ADIÇÃO: Verifica se está ativa (padrão true) ---
+  const isActive = presentation.is_active !== false;
+  // ----------------------------------------------------
+
   return (
     <div
       className={`
@@ -36,45 +41,65 @@ export default function PresentationListItem({
         ${isFirst ? "rounded-t-lg" : ""} 
         ${isLast ? "rounded-b-lg" : ""}
         ${
-          isPast
-            ? "bg-gray-50 !border-l-gray-300 hover:bg-gray-100"
-            : "bg-white !border-l-transparent hover:!border-l-rakusai-pink"
+          // Se estiver INATIVA, usamos um fundo avermelhado bem suave para diferenciar de "Past"
+          !isActive
+            ? "bg-red-50 !border-l-red-400"
+            : isPast
+              ? "bg-gray-50 !border-l-gray-300 hover:bg-gray-100"
+              : "bg-white !border-l-transparent hover:!border-l-rakusai-pink"
         }
       `}
     >
       <div className="flex-1 min-w-0 pr-4">
-        <div className="flex items-center gap-2">
-          <p className="font-bold text-gray-900 truncate text-lg">
+        {/* --- ALTERAÇÃO: Flex wrap no título para acomodar o badge no mobile --- */}
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          <h3 className="text-lg font-bold text-gray-800">
             {presentation.name}
-          </p>
-          {/* Botão de Editar Info (Ícone Pequeno ao lado do nome ou nas ações) */}
-        </div>
+          </h3>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
-          {formattedDate && (
-            <span className="flex items-center gap-1.5">
-              <FiCalendar className="h-4 w-4 text-gray-400" />
-              <span>{formattedDate}</span>
+          {!isActive && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200"
+              title="Esta apresentação está inativa e visível apenas para você."
+            >
+              <FiEyeOff className="mr-1" />
+              Inativa
             </span>
           )}
+        </div>
+        {/* -------------------------------------------------------------------- */}
+
+        <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 gap-1 sm:gap-4">
+          {formattedDate && (
+            <div className="flex items-center">
+              <FiCalendar className="mr-1 text-gray-400" />
+              {formattedDate}
+            </div>
+          )}
           {presentation.location && (
-            <span className="flex items-center gap-1.5">
-              <FiMapPin className="h-4 w-4 text-gray-400" />
-              <span>{presentation.location}</span>
-            </span>
+            <div className="flex items-center truncate max-w-xs">
+              <FiMapPin className="mr-1 text-gray-400" />
+              <span className="truncate">{presentation.location}</span>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch gap-2 mt-4 sm:mt-0 w-full sm:w-auto sm:justify-end">
-        {/* 1. Botão ABRIR EDITOR (Principal) */}
+      <div className="flex flex-row w-full sm:w-auto items-center gap-2 mt-4 sm:mt-0">
+        {/* 1. Botão ABRIR / EDITOR */}
         {permissions.canUpdate ? (
-          <Link href={`/apresentacoes/${presentation.id}`} passHref>
+          <Link
+            href={`/apresentacoes/${presentation.id}`}
+            passHref
+            legacyBehavior
+          >
+            {/* Nota: Adicionei legacyBehavior se estiver usando Next.js < 13 ou dependendo da config, 
+                 mas mantendo o padrão do seu arquivo original: */}
             <Button
               variant="secondary"
               size="small"
               as="a"
-              className="w-full sm:w-auto justify-center" // Adicionado
+              className="w-full sm:w-auto justify-center"
             >
               <FiEdit className="mr-2" />
               Editor
@@ -86,13 +111,17 @@ export default function PresentationListItem({
               variant="secondary"
               size="small"
               as="a"
-              className="w-full sm:w-auto justify-center" // Adicionado
+              className="w-full sm:w-auto justify-center"
+              // Se inativo e não for dono (canUpdate), o backend barra,
+              // mas visualmente aqui já indicamos com o badge.
             >
               <FiEye className="mr-2" />
               Abrir
             </Button>
           </Link>
         )}
+
+        {/* ... (Botões restantes Settings e Trash mantidos iguais) ... */}
 
         {/* 2. Botão EDITAR INFORMAÇÕES */}
         {permissions.canUpdate && (
@@ -101,8 +130,6 @@ export default function PresentationListItem({
             size="small"
             onClick={onEditInfoClick}
             title="Editar Informações"
-            // Adicionado w-full, sm:w-auto e justify-center.
-            // Mantive text-gray-500 que já existia.
             className="text-gray-500 w-full sm:w-auto justify-center"
           >
             <FiSettings />
@@ -116,7 +143,7 @@ export default function PresentationListItem({
             size="small"
             onClick={onDeleteClick}
             title="Excluir Apresentação"
-            className="w-full sm:w-auto justify-center" // Adicionado
+            className="w-full sm:w-auto justify-center"
           >
             <FiTrash2 />
           </Button>
