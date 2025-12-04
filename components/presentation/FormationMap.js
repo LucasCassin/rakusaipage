@@ -4,6 +4,7 @@ import { ItemTypes } from "./ItemTypes";
 import StageElement from "./StageElement";
 import StageLine from "./StageLine";
 import { settings } from "config/settings.js";
+import { FiAlertCircle } from "react-icons/fi";
 
 const VIRTUAL_WIDTH = 1000;
 const BASE_ICON_SIZE_PX = settings.global.STAGE_MAP_SNAP.BASE_ICON_SIZE_PX;
@@ -21,6 +22,7 @@ const GroupLabel = ({
   isHighlighted,
   globalScale = 1.0,
   scale = 1.0,
+  showWarning = false,
 }) => {
   if (!label) return null;
 
@@ -48,7 +50,18 @@ const GroupLabel = ({
       <span
         className={`px-2 py-0.5 rounded-md text-xs font-semibold text-white shadow text-center ${highlightClasses}`}
       >
-        {label}
+        {showWarning ? (
+          <span
+            // ADICIONADO: flex, items-center, justify-center e gap-1
+            className="flex items-center justify-center gap-1 text-amber-400 animate-pulse print:hidden ml-1"
+            title="Atenção: Nenhum aluno associado"
+          >
+            {label}
+            <FiAlertCircle size={16} />
+          </span>
+        ) : (
+          <>{label}</>
+        )}
       </span>
     </div>
   );
@@ -491,6 +504,10 @@ export default function FormationMap({
                 group.assignees.includes(loggedInUser.id)
               }
               globalScale={globalScale}
+              showWarning={
+                isEditorMode &&
+                (!group.assignees || group.assignees.length === 0)
+              }
             />
           )}
         </React.Fragment>
