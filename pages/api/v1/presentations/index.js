@@ -29,7 +29,13 @@ export default router.handler(controller.errorsHandlers);
 async function getHandler(req, res) {
   try {
     const user = req.context.user;
-    const presentations = await presentation.findAllByUserId(user.id);
+    let presentations = [];
+
+    if (authorization.can(user, "read:presentation:admin")) {
+      presentations = await presentation.findAll();
+    } else {
+      presentations = await presentation.findAllActiveByUserId(user.id);
+    }
 
     // Filtra a saída usando a "chave" de leitura padrão
     const filteredOutput = presentations.map((pres) =>
