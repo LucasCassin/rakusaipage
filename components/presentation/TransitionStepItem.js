@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiAlertCircle } from "react-icons/fi";
 
 /**
  * Renderiza um único item da "checklist" de transição.
@@ -33,6 +33,9 @@ export default function TransitionStepItem({
     ? "bg-rakusai-pink-light bg-opacity-20 border-l-4 !border-rakusai-pink"
     : "bg-white";
 
+  const hasNoAssignees = !step.assignees || step.assignees.length === 0;
+  const showWarning = isEditorMode && hasNoAssignees;
+
   const handleDelete = async () => {
     if (pendingAction !== "delete") {
       setPendingAction("delete");
@@ -55,6 +58,11 @@ export default function TransitionStepItem({
         {isHighlighted && (
           <span className="text-xs font-semibold text-rakusai-pink">
             (Sua responsabilidade)
+          </span>
+        )}
+        {showWarning && !isHighlighted && (
+          <span className="text-xs font-semibold text-amber-500 animate-pulse print:hidden">
+            (Sem responsável)
           </span>
         )}
       </div>
