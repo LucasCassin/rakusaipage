@@ -18,6 +18,21 @@ export default function PlanUsersModal({ plan, onClose }) {
     fetchSubscriptions();
   }, [plan.id]);
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Cleanup para remover o listener quando o modal desmontar
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   async function fetchSubscriptions() {
     try {
       setIsLoading(true);
