@@ -125,7 +125,7 @@ export default function StudentHeader() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-opacity duration-100 ${
+      className={`fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg transition-opacity duration-100 ${isMenuOpen ? "h-full md:h-auto" : ""}  ${
         headerOpacity < 0.1 ? "pointer-events-none" : "pointer-events-auto"
       }`}
       style={{
@@ -368,7 +368,7 @@ export default function StudentHeader() {
       </div>
 
       {isMenuOpen && (
-        <div className="sm:hidden max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hide bg-gray-800 border-t border-gray-700">
+        <div className="pb-20 sm:hidden max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hide bg-gray-800 border-t border-gray-700">
           <div className="pl-2 px-2 pt-2 pb-3 border-b border-gray-700 ">
             <div className="px-3 text-md font-semibold text-white">
               {user.username}
