@@ -137,8 +137,12 @@ describe("Test /api/v1/presentations routes", () => {
       await presentationViewer.addViewer(presInactive.id, alunoUser.id);
     });
 
-    it("should return only the user's active presentations (owned or in cast) for an Aluno", async () => {
+    it("should return only the user's active presentations (in cast) and all owned presentations for an Aluno", async () => {
       const newSession = await session.create(alunoUser);
+      await presentation.create(
+        { name: "Show Inativo Aluno", is_active: false },
+        alunoUser.id,
+      );
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations`,
         {
@@ -150,9 +154,10 @@ describe("Test /api/v1/presentations routes", () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(resBody)).toBe(true);
       // O aluno deve ver 2: a que ele criou e a que ele está no elenco
-      expect(resBody).toHaveLength(2);
+      expect(resBody).toHaveLength(3);
       expect(resBody.map((p) => p.name)).toContain("Show Pessoal do Aluno");
       expect(resBody.map((p) => p.name)).toContain("Show Compartilhado");
+      expect(resBody.map((p) => p.name)).toContain("Show Inativo Aluno");
     });
 
     it("should return all presentations for Admin", async () => {
@@ -166,12 +171,13 @@ describe("Test /api/v1/presentations routes", () => {
       const resBody = await res.json();
       expect(res.status).toBe(200);
       // O admin deve ver 2: a que ele criou no POST e a que ele criou no beforeAll
-      expect(resBody).toHaveLength(5);
+      expect(resBody).toHaveLength(6);
       expect(resBody.map((p) => p.name)).toContain("Show de Teste (Admin)");
       expect(resBody.map((p) => p.name)).toContain("Show Pessoal do Aluno");
       expect(resBody.map((p) => p.name)).toContain("Show Compartilhado");
       expect(resBody.map((p) => p.name)).toContain("Show Ativo");
       expect(resBody.map((p) => p.name)).toContain("Show Inativo");
+      expect(resBody.map((p) => p.name)).toContain("Show Inativo Aluno");
     });
 
     it("should return 401 for an Anonymous user (must be logged in)", async () => {

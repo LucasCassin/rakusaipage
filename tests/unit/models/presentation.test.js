@@ -132,6 +132,18 @@ describe("Presentation Model Tests", () => {
       );
 
       expect(targetPres).toHaveLength(1);
+
+      const pres3 = await presentation.create(
+        { name: "Not Active Presentation 2", is_active: false },
+        adminUser.id,
+      );
+
+      const list2 = await presentation.findAllActiveByUserId(adminUser.id);
+      const targetPres2 = list2.filter(
+        (p) => p.id === pres.id || p.id === pres2.id || p.id === pres3.id,
+      );
+
+      expect(targetPres2).toHaveLength(2);
     });
   });
 

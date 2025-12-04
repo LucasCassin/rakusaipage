@@ -155,7 +155,7 @@ async function findAllActiveByUserId(userId) {
       SELECT DISTINCT p.*
       FROM presentations p
       LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
-      WHERE p.is_active = true AND (p.created_by_user_id = $1 OR pv.user_id = $1)
+      WHERE (p.is_active = true AND pv.user_id = $1) OR p.created_by_user_id = $1
       ORDER BY p.date DESC, p.created_at DESC;
     `,
     values: [validatedId.id],
