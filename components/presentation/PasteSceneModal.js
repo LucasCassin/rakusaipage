@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import { FiX, FiClipboard } from "react-icons/fi";
@@ -21,6 +21,29 @@ export default function PasteSceneModal({
     await onSubmit(pasteOption);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isLoading) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter") {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        handleSubmit(event);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, handleSubmit, isLoading]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">

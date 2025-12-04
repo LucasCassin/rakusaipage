@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import FeatureSelectionForm from "components/forms/FeatureSelectionForm";
 import UserListSkeleton from "components/ui/UserListSkeleton";
 import Alert from "components/ui/Alert";
@@ -111,6 +111,21 @@ export default function CastSearch({ castHook, searchHook, onAddUsers }) {
     searchHook.clearSearch();
     setSearchTerm(e.target.value);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Enter" && selectedUserIds.size > 0 && !isAddingBulk) {
+        event.preventDefault(); // Previne comportamentos padrão de formulário se houver foco em inputs
+        handleAddBulkClick();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedUserIds, isAddingBulk, handleAddBulkClick]);
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import FormInput from "components/forms/FormInput";
@@ -27,6 +27,29 @@ export default function DeletePresentationModal({
   };
 
   const canDelete = confirmationText === KEYWORD;
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isDeleting) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter" && canDelete) {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        handleDelete();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, canDelete, isDeleting, handleDelete]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">

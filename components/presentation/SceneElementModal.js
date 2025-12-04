@@ -58,6 +58,36 @@ export default function SceneElementModal({
     setIsDeleting(false);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isLoading || isDeleting || (isLoadingCast && !isStageLine)) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter") {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        handleSubmit(event);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    onClose,
+    handleSubmit,
+    isLoading,
+    isDeleting,
+    isLoadingCast,
+    isStageLine,
+  ]);
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
       <div className="relative w-full max-w-lg rounded-lg bg-white shadow-xl">

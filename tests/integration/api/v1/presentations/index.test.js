@@ -52,12 +52,14 @@ describe("Test /api/v1/presentations routes", () => {
           body: JSON.stringify({
             name: "Show de Teste (Admin)",
             is_public: false,
+            is_active: true,
           }),
         },
       );
       const resBody = await res.json();
       expect(res.status).toBe(201);
       expect(resBody.name).toBe("Show de Teste (Admin)");
+      expect(resBody.is_active).toBe(true);
       expect(resBody.created_by_user_id).toBe(adminUser.id);
     });
 
@@ -108,25 +110,39 @@ describe("Test /api/v1/presentations routes", () => {
   });
 
   describe("GET /api/v1/presentations", () => {
-    let presAluno, presShared;
+    let presAluno, presShared, presActive, presInactive;
 
     beforeAll(async () => {
       // O "Show de Teste (Admin)" já foi criado pelo teste POST
       // Criar apresentações adicionais para testar a lógica de listagem
       presAluno = await presentation.create(
-        { name: "Show Pessoal do Aluno" },
+        { name: "Show Pessoal do Aluno", is_active: true },
         alunoUser.id,
       );
       presShared = await presentation.create(
-        { name: "Show Compartilhado" },
+        { name: "Show Compartilhado", is_active: true },
         adminUser.id,
       );
+      presActive = await presentation.create(
+        { name: "Show Ativo", is_active: true },
+        adminUser.id,
+      );
+      presInactive = await presentation.create(
+        { name: "Show Inativo", is_active: false },
+        adminUser.id,
+      );
+
       // Adiciona o aluno ao elenco do show compartilhado
       await presentationViewer.addViewer(presShared.id, alunoUser.id);
+      await presentationViewer.addViewer(presInactive.id, alunoUser.id);
     });
 
-    it("should return only the user's presentations (owned or in cast) for an Aluno", async () => {
+    it("should return only the user's active presentations (in cast) and all owned presentations for an Aluno", async () => {
       const newSession = await session.create(alunoUser);
+      await presentation.create(
+        { name: "Show Inativo Aluno", is_active: false },
+        alunoUser.id,
+      );
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations`,
         {
@@ -138,12 +154,13 @@ describe("Test /api/v1/presentations routes", () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(resBody)).toBe(true);
       // O aluno deve ver 2: a que ele criou e a que ele está no elenco
-      expect(resBody).toHaveLength(2);
+      expect(resBody).toHaveLength(3);
       expect(resBody.map((p) => p.name)).toContain("Show Pessoal do Aluno");
       expect(resBody.map((p) => p.name)).toContain("Show Compartilhado");
+      expect(resBody.map((p) => p.name)).toContain("Show Inativo Aluno");
     });
 
-    it("should return all presentations the Admin owns or is in cast for", async () => {
+    it("should return all presentations for Admin", async () => {
       const newSession = await session.create(adminUser);
       const res = await fetch(
         `${orchestrator.webserverUrl}/api/v1/presentations`,
@@ -154,9 +171,13 @@ describe("Test /api/v1/presentations routes", () => {
       const resBody = await res.json();
       expect(res.status).toBe(200);
       // O admin deve ver 2: a que ele criou no POST e a que ele criou no beforeAll
-      expect(resBody).toHaveLength(2);
+      expect(resBody).toHaveLength(6);
       expect(resBody.map((p) => p.name)).toContain("Show de Teste (Admin)");
+      expect(resBody.map((p) => p.name)).toContain("Show Pessoal do Aluno");
       expect(resBody.map((p) => p.name)).toContain("Show Compartilhado");
+      expect(resBody.map((p) => p.name)).toContain("Show Ativo");
+      expect(resBody.map((p) => p.name)).toContain("Show Inativo");
+      expect(resBody.map((p) => p.name)).toContain("Show Inativo Aluno");
     });
 
     it("should return 401 for an Anonymous user (must be logged in)", async () => {

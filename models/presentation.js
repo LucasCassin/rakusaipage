@@ -1,10 +1,6 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
-import {
-  NotFoundError,
-  ForbiddenError,
-  ValidationError,
-} from "errors/index.js";
+import { NotFoundError, ValidationError } from "errors/index.js";
 import { settings } from "config/settings.js";
 
 // --- HELPER INTERNO PARA ASSIGNEES ---
@@ -59,14 +55,15 @@ async function create(data, created_by_user_id) {
     meet_location: "optional",
     description: "optional",
     is_public: "optional",
+    is_active: "optional",
   });
 
   const query = {
     text: `
       INSERT INTO presentations 
-        (name, date, location, meet_time, meet_location, description, is_public, created_by_user_id)
+        (name, date, location, meet_time, meet_location, description, is_public, created_by_user_id, is_active)
       VALUES 
-        ($1, $2, $3, $4, $5, $6, $7, $8)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *;
     `,
     values: [
@@ -78,6 +75,7 @@ async function create(data, created_by_user_id) {
       validatedData.description || null,
       validatedData.is_public || false,
       validatedUserId.user_id,
+      validatedData.is_active || false,
     ],
   };
 
@@ -94,6 +92,7 @@ async function update(presentationId, data) {
     meet_location: "optional",
     description: "optional",
     is_public: "optional",
+    is_active: "optional",
   });
 
   const updateFields = Object.keys(validatedData)
@@ -144,6 +143,35 @@ async function findAllByUserId(userId) {
       ORDER BY p.date DESC, p.created_at DESC;
     `,
     values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+async function findAllActiveByUserId(userId) {
+  const validatedId = validator({ id: userId }, { id: "required" });
+  const query = {
+    text: `
+      SELECT DISTINCT p.*
+      FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      WHERE (p.is_active = true AND pv.user_id = $1) OR p.created_by_user_id = $1
+      ORDER BY p.date DESC, p.created_at DESC;
+    `,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+async function findAll() {
+  const query = {
+    text: `
+      SELECT DISTINCT p.*
+      FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      ORDER BY p.date DESC, p.created_at DESC;
+    `,
   };
   const results = await database.query(query);
   return results.rows;
@@ -546,6 +574,8 @@ export default {
   update,
   del,
   findAllByUserId,
+  findAllActiveByUserId,
+  findAll,
   findById,
   findDeepById,
   checkViewerOrCreator,

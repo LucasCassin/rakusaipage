@@ -37,6 +37,29 @@ const DeletePlanModal = ({ plan, error, onClose, onDelete, getStats }) => {
   const isBlocked = impactCount > 0;
   const canDelete = confirmationText === KEYWORD && !isBlocked;
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isDeleting) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter" && canDelete && !isBlocked) {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        handleDelete();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, handleDelete, isDeleting, canDelete, isBlocked]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 mx-3">

@@ -372,6 +372,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
     ],
     allowedOutputFields: [
       "id",
@@ -382,6 +383,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
       "created_by_user_id",
       "created_at",
     ],
@@ -397,6 +399,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
       "created_at",
       // 'scenes', 'elements', 'viewers' são populados na API
     ],
@@ -412,6 +415,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
       "created_by_user_id",
       "created_at",
       "updated_at",
@@ -426,6 +430,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
     ],
     allowedOutputFields: [
       "id",
@@ -436,6 +441,7 @@ const profiles = {
       "meet_location",
       "description",
       "is_public",
+      "is_active",
       "updated_at",
     ],
   },

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 import Alert from "components/ui/Alert";
 import { FiAlertTriangle } from "react-icons/fi";
@@ -56,6 +56,41 @@ export default function ConfirmGlobalEditModal({
   }
 
   const hasChanges = changes.length > 0;
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Bloqueia ações se já estiver processando a deleção
+      if (isLoading || isLoadingLocal || isLoadingGlobal) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      // Enter só funciona se a validação (canDelete) for verdadeira
+      if (event.key === "Enter") {
+        event.preventDefault(); // Evita submit padrão de formulário se houver
+        if (hasOldName) {
+          handleGlobal();
+        } else {
+          handleLocal();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    onClose,
+    isLoading,
+    isLoadingLocal,
+    isLoadingGlobal,
+    hasOldName,
+    handleGlobal,
+    handleLocal,
+  ]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
