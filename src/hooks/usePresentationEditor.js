@@ -539,6 +539,7 @@ export function usePresentationEditor(presentationId) {
         setError: setGlobalEditError,
         onSuccess: () => {
           refetchPresentationData();
+          fetchPool();
           closeGlobalEditModal();
         },
       });
