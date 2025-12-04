@@ -109,6 +109,58 @@ describe("Presentation Model Tests", () => {
     });
   });
 
+  describe("findAllActiveByUserId()", () => {
+    it("should return only active presentations", async () => {
+      const pres = await presentation.create(
+        { name: "Active Presentation", is_active: true },
+        adminUser.id,
+      );
+
+      const pres2 = await presentation.create(
+        { name: "Not Active Presentation", is_active: false },
+        viewerUser.id,
+      );
+
+      await presentationViewer.addViewer(pres.id, viewerUser.id);
+      await presentationViewer.addViewer(pres.id, otherUser.id);
+
+      await presentationViewer.addViewer(pres2.id, adminUser.id);
+      await presentationViewer.addViewer(pres2.id, otherUser.id);
+      const list = await presentation.findAllActiveByUserId(adminUser.id);
+      const targetPres = list.filter(
+        (p) => p.id === pres.id || p.id === pres2.id,
+      );
+
+      expect(targetPres).toHaveLength(1);
+    });
+  });
+
+  describe("findAll()", () => {
+    it("should return all presentations", async () => {
+      const pres = await presentation.create(
+        { name: "Active Presentation", is_active: true },
+        adminUser.id,
+      );
+
+      const pres2 = await presentation.create(
+        { name: "Not Active Presentation", is_active: false },
+        viewerUser.id,
+      );
+
+      await presentationViewer.addViewer(pres.id, viewerUser.id);
+      await presentationViewer.addViewer(pres.id, otherUser.id);
+
+      await presentationViewer.addViewer(pres2.id, otherUser.id);
+
+      const list = await presentation.findAll();
+      const targetPres = list.filter(
+        (p) => p.id === pres.id || p.id === pres2.id,
+      );
+
+      expect(targetPres).toHaveLength(2);
+    });
+  });
+
   describe("checkViewerOrCreator()", () => {
     it("should return true/data if user is creator", async () => {
       const pres = await presentation.create({ name: "My Pres" }, adminUser.id);

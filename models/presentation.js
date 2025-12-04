@@ -148,6 +148,35 @@ async function findAllByUserId(userId) {
   return results.rows;
 }
 
+async function findAllActiveByUserId(userId) {
+  const validatedId = validator({ id: userId }, { id: "required" });
+  const query = {
+    text: `
+      SELECT DISTINCT p.*
+      FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      WHERE p.is_active = true AND (p.created_by_user_id = $1 OR pv.user_id = $1)
+      ORDER BY p.date DESC, p.created_at DESC;
+    `,
+    values: [validatedId.id],
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
+async function findAll() {
+  const query = {
+    text: `
+      SELECT DISTINCT p.*
+      FROM presentations p
+      LEFT JOIN presentation_viewers pv ON p.id = pv.presentation_id
+      ORDER BY p.date DESC, p.created_at DESC;
+    `,
+  };
+  const results = await database.query(query);
+  return results.rows;
+}
+
 async function findById(presentationId) {
   const validatedId = validator({ id: presentationId }, { id: "required" });
   const query = {
@@ -545,6 +574,8 @@ export default {
   update,
   del,
   findAllByUserId,
+  findAllActiveByUserId,
+  findAll,
   findById,
   findDeepById,
   checkViewerOrCreator,
