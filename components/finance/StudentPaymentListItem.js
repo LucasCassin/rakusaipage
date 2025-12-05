@@ -9,6 +9,7 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
     style: "currency",
     currency: "BRL",
   }).format(payment.amount_due);
+
   const formattedDate = new Date(payment.due_date).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
   });
@@ -27,8 +28,6 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
     }
     setIsProcessing(true);
     await onIndicateClick(payment.id);
-    // Não precisa resetar o estado, pois o componente
-    // será re-renderizado com user_notified_payment = true
   };
 
   // Determina o status/botão
@@ -54,7 +53,6 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
       </span>
     );
   } else {
-    // PENDENTE e não notificado
     statusBadge = (
       <span className="px-2 py-0.5 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">
         Pendente
@@ -64,7 +62,7 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
       <Button
         size="small"
         variant={pendingAction === "indicate" ? "warning" : "primary"}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto transition-all" // Adicionado transition para suavidade
         onClick={handleIndicate}
         disabled={isProcessing}
       >
@@ -78,48 +76,38 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
   }
 
   return (
-    <div className="bg-white p-4 rounded-md shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      {/* --- LADO ESQUERDO (Mobile: Topo / Desktop: Esquerda) --- */}
-      <div className="w-full sm:flex-1">
+    <div className="bg-white p-4 rounded-md shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all hover:shadow-md">
+      {/* --- BLOCO DE INFORMAÇÕES (Esquerda Desktop / Topo Mobile) --- */}
+      <div className="flex-1">
+        {/* Linha Superior: Nome do Plano e Preço (Mobile apenas) */}
         <div className="flex justify-between items-start">
-          {/* Informações (Nome, Badge, Data) */}
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-bold text-gray-800">{payment.plan_name}</p>
-              {statusBadge}
-            </div>
-            <p className="text-sm text-gray-500">Vencimento: {formattedDate}</p>
-          </div>
+          <p className="font-bold text-gray-800 text-base sm:text-lg">
+            {payment.plan_name}
+          </p>
 
-          {/* PREÇO MOBILE: Aparece aqui em cima apenas no mobile */}
-          {/* Se estiver no desktop, ele some (hidden) */}
-          <p className="font-semibold text-lg text-gray-700 block sm:hidden">
+          {/* PREÇO MOBILE: Visível apenas em telas pequenas, alinhado ao topo direita */}
+          <p className="font-semibold text-gray-700 sm:hidden">
             {formattedAmount}
+          </p>
+        </div>
+
+        {/* Linha Inferior: Badge e Data */}
+        <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-x-4 gap-y-2 mt-2 sm:mt-0">
+          {statusBadge}
+
+          <p className="text-sm text-gray-500">
+            Vencimento: <span className="font-medium">{formattedDate}</span>
           </p>
         </div>
       </div>
 
-      {/* --- LADO DIREITO (Mobile: Baixo / Desktop: Direita) --- */}
-      {/* LOGICA DO GAP: 
-      Se tiver botão (actionButton), usa 'flex' (visível sempre).
-      Se NÃO tiver botão, usa 'hidden sm:flex'. 
-      Isso faz a div sumir no mobile (tirando o espaço em branco), 
-      mas aparecer no desktop para mostrar o preço. 
-  */}
-      <div
-        className={`w-full sm:w-auto items-center gap-4 ${
-          actionButton ? "flex" : "hidden sm:flex"
-        }`}
-      >
-        {/* Botão (Se existir) */}
-        {actionButton && (
-          <div className="w-full sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">
-            {actionButton}
-          </div>
-        )}
+      {/* --- BLOCO DE AÇÃO E PREÇO (Direita Desktop / Baixo Mobile) --- */}
+      <div className="flex flex-col-reverse sm:flex-row items-center gap-3 sm:gap-6">
+        {/* Botão de Ação: Se existir, ocupa 100% no mobile e tamanho auto no desktop */}
+        {actionButton && <div className="w-full sm:w-auto">{actionButton}</div>}
 
-        {/* PREÇO DESKTOP: Aparece aqui apenas no desktop */}
-        <p className="font-semibold text-lg text-gray-700 w-32 text-right hidden sm:block">
+        {/* PREÇO DESKTOP: Visível apenas em telas md/lg */}
+        <p className="hidden sm:block font-semibold text-lg text-gray-700 min-w-[100px] text-right">
           {formattedAmount}
         </p>
       </div>
