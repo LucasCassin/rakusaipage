@@ -152,7 +152,9 @@ export default function PresentationPage() {
           </h1>
           <p className="text-lg text-gray-600 mb-6">
             {presentation.description ||
-              "Use o editor abaixo para construir o mapa de palco."}
+              (permissions.canEdit
+                ? "Use o editor abaixo para construir o mapa de palco."
+                : "Acompanhe os detalhes da apresentação.")}
           </p>
 
           {(formattedDate ||
