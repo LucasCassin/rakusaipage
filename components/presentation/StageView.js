@@ -23,11 +23,14 @@ export default function StageView({
   onDeleteStep,
 }) {
   if (!scene) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px] bg-gray-100 rounded-lg shadow-inner">
-        <p className="text-gray-500">Selecione uma cena para começar.</p>
-      </div>
-    );
+    if (permissions.canEdit) {
+      return (
+        <div className="flex items-center justify-center min-h-[500px] bg-gray-100 rounded-lg shadow-inner">
+          <p className="text-gray-500">Crie uma cena para começar.</p>
+        </div>
+      );
+    }
+    return null;
   }
 
   const containerClasses =
