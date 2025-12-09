@@ -1124,6 +1124,19 @@ const schemas = {
         }),
     }),
 
+  usage_limit_per_user: () =>
+    Joi.object({
+      usage_limit_per_user: Joi.number()
+        .integer()
+        .min(1)
+        .allow(null)
+        .when("$required.usage_limit_per_user", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   is_cumulative: () =>
     Joi.object({
       is_cumulative: Joi.boolean().when("$required.is_cumulative", {
