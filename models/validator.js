@@ -1292,6 +1292,18 @@ const schemas = {
           otherwise: Joi.optional(),
         }),
     }),
+
+  product_id: () =>
+    Joi.object({
+      product_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.product_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
 };
 
 // Helper function to check if the username is reserved.
