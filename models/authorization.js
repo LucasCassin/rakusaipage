@@ -544,6 +544,165 @@ const profiles = {
   "delete:step": {
     allowedOutputFields: ["id"],
   },
+
+  // --- LOJA: CONSUMIDOR ---
+  // Feature: "shop:consumer:view"
+  // Permite ver produtos (públicos) e criar pedidos.
+  "shop:consumer:view": {
+    allowedInputFields: [
+      // Para criar pedido
+      "items",
+      "shipping_address",
+      "coupon_code",
+      "payment_method",
+      // Para busca de produtos
+      "search",
+      "category",
+      "tags",
+    ],
+    allowedOutputFields: [
+      // Dados seguros do produto para exibir na vitrine
+      "id",
+      "slug",
+      "name",
+      "description",
+      "category",
+      "tags",
+      "price_in_cents",
+      "promotional_price_in_cents",
+      "image_url",
+      "available_at",
+      "production_days", // Necessário para calcular prazo
+      // Dados do próprio pedido
+      "status",
+      "total_in_cents",
+      "tracking_code",
+    ],
+  },
+
+  // --- LOJA: GERENCIAMENTO DE PRODUTOS ---
+  // Feature: "shop:products:manage"
+  // Usada tanto para CREATE quanto UPDATE de produtos.
+  "shop:products:manage": {
+    allowedInputFields: [
+      "name",
+      "slug",
+      "description",
+      "category",
+      "tags",
+      "price_in_cents",
+      "promotional_price_in_cents",
+      "minimum_price_in_cents",
+      "stock_quantity",
+      "purchase_limit_per_user",
+      "allowed_features",
+      "available_at",
+      "unavailable_at",
+      "is_active",
+      "production_days",
+      "weight_in_grams",
+      "length_cm",
+      "height_cm",
+      "width_cm",
+      "image_url",
+    ],
+    allowedOutputFields: [
+      // Admin vê tudo
+      "id",
+      "slug",
+      "name",
+      "description",
+      "category",
+      "tags",
+      "price_in_cents",
+      "promotional_price_in_cents",
+      "minimum_price_in_cents",
+      "stock_quantity",
+      "purchase_limit_per_user",
+      "allowed_features",
+      "available_at",
+      "unavailable_at",
+      "is_active",
+      "production_days",
+      "weight_in_grams",
+      "length_cm",
+      "height_cm",
+      "width_cm",
+      "image_url",
+      "created_at",
+      "updated_at",
+    ],
+  },
+
+  // --- LOJA: VISUALIZAÇÃO GERAL ---
+  // Feature: "shop:products:read_all"
+  // Apenas leitura (ex: Dashboard de estoque), mas vê tudo.
+  "shop:products:read_all": {
+    allowedInputFields: ["search", "status", "category"],
+    allowedOutputFields: [
+      "id",
+      "slug",
+      "name",
+      "price_in_cents",
+      "stock_quantity",
+      "is_active",
+      "available_at",
+      "unavailable_at",
+    ],
+  },
+
+  // --- LOJA: CUPONS ---
+  // Feature: "shop:coupons:manage"
+  "shop:coupons:manage": {
+    allowedInputFields: [
+      "code",
+      "description",
+      "discount_percentage",
+      "auto_apply_feature",
+      "min_purchase_value_in_cents",
+      "usage_limit_global",
+      "usage_limit_per_user",
+      "expiration_date",
+      "is_active",
+      "is_cumulative",
+    ],
+    allowedOutputFields: [
+      "id",
+      "code",
+      "description",
+      "usage_count",
+      "created_at",
+    ],
+  },
+
+  // --- LOJA: PEDIDOS ---
+  // Feature: "shop:orders:manage"
+  "shop:orders:manage": {
+    allowedInputFields: ["status", "tracking_code"],
+    allowedOutputFields: [
+      "id",
+      "status",
+      "user_id",
+      "total_in_cents",
+      "updated_at",
+    ],
+  },
+
+  // Feature: "shop:orders:read_all"
+  "shop:orders:read_all": {
+    allowedInputFields: ["status", "user_id", "date_range"],
+    allowedOutputFields: [
+      "id",
+      "user_id",
+      "status",
+      "subtotal_in_cents",
+      "total_in_cents",
+      "payment_gateway_id",
+      "shipping_address_snapshot",
+      "created_at",
+      "items",
+    ],
+  },
 };
 
 function can(user, feature, resource) {
