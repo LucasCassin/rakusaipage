@@ -3,14 +3,17 @@ import validator from "models/validator.js";
 import { NotFoundError, ValidationError } from "errors/index.js";
 
 /**
- * Busca ou cria um carrinho ativo para o usuário.
- * Garante que sempre haverá um ID de carrinho para operar.
+ * Helper para decidir qual cliente usar (Pool ou Transação).
  */
-async function getOrCreate(userId) {
-  const cleanId = validator({ id: userId }, { id: "required" }).id;
+function getQueryRunner(transactionClient) {
+  return transactionClient || database;
+}
 
-  // 1. Tenta buscar existente
-  const result = await database.query({
+async function getOrCreate(userId, transactionClient) {
+  const cleanId = validator({ id: userId }, { id: "required" }).id;
+  const client = getQueryRunner(transactionClient);
+
+  const result = await client.query({
     text: "SELECT * FROM carts WHERE user_id = $1;",
     values: [cleanId],
   });
@@ -19,8 +22,7 @@ async function getOrCreate(userId) {
     return result.rows[0];
   }
 
-  // 2. Se não existir, cria um novo
-  const createResult = await database.query({
+  const createResult = await client.query({
     text: "INSERT INTO carts (user_id) VALUES ($1) RETURNING *;",
     values: [cleanId],
   });
@@ -28,10 +30,6 @@ async function getOrCreate(userId) {
   return createResult.rows[0];
 }
 
-/**
- * Adiciona um item ao carrinho.
- * Se o item já existir, incrementa a quantidade.
- */
 async function addItem(userId, itemData) {
   const cleanValues = validator(
     {
@@ -54,14 +52,12 @@ async function addItem(userId, itemData) {
 
   const cart = await getOrCreate(cleanValues.user_id);
 
-  // Verifica se o produto já está no carrinho deste usuário
   const itemCheck = await database.query({
     text: "SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2;",
     values: [cart.id, cleanValues.product_id],
   });
 
   if (itemCheck.rowCount > 0) {
-    // CENÁRIO A: Item já existe -> Soma a quantidade
     const currentQuantity = itemCheck.rows[0].quantity;
     const newQuantity = currentQuantity + cleanValues.cart_quantity;
 
@@ -76,7 +72,6 @@ async function addItem(userId, itemData) {
     });
     return updateResult.rows[0];
   } else {
-    // CENÁRIO B: Item novo -> Insere
     const insertResult = await database.query({
       text: `
         INSERT INTO cart_items (cart_id, product_id, quantity)
@@ -89,15 +84,11 @@ async function addItem(userId, itemData) {
   }
 }
 
-/**
- * Remove um item completamente do carrinho.
- */
 async function removeItem(userId, productId) {
   const cleanValues = validator(
     { user_id: userId, product_id: productId },
     { user_id: "required", product_id: "required" },
   );
-
   const cart = await getOrCreate(cleanValues.user_id);
 
   const result = await database.query({
@@ -110,13 +101,9 @@ async function removeItem(userId, productId) {
       message: "Item não encontrado no carrinho.",
     });
   }
-
   return result.rows[0];
 }
 
-/**
- * Define uma quantidade específica (ex: usuário digitou "5" no input).
- */
 async function updateItemQuantity(userId, productId, quantity) {
   const cleanValues = validator(
     { user_id: userId, product_id: productId, cart_quantity: quantity },
@@ -124,12 +111,10 @@ async function updateItemQuantity(userId, productId, quantity) {
   );
 
   if (cleanValues.cart_quantity <= 0) {
-    // Por segurança, vamos lançar erro, o front deve chamar removeItem se for 0.
     throw new ValidationError({
       message: "Quantidade inválida. Para remover, use a função de remover.",
     });
   }
-
   const cart = await getOrCreate(cleanValues.user_id);
 
   const result = await database.query({
@@ -147,21 +132,18 @@ async function updateItemQuantity(userId, productId, quantity) {
       message: "Produto não está no carrinho para ser atualizado.",
     });
   }
-
   return result.rows[0];
 }
 
-/**
- * Retorna o carrinho completo com detalhes dos produtos.
- */
-async function getCart(userId) {
-  const cart = await getOrCreate(userId);
+async function getCart(userId, transactionClient) {
+  const client = getQueryRunner(transactionClient);
+  const cart = await getOrCreate(userId, transactionClient);
 
-  // Busca itens fazendo JOIN com products para pegar nome, preço e imagem
-  const itemsResult = await database.query({
+  // QUERY ALTERADA: Adicionado p.minimum_price_in_cents
+  const query = {
     text: `
       SELECT 
-        ci.id,
+        ci.id as item_id,
         ci.product_id,
         ci.quantity,
         ci.created_at,
@@ -169,22 +151,29 @@ async function getCart(userId) {
         p.slug,
         p.price_in_cents,
         p.promotional_price_in_cents,
+        p.minimum_price_in_cents, 
         p.images,
-        p.stock_quantity
+        p.stock_quantity,
+        p.is_active
       FROM cart_items ci
       JOIN products p ON ci.product_id = p.id
       WHERE ci.cart_id = $1
       ORDER BY ci.created_at ASC;
     `,
     values: [cart.id],
-  });
+  };
 
-  // Calcula totais no backend para facilitar o front
+  const itemsResult = await client.query(query);
+
   const items = itemsResult.rows.map((item) => {
-    const price = item.promotional_price_in_cents || item.price_in_cents;
+    const unitPrice = item.promotional_price_in_cents || item.price_in_cents;
     return {
       ...item,
-      total_in_cents: price * item.quantity,
+      unit_price_in_cents: unitPrice,
+      total_in_cents: unitPrice * item.quantity,
+      // Total Mínimo deste item = (Preço Mínimo Unitário * Quantidade)
+      total_minimum_in_cents:
+        (item.minimum_price_in_cents || 0) * item.quantity,
     };
   });
 
@@ -197,12 +186,11 @@ async function getCart(userId) {
   };
 }
 
-/**
- * Limpa o carrinho (após compra realizada).
- */
-async function clearCart(userId) {
-  const cart = await getOrCreate(userId);
-  await database.query({
+async function clearCart(userId, transactionClient) {
+  const client = getQueryRunner(transactionClient);
+  const cart = await getOrCreate(userId, transactionClient);
+
+  await client.query({
     text: "DELETE FROM cart_items WHERE cart_id = $1;",
     values: [cart.id],
   });
