@@ -948,6 +948,18 @@ const schemas = {
         }),
     }),
 
+  cart_quantity: () =>
+    Joi.object({
+      cart_quantity: Joi.number()
+        .integer()
+        .min(1)
+        .when("$required.cart_quantity", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   purchase_limit_per_user: () =>
     Joi.object({
       purchase_limit_per_user: Joi.number()
