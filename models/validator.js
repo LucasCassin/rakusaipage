@@ -866,299 +866,420 @@ const schemas = {
     }),
 
   slug: () =>
-    Joi.string()
-      .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-      .min(3)
-      .max(255)
-      .when("$required.slug", {
+    Joi.object({
+      slug: Joi.string()
+        .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+        .min(3)
+        .max(255)
+        .when("$required.slug", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  category: () =>
+    Joi.object({
+      category: Joi.string().trim().max(100).when("$required.category", {
         is: "required",
         then: Joi.required(),
         otherwise: Joi.optional(),
       }),
-
-  category: () =>
-    Joi.string().trim().max(100).when("$required.category", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
     }),
 
   tags: () =>
-    Joi.array()
-      .items(Joi.string().trim().max(50))
-      .unique()
-      .when("$required.tags", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    Joi.object({
+      tags: Joi.array()
+        .items(Joi.string().trim().max(50))
+        .unique()
+        .when("$required.tags", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 
   price_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.price_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      price_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.price_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   promotional_price_in_cents: () =>
-    Joi.number()
-      .integer()
-      .min(0)
-      .allow(null)
-      .when("$required.promotional_price_in_cents", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    Joi.object({
+      promotional_price_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.promotional_price_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 
   minimum_price_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.minimum_price_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      minimum_price_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.minimum_price_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   stock_quantity: () =>
-    Joi.number().integer().min(0).when("$required.stock_quantity", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      stock_quantity: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.stock_quantity", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   purchase_limit_per_user: () =>
-    Joi.number()
-      .integer()
-      .min(1)
-      .allow(null)
-      .when("$required.purchase_limit_per_user", {
+    Joi.object({
+      purchase_limit_per_user: Joi.number()
+        .integer()
+        .min(1)
+        .allow(null)
+        .when("$required.purchase_limit_per_user", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  // Logística
+  weight_in_grams: () =>
+    Joi.object({
+      weight_in_grams: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.weight_in_grams", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  length_cm: () =>
+    Joi.object({
+      length_cm: Joi.number().integer().min(1).when("$required.length_cm", {
         is: "required",
         then: Joi.required(),
         otherwise: Joi.optional(),
       }),
-
-  // Logística
-  weight_in_grams: () =>
-    Joi.number().integer().min(0).when("$required.weight_in_grams", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
-
-  length_cm: () =>
-    Joi.number().integer().min(1).when("$required.length_cm", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
     }),
 
   height_cm: () =>
-    Joi.number().integer().min(1).when("$required.height_cm", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      height_cm: Joi.number().integer().min(1).when("$required.height_cm", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
     }),
 
   width_cm: () =>
-    Joi.number().integer().min(1).when("$required.width_cm", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      width_cm: Joi.number().integer().min(1).when("$required.width_cm", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
     }),
 
   production_days: () =>
-    Joi.number().integer().min(0).when("$required.production_days", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      production_days: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.production_days", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   // Datas e Flags
   available_at: () =>
-    Joi.date().iso().allow(null).when("$required.available_at", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      available_at: Joi.date()
+        .iso()
+        .allow(null)
+        .when("$required.available_at", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   unavailable_at: () =>
-    Joi.date().iso().allow(null).when("$required.unavailable_at", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      unavailable_at: Joi.date()
+        .iso()
+        .allow(null)
+        .when("$required.unavailable_at", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   allowed_features: () =>
-    Joi.array().items(Joi.string()).when("$required.allowed_features", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      allowed_features: Joi.array()
+        .items(Joi.string())
+        .when("$required.allowed_features", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   code: () =>
-    Joi.string().trim().uppercase().min(3).max(50).when("$required.code", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      code: Joi.string()
+        .trim()
+        .uppercase()
+        .min(3)
+        .max(50)
+        .when("$required.code", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   discount_percentage: () =>
-    Joi.number()
-      .integer()
-      .min(0)
-      .max(100)
-      .when("$required.discount_percentage", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    Joi.object({
+      discount_percentage: Joi.number()
+        .integer()
+        .min(0)
+        .max(100)
+        .when("$required.discount_percentage", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 
   auto_apply_feature: () =>
-    Joi.string().allow(null).when("$required.auto_apply_feature", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      auto_apply_feature: Joi.string()
+        .allow(null)
+        .when("$required.auto_apply_feature", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   min_purchase_value_in_cents: () =>
-    Joi.number()
-      .integer()
-      .min(0)
-      .when("$required.min_purchase_value_in_cents", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    Joi.object({
+      min_purchase_value_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.min_purchase_value_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 
   usage_limit_global: () =>
-    Joi.number()
-      .integer()
-      .min(1)
-      .allow(null)
-      .when("$required.usage_limit_global", {
+    Joi.object({
+      usage_limit_global: Joi.number()
+        .integer()
+        .min(1)
+        .allow(null)
+        .when("$required.usage_limit_global", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  is_cumulative: () =>
+    Joi.object({
+      is_cumulative: Joi.boolean().when("$required.is_cumulative", {
         is: "required",
         then: Joi.required(),
         otherwise: Joi.optional(),
       }),
-
-  is_cumulative: () =>
-    Joi.boolean().when("$required.is_cumulative", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
     }),
 
   expiration_date: () =>
-    Joi.date().iso().allow(null).when("$required.expiration_date", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      expiration_date: Joi.date()
+        .iso()
+        .allow(null)
+        .when("$required.expiration_date", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   shop_status: () =>
-    Joi.string()
-      .valid(
-        "pending",
-        "paid",
-        "preparing",
-        "shipped",
-        "delivered",
-        "canceled",
-        "refunded",
-      )
-      .when("$required.shop_status", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    Joi.object({
+      shop_status: Joi.string()
+        .valid(
+          "pending",
+          "paid",
+          "preparing",
+          "shipped",
+          "delivered",
+          "canceled",
+          "refunded",
+        )
+        .when("$required.shop_status", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 
   tracking_code: () =>
-    Joi.string().allow(null, "").when("$required.tracking_code", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      tracking_code: Joi.string()
+        .allow(null, "")
+        .when("$required.tracking_code", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   payment_method: () =>
-    Joi.string().valid("pix").when("$required.payment_method", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      payment_method: Joi.string()
+        .valid("pix")
+        .when("$required.payment_method", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   // Campos de totais para validação interna ou updates
   total_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.total_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      total_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.total_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   subtotal_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.subtotal_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      subtotal_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.subtotal_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   shipping_cost_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.shipping_cost_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      shipping_cost_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.shipping_cost_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   discount_in_cents: () =>
-    Joi.number().integer().min(0).when("$required.discount_in_cents", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      discount_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.discount_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   // Objetos complexos (JSONB snapshots)
   shipping_address_snapshot: () =>
-    Joi.object().unknown(true).when("$required.shipping_address_snapshot", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      shipping_address_snapshot: Joi.object()
+        .unknown(true)
+        .when("$required.shipping_address_snapshot", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   shop_items: () =>
-    Joi.array()
-      .items(
-        Joi.object({
-          product_id: Joi.string().guid({ version: "uuidv4" }).required(),
-          quantity: Joi.number().integer().min(1).required(),
+    Joi.object({
+      shop_items: Joi.array()
+        .items(
+          Joi.object({
+            product_id: Joi.string().guid({ version: "uuidv4" }).required(),
+            quantity: Joi.number().integer().min(1).required(),
+          }),
+        )
+        .when("$required.items", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
         }),
-      )
-      .when("$required.items", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    }),
 
   payment_gateway_id: () =>
-    Joi.string().allow(null).when("$required.payment_gateway_id", {
-      is: "required",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
+    Joi.object({
+      payment_gateway_id: Joi.string()
+        .allow(null)
+        .when("$required.payment_gateway_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   shop_images: () =>
-    Joi.array()
-      .items(
-        Joi.object({
-          url: Joi.string().uri().required(),
-          alt: Joi.string().allow("").optional(),
-          is_cover: Joi.boolean().default(false),
+    Joi.object({
+      shop_images: Joi.array()
+        .items(
+          Joi.object({
+            url: Joi.string().uri().required(),
+            alt: Joi.string().allow("").optional(),
+            is_cover: Joi.boolean().default(false),
+          }),
+        )
+        .min(0)
+        .max(10)
+        .when("$required.images", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
         }),
-      )
-      .min(0)
-      .max(10)
-      .when("$required.images", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.
