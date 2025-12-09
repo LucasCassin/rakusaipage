@@ -205,11 +205,6 @@ async function update(id, productData) {
     delete mappedData.images;
   }
 
-  if (mappedData.status !== undefined) {
-    mappedData.shop_status = mappedData.status;
-    delete mappedData.status;
-  }
-
   // 2. Monta o schema com chaves do Validator
   const validationKeys = {};
   Object.keys(mappedData).forEach((key) => {
@@ -217,7 +212,7 @@ async function update(id, productData) {
   });
 
   // 3. Validação
-  // cleanValues agora tem chaves como 'shop_images' e 'shop_status'
+  // cleanValues agora tem chaves como 'shop_images'
   const cleanValues = validator(mappedData, validationKeys);
 
   if (Object.keys(cleanValues).length === 0) {
@@ -234,15 +229,10 @@ async function update(id, productData) {
     cleanValues.images = cleanValues.shop_images;
     delete cleanValues.shop_images; // Remove a chave do validator
   }
-
-  if (cleanValues.shop_status !== undefined) {
-    cleanValues.status = cleanValues.shop_status;
-    delete cleanValues.shop_status; // Remove a chave do validator
-  }
   // ---------------------------
 
   // 5. Construção dinâmica da query UPDATE
-  // Agora o loop vai encontrar as chaves "images" e "status" corretamente
+  // Agora o loop vai encontrar as chaves "images" corretamente
   const sets = [];
   const values = [cleanId];
   let paramIndex = 2;
@@ -253,7 +243,7 @@ async function update(id, productData) {
       value = JSON.stringify(value);
     }
 
-    // A chave aqui será "images" ou "status", que são as colunas do banco
+    // A chave aqui será "images", que são as colunas do banco
     sets.push(`${key} = $${paramIndex}`);
     values.push(value);
     paramIndex++;
