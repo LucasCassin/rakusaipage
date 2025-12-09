@@ -1142,6 +1142,23 @@ const schemas = {
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
+
+  shop_images: () =>
+    Joi.array()
+      .items(
+        Joi.object({
+          url: Joi.string().uri().required(),
+          alt: Joi.string().allow("").optional(),
+          is_cover: Joi.boolean().default(false),
+        }),
+      )
+      .min(0)
+      .max(10)
+      .when("$required.images", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
 };
 
 // Helper function to check if the username is reserved.

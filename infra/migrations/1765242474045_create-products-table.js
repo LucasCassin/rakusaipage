@@ -41,7 +41,11 @@ exports.up = async (pgm) => {
     height_cm: { type: "integer", notNull: true },
     width_cm: { type: "integer", notNull: true },
 
-    image_url: { type: "varchar(500)", notNull: false },
+    images: {
+      type: "jsonb",
+      notNull: true,
+      default: "[]",
+    },
     created_at: {
       type: "timestamp with time zone",
       default: pgm.func("(now() at time zone 'utc')"),

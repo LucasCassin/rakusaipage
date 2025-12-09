@@ -570,7 +570,7 @@ const profiles = {
       "tags",
       "price_in_cents",
       "promotional_price_in_cents",
-      "image_url",
+      "images",
       "available_at",
       "production_days", // Necessário para calcular prazo
       // Dados do próprio pedido
@@ -604,7 +604,7 @@ const profiles = {
       "length_cm",
       "height_cm",
       "width_cm",
-      "image_url",
+      "images",
     ],
     allowedOutputFields: [
       // Admin vê tudo
