@@ -152,15 +152,21 @@ async function findAll({
 } = {}) {
   // 1. Identifica se é Admin (para bypass de regras)
   const isAdmin = userFeatures.includes("shop:products:manage");
+  const validateData = validator(
+    { limit: limit, offset: offset, category, is_active: isActive },
+    {
+      limit: "required",
+      offset: "required",
+      category: "optional",
+      is_active: "optional",
+    },
+  );
 
-  if (category || isActive) {
-    const validateData = validator(
-      { category, is_active: isActive },
-      { category: "optional", is_active: "optional" },
-    );
-    category = validateData.category;
-    isActive = validateData.is_active;
-  }
+  category = validateData.category;
+  isActive = validateData.is_active;
+  limit = validateData.limit;
+  offset = validateData.offset;
+
   const values = [limit, offset];
   let whereClause = "WHERE 1=1";
   let paramIndex = 3;

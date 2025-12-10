@@ -1248,6 +1248,24 @@ const schemas = {
         }),
     }),
 
+  limit: () =>
+    Joi.object({
+      limit: Joi.number().integer().min(0).when("$required.limit", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  offset: () =>
+    Joi.object({
+      offset: Joi.number().integer().min(0).when("$required.offset", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   // Objetos complexos (JSONB snapshots)
   shipping_address_snapshot: () =>
     Joi.object({

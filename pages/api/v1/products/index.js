@@ -7,53 +7,101 @@ import product from "models/product.js";
 import uploadService from "services/upload.js";
 import validator from "models/validator.js";
 
-// Configuração do Multer (Armazena em memória para envio ao Cloudinary)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // Limite de 5MB por arquivo
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 const router = createRouter();
 
-// Middlewares Globais da Rota
+// Middlewares Globais
 router
-  .use(authentication.injectAnonymousOrUser) // Nome correto conforme seu arquivo
+  .use(authentication.injectAnonymousOrUser) // Garante que temos user ou anonymous com features
   .use(authentication.checkIfUserPasswordExpired);
 
+// --- ROTA GET: Listagem (Protegida por Feature) ---
+router.get(
+  // 1. Validação de Acesso Geral à Loja
+  authorization.canRequest("shop:consumer:view"),
+  // 2. Validação de Parâmetros
+  validateGetQuery,
+  // 3. Handler
+  getHandler,
+);
+
+// --- ROTA POST: Criação (Admin) ---
 router.post(
-  // 1. Segurança: Usa a feature correta definida em user-features.js
   authorization.canRequest("shop:products:manage"),
-
-  // 2. Processamento de Arquivos: Lê o multipart/form-data
   upload.array("files"),
-
-  // 3. Validação: Verifica os campos do corpo (req.body) após o Multer processar
   validateProductBody,
-
-  // 4. Lógica: Salva no banco e nuvem
   postHandler,
 );
 
 export const config = {
   api: {
-    bodyParser: false, // Necessário para o Multer funcionar no Next.js
+    bodyParser: false,
   },
 };
 
 export default router.handler(controller.errorsHandlers);
 
-/**
- * Middleware de validação para os dados do produto.
- * Realiza o parse de campos numéricos e valida tipos.
- */
+function validateGetQuery(req, res, next) {
+  try {
+    const query = req.query || {};
+    const preparedQuery = {
+      ...query,
+      limit: query.limit ? parseInt(query.limit) : 20,
+      offset: query.offset ? parseInt(query.offset) : 0,
+      is_active:
+        query.isActive === "true"
+          ? true
+          : query.isActive === "false"
+            ? false
+            : undefined,
+    };
+
+    if (preparedQuery.is_active === undefined) {
+      delete preparedQuery.is_active;
+    }
+
+    req.cleanQuery = validator(preparedQuery, {
+      limit: "optional",
+      offset: "optional",
+      category: "optional",
+      is_active: "optional",
+    });
+
+    next();
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
+}
+
+async function getHandler(req, res) {
+  try {
+    const { limit, offset, category, is_active: isActive } = req.cleanQuery;
+
+    // Extrai as features do usuário (injetado pelo middleware de autenticação)
+    // Se for anonymous, ele terá as features padrão do createAnonymous()
+    const userFeatures = req.context?.user?.features || [];
+
+    const result = await product.findAll({
+      limit,
+      offset,
+      category,
+      isActive,
+      userFeatures, // Passamos as features para o model filtrar a visibilidade
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    controller.errorsHandlers.onError(error, req, res);
+  }
+}
+
+// ... (validateProductBody e postHandler iguais ao anterior)
 function validateProductBody(req, res, next) {
   try {
     const body = req.body || {};
-
-    // Como o form-data envia tudo como string, fazemos o cast para os tipos corretos
-    // para que o validator.js possa validar corretamente (ex: Joi.number())
     const preparedData = {
       ...body,
       price_in_cents: Number(body.price_in_cents),
@@ -72,12 +120,9 @@ function validateProductBody(req, res, next) {
       height_cm: Number(body.height_cm),
       width_cm: Number(body.width_cm),
       production_days: body.production_days ? Number(body.production_days) : 0,
-      // Tratamento de booleanos que vêm como string "true"/"false"
       is_active: body.is_active === "true" || body.is_active === true,
     };
 
-    // Tratamento de Arrays (Tags e Features)
-    // O form-data pode enviar como string JSON ou array
     if (typeof body.tags === "string") {
       try {
         preparedData.tags = JSON.parse(body.tags);
@@ -85,7 +130,6 @@ function validateProductBody(req, res, next) {
         preparedData.tags = [];
       }
     }
-
     if (typeof body.allowed_features === "string") {
       try {
         preparedData.allowed_features = JSON.parse(body.allowed_features);
@@ -94,7 +138,6 @@ function validateProductBody(req, res, next) {
       }
     }
 
-    // Validação usando o models/validator.js com as chaves existentes
     req.cleanBody = validator(preparedData, {
       name: "required",
       slug: "required",
@@ -107,7 +150,6 @@ function validateProductBody(req, res, next) {
       length_cm: "required",
       height_cm: "required",
       width_cm: "required",
-      // Opcionais
       promotional_price_in_cents: "optional",
       purchase_limit_per_user: "optional",
       production_days: "optional",
@@ -124,42 +166,28 @@ function validateProductBody(req, res, next) {
   }
 }
 
-/**
- * Handler para POST /api/v1/products
- */
 async function postHandler(req, res) {
   try {
     const files = req.files || [];
     const productData = req.cleanBody;
-
-    // 1. Upload das Imagens (se houver)
     const uploadedImages = [];
 
     if (files.length > 0) {
-      // Envia para o Cloudinary em paralelo
       const uploadPromises = files.map((file) =>
         uploadService.uploadImage(file.buffer, "rakusaipage/products"),
       );
-
       const results = await Promise.all(uploadPromises);
-
-      // Formata para o padrão JSONB do banco
       results.forEach((result, index) => {
         uploadedImages.push({
           url: result.secure_url,
           public_id: result.public_id,
           alt: `${productData.name} - Imagem ${index + 1}`,
-          is_cover: index === 0, // Define a primeira como capa
+          is_cover: index === 0,
         });
       });
     }
-
-    // 2. Adiciona as imagens ao objeto do produto
     productData.images = uploadedImages;
-
-    // 3. Persistência no Banco de Dados
     const newProduct = await product.create(productData);
-
     return res.status(201).json(newProduct);
   } catch (error) {
     controller.errorsHandlers.onError(error, req, res);
