@@ -143,35 +143,60 @@ async function findBySlug(slug) {
  * Lista produtos com filtros básicos.
  * @param {Object} options - Filtros (limit, offset, category, isActive).
  */
-async function findAll({ limit = 20, offset = 0, category, isActive } = {}) {
+async function findAll({
+  limit = 20,
+  offset = 0,
+  category,
+  isActive,
+  userFeatures = [],
+} = {}) {
+  // 1. Identifica se é Admin (para bypass de regras)
+  const isAdmin = userFeatures.includes("shop:products:manage");
+
   if (category || isActive) {
     const validateData = validator(
       { category, is_active: isActive },
-      {
-        category: "optional",
-        is_active: "optional",
-      },
+      { category: "optional", is_active: "optional" },
     );
     category = validateData.category;
     isActive = validateData.is_active;
   }
-
   const values = [limit, offset];
   let whereClause = "WHERE 1=1";
   let paramIndex = 3;
 
+  // Filtro de Categoria
   if (category) {
     whereClause += ` AND category = $${paramIndex}`;
     values.push(category);
     paramIndex++;
   }
 
-  if (isActive !== undefined) {
-    whereClause += ` AND is_active = $${paramIndex}`;
-    values.push(isActive);
-    paramIndex++;
+  // Filtro de Ativo/Inativo
+  if (isAdmin) {
+    // Admin vê tudo, a menos que filtre explicitamente
+    if (isActive !== undefined) {
+      whereClause += ` AND is_active = $${paramIndex}`;
+      values.push(isActive);
+      paramIndex++;
+    }
+  } else {
+    // Usuário comum (Consumer) SÓ vê produtos ativos
+    whereClause += " AND is_active = true";
   }
 
+  // Filtro de Features (Visibilidade por Produto)
+  // Regra: Se o produto tem allowed_features preenchido, o usuário precisa ter pelo menos uma delas.
+  if (!isAdmin) {
+    whereClause += ` AND (
+      cardinality(allowed_features) = 0 
+      OR 
+      allowed_features && $${paramIndex}::text[]
+    )`;
+    // O operador && verifica se existe intersecção entre os arrays
+    values.push(userFeatures);
+    paramIndex++;
+  }
   const query = {
     text: `
       SELECT *, count(*) OVER() as total_count
@@ -182,7 +207,6 @@ async function findAll({ limit = 20, offset = 0, category, isActive } = {}) {
     `,
     values,
   };
-
   const result = await database.query(query);
   return {
     products: result.rows,

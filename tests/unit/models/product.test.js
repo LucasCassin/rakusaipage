@@ -138,12 +138,34 @@ describe("Model: Product", () => {
       expect(resultB.products[0].category).toBe("Instrumentos");
     });
 
+    test("should filter products by allowed features", async () => {
+      await createBaseProduct("cat-fa", {
+        allowed_features: ["feature-a"],
+        category: "TesteFeatures",
+      });
+      await createBaseProduct("cat-fb", {
+        allowed_features: ["feature-b"],
+        category: "TesteFeatures",
+      });
+      const result = await product.findAll({
+        category: "TesteFeatures",
+        userFeatures: ["feature-a"],
+      });
+      expect(result.count).toBe(1);
+    });
+
     test("should filter products by is_active status", async () => {
       await createBaseProduct("active", { is_active: true });
       await createBaseProduct("inactive", { is_active: false });
 
-      const activeOnly = await product.findAll({ isActive: true });
-      const inactiveOnly = await product.findAll({ isActive: false });
+      const activeOnly = await product.findAll({
+        isActive: true,
+        userFeatures: ["shop:products:manage"],
+      });
+      const inactiveOnly = await product.findAll({
+        isActive: false,
+        userFeatures: ["shop:products:manage"],
+      });
 
       // Verifica se no array de ativos todos são true
       const allActive = activeOnly.products.every((p) => p.is_active === true);
