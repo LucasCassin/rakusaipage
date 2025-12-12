@@ -216,7 +216,13 @@ async function syncLocalCart(userId, localItems) {
     const cart = await getOrCreate(userId, client);
 
     for (const item of localItems) {
-      const { product_id, quantity } = item;
+      const { product_id: product_id_p, quantity: quantity_p } = item;
+      const cleanValues = validator(
+        { product_id: product_id_p, cart_quantity: quantity_p },
+        { product_id: "required", cart_quantity: "required" },
+      );
+      const product_id = cleanValues.product_id;
+      const quantity = cleanValues.cart_quantity;
 
       // Validação básica
       if (!product_id || quantity <= 0) continue;
