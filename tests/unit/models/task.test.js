@@ -90,7 +90,7 @@ describe("Tasks Model", () => {
         user_id: testUser.id,
         plan_id: testPlan.id,
         payment_day: 20, // Dia 20
-        start_date: "2025-10-01", // Mês passado
+        start_date: "2025-11-01", // Mês passado
       });
       // O `subscription.create` vai gerar o primeiro pagamento,
       // com vencimento em 2025-11-20 (o próximo dia 20).

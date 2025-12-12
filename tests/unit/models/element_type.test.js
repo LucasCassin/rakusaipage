@@ -34,7 +34,7 @@ describe("Element Type Model", () => {
 
     it("should fail if 'name' is not unique", async () => {
       const data = {
-        name: "Odaiko", // Já foi criado no primeiro teste
+        name: "Odaiko2", // Já foi criado no primeiro teste
         image_url: "/icons/odaiko2.svg",
         scale: 1.0,
       };
