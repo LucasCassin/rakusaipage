@@ -13,6 +13,7 @@ beforeAll(async () => {
 describe("Model: Cart", () => {
   let user1, userId;
   let productId;
+  let productA, productB;
 
   // Setup: Cria um usuário (dummy ID) e um produto para usar nos testes
   beforeAll(async () => {
@@ -43,6 +44,36 @@ describe("Model: Cart", () => {
       width_cm: 10,
     });
     productId = prod.id;
+
+    productA = await product.create({
+      name: "Produto A",
+      slug: "prod-a",
+      description: "Desc",
+      category: "Test",
+      price_in_cents: 1000,
+      minimum_price_in_cents: 900,
+      stock_quantity: 50,
+      weight_in_grams: 100,
+      length_cm: 10,
+      height_cm: 10,
+      width_cm: 10,
+      images: [],
+    });
+
+    productB = await product.create({
+      name: "Produto B",
+      slug: "prod-b",
+      description: "Desc",
+      category: "Test",
+      price_in_cents: 2000,
+      minimum_price_in_cents: 1800,
+      stock_quantity: 50,
+      weight_in_grams: 100,
+      length_cm: 10,
+      height_cm: 10,
+      width_cm: 10,
+      images: [],
+    });
   });
 
   test("should create a cart automatically when getting it", async () => {
@@ -101,5 +132,75 @@ describe("Model: Cart", () => {
         quantity: -1,
       }),
     ).rejects.toThrow(ValidationError);
+  });
+
+  describe("syncLocalCart (Merge)", () => {
+    test("should insert all items if database cart is empty", async () => {
+      await cart.clearCart(userId);
+      const localCart = [
+        { product_id: productA.id, quantity: 2 },
+        { product_id: productB.id, quantity: 1 },
+      ];
+
+      const syncedCart = await cart.syncLocalCart(userId, localCart);
+
+      expect(syncedCart.items).toHaveLength(2);
+      // Verifica quantidades
+      const itemA = syncedCart.items.find((i) => i.product_id === productA.id);
+      const itemB = syncedCart.items.find((i) => i.product_id === productB.id);
+
+      expect(itemA.quantity).toBe(2);
+      expect(itemB.quantity).toBe(1);
+    });
+
+    test("should sum quantities if items exist in both DB and Local", async () => {
+      await cart.clearCart(userId);
+      // 1. Estado Inicial do Banco: Produto A (qtd: 5)
+      await cart.addItem(userId, { product_id: productA.id, quantity: 5 });
+
+      // 2. Carrinho Local: Produto A (qtd: 3)
+      const localCart = [{ product_id: productA.id, quantity: 3 }];
+
+      // 3. Sincronização
+      const syncedCart = await cart.syncLocalCart(userId, localCart);
+
+      // 4. Resultado Esperado: Produto A (qtd: 8)
+      expect(syncedCart.items).toHaveLength(1);
+      expect(syncedCart.items[0].quantity).toBe(8);
+    });
+
+    test("should handle mixed scenario (update existing + insert new)", async () => {
+      await cart.clearCart(userId);
+      // 1. Estado Inicial do Banco: Produto A (qtd: 2)
+      await cart.addItem(userId, { product_id: productA.id, quantity: 2 });
+
+      // 2. Carrinho Local: Produto A (qtd: 1) E Produto B (qtd: 5)
+      const localCart = [
+        { product_id: productA.id, quantity: 1 },
+        { product_id: productB.id, quantity: 5 },
+      ];
+
+      // 3. Sincronização
+      const syncedCart = await cart.syncLocalCart(userId, localCart);
+
+      // 4. Verificação
+      expect(syncedCart.items).toHaveLength(2);
+
+      const itemA = syncedCart.items.find((i) => i.product_id === productA.id);
+      const itemB = syncedCart.items.find((i) => i.product_id === productB.id);
+
+      expect(itemA.quantity).toBe(3); // 2 (DB) + 1 (Local)
+      expect(itemB.quantity).toBe(5); // 0 (DB) + 5 (Local)
+    });
+
+    test("should do nothing if local items list is empty", async () => {
+      await cart.clearCart(userId);
+      await cart.addItem(userId, { product_id: productA.id, quantity: 1 });
+      const beforeSync = await cart.getCart(userId);
+
+      const afterSync = await cart.syncLocalCart(userId, []);
+
+      expect(afterSync).toEqual(beforeSync);
+    });
   });
 });

@@ -196,6 +196,78 @@ async function clearCart(userId, transactionClient) {
   });
 }
 
+/**
+ * Sincroniza/Funde um carrinho local (array de itens) com o carrinho do banco.
+ * Usado quando o usuário faz Login.
+ * @param {string} userId - ID do usuário.
+ * @param {Array} localItems - Array de objetos [{ product_id, quantity }, ...].
+ */
+async function syncLocalCart(userId, localItems) {
+  // Se não tem itens para sincronizar, retorna o carrinho atual
+  if (!localItems || localItems.length === 0) {
+    return getCart(userId);
+  }
+
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN"); // Inicia Transação para garantir integridade
+
+    const cart = await getOrCreate(userId, client);
+
+    for (const item of localItems) {
+      const { product_id, quantity } = item;
+
+      // Validação básica
+      if (!product_id || quantity <= 0) continue;
+
+      // Verifica se já existe no banco
+      const itemCheck = await client.query({
+        text: "SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2;",
+        values: [cart.id, product_id],
+      });
+
+      if (itemCheck.rowCount > 0) {
+        // MERGE: Se já existe, SOMA a quantidade local com a do banco
+        const currentQuantity = itemCheck.rows[0].quantity;
+        const newQuantity = currentQuantity + quantity;
+
+        await client.query({
+          text: `
+            UPDATE cart_items 
+            SET quantity = $1, updated_at = (now() at time zone 'utc')
+            WHERE id = $2;
+          `,
+          values: [newQuantity, itemCheck.rows[0].id],
+        });
+      } else {
+        // INSERT: Se não existe, cria
+        await client.query({
+          text: `
+            INSERT INTO cart_items (cart_id, product_id, quantity)
+            VALUES ($1, $2, $3);
+          `,
+          values: [cart.id, product_id, quantity],
+        });
+      }
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error; // Erros de validação (limite, etc)
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    client.end();
+  }
+
+  // Retorna o carrinho consolidado
+  return getCart(userId);
+}
+
 export default {
   getOrCreate,
   addItem,
@@ -203,4 +275,5 @@ export default {
   updateItemQuantity,
   getCart,
   clearCart,
+  syncLocalCart,
 };
