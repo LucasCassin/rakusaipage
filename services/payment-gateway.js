@@ -27,7 +27,7 @@ async function createPixPayment(order, user) {
           first_name: user.username, // Ou nome real se tiver no cadastro
         },
         external_reference: order.id, // VITAL: Linka o ID do nosso banco com o MP
-        notification_url: `${process.env.NEXT_PUBLIC_Web_URL}/api/v1/webhooks/mercadopago`,
+        notification_url: `${process.env.NEXT_PUBLIC_WEB_URL}/api/v1/webhooks/mercadopago`,
       },
     };
 
