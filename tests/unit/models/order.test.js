@@ -152,4 +152,38 @@ describe("Model: Order", () => {
 
     await expect(promise).rejects.toThrow("Estoque insuficiente");
   });
+
+  test("should update payment info with gateway data", async () => {
+    // 1. Cria um pedido base
+    await cart.addItem(userId, { product_id: productId, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "123" },
+      shippingCostInCents: 1000,
+    });
+
+    // 2. Simula dados do Mercado Pago
+    const gatewayMock = {
+      gatewayId: "123456789",
+      gatewayData: {
+        qr_code: "000201010212...",
+        ticket_url: "https://mercadopago.com/...",
+      },
+      status: "pending",
+    };
+
+    // 3. Atualiza
+    const updatedOrder = await order.updatePaymentInfo(
+      newOrder.id,
+      gatewayMock,
+    );
+
+    // 4. Valida
+    expect(updatedOrder.payment_gateway_id).toBe("123456789");
+    expect(updatedOrder.gateway_data.qr_code).toBe(
+      gatewayMock.gatewayData.qr_code,
+    );
+    expect(updatedOrder.status).toBe("pending");
+  });
 });

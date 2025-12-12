@@ -1335,6 +1335,42 @@ const schemas = {
           otherwise: Joi.optional().allow(null),
         }),
     }),
+
+  gatewayId: () =>
+    Joi.object({
+      gatewayId: Joi.string()
+        .trim()
+        .pattern(/^\d+$/, "numbers_only") // Valida se tem apenas números
+        .min(1)
+        .max(50) // Limite seguro
+        .when("$required.gatewayId", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
+
+  gatewayData: () =>
+    // Para armazenar o JSON bruto retornado pelo MP (metadata, qr code, etc)
+    Joi.object({
+      gatewayData: Joi.object()
+        .unknown(true) // Permite qualquer estrutura interna de chaves/valores
+        .when("$required.gatewayData", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional().allow(null),
+        }),
+    }),
+
+  gatewayStatus: () =>
+    // Status específicos do Mercado Pago (diferente do seu status interno)
+    Joi.object({
+      gatewayStatus: Joi.string().trim().when("$required.gatewayStatus", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

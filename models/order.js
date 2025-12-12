@@ -199,7 +199,56 @@ async function findById(orderId) {
   };
 }
 
+/**
+ * Atualiza as informações de pagamento do pedido.
+ * Usado após receber a resposta do Gateway (Mercado Pago).
+ */
+async function updatePaymentInfo(
+  orderId,
+  { gatewayId, gatewayData, gatewayStatus },
+) {
+  const cleanValues = validator(
+    { id: orderId, gatewayId, gatewayData, gatewayStatus },
+    {
+      id: "required",
+      gatewayId: "required", // ID do pagamento no MP
+      gatewayData: "required", // JSON completo (QR code etc)
+      gatewayStatus: "optional", // Status inicial (pending)
+    },
+  );
+
+  const query = {
+    text: `
+      UPDATE orders
+      SET 
+        payment_gateway_id = $2,
+        gateway_data = $3,
+        status = COALESCE($4, status),
+        updated_at = (now() at time zone 'utc')
+      WHERE id = $1
+      RETURNING *;
+    `,
+    values: [
+      cleanValues.id,
+      cleanValues.gatewayId,
+      JSON.stringify(cleanValues.gatewayData),
+      cleanValues.gatewayStatus || null,
+    ],
+  };
+
+  const result = await database.query(query);
+
+  if (result.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Pedido não encontrado para atualização de pagamento.",
+    });
+  }
+
+  return result.rows[0];
+}
+
 export default {
   createFromCart,
   findById,
+  updatePaymentInfo,
 };
