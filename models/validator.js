@@ -1075,6 +1075,17 @@ const schemas = {
         }),
     }),
 
+  coupon_codes: () =>
+    Joi.object({
+      coupon_codes: Joi.array()
+        .items(Joi.string().trim().uppercase().min(3).max(50).required())
+        .when("$required.coupon_codes", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   discount_percentage: () =>
     Joi.object({
       discount_percentage: Joi.number()
@@ -1300,7 +1311,7 @@ const schemas = {
             quantity: Joi.number().integer().min(1).required(),
           }),
         )
-        .when("$required.items", {
+        .when("$required.shop_items", {
           is: "required",
           then: Joi.required(),
           otherwise: Joi.optional(),

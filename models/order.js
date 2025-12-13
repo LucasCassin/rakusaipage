@@ -9,7 +9,7 @@ async function createFromCart({
   paymentMethod,
   shippingAddress,
   shippingCostInCents,
-  couponCode,
+  couponCodes,
   shippingMethod, // "PAC", "SEDEX", "PICKUP"
   shippingDetails,
 }) {
@@ -19,7 +19,7 @@ async function createFromCart({
       payment_method: paymentMethod,
       shipping_address_snapshot: shippingAddress,
       shipping_cost_in_cents: shippingCostInCents,
-      code: couponCode,
+      coupon_codes: couponCodes,
       shipping_method: shippingMethod,
       shipping_details: shippingDetails,
     },
@@ -28,7 +28,7 @@ async function createFromCart({
       payment_method: "required",
       shipping_address_snapshot: "required",
       shipping_cost_in_cents: "required",
-      code: "optional",
+      coupon_codes: "optional",
       shipping_method: "required",
       shipping_details: "optional",
     },
@@ -96,72 +96,125 @@ async function createFromCart({
     }
 
     // 4. Aplicação de Cupom
-    let discount = 0;
-    let appliedCouponId = null;
+    let finalDiscount = 0;
+    let appliedCouponsList = []; // Array para salvar no banco
 
-    if (cleanValues.code) {
-      const validCoupon = await coupon.validate(
-        cleanValues.code,
-        cleanValues.user_id,
-        subtotal, // Mínimo de compra sempre valida pelo subtotal dos produtos
+    if (cleanValues.coupon_codes && cleanValues.coupon_codes.length > 0) {
+      // 1. Valida todos os cupons enviados
+      const validCoupons = await coupon.validateMultiple(
+        cleanValues.coupon_codes,
+        userId,
+        subtotal,
       );
 
-      appliedCouponId = validCoupon.id;
-      let calculatedDiscount = 0;
-
-      // LOGICA BIFURCADA
-      if (validCoupon.type === "shipping") {
-        // --- CUPOM DE FRETE ---
-        // Base de cálculo é o valor do frete
-        const shippingCost = cleanValues.shipping_cost_in_cents;
-
-        // Calcula porcentagem (Ex: 100% off)
-        calculatedDiscount = Math.round(
-          shippingCost * (validCoupon.discount_percentage / 100),
-        );
-
-        // Aplica Teto Máximo (Ex: Limitado a R$ 50,00)
-        if (
-          validCoupon.max_discount_in_cents &&
-          calculatedDiscount > validCoupon.max_discount_in_cents
-        ) {
-          calculatedDiscount = validCoupon.max_discount_in_cents;
+      // Função auxiliar para calcular desconto de UM cupom isolado
+      const calculateSingleDiscount = (coupon) => {
+        let val = 0;
+        if (coupon.type === "shipping") {
+          val = Math.round(
+            shippingCostInCents * (coupon.discount_percentage / 100),
+          );
+          if (
+            coupon.max_discount_in_cents &&
+            val > coupon.max_discount_in_cents
+          ) {
+            val = coupon.max_discount_in_cents;
+          }
+          if (val > shippingCostInCents) val = shippingCostInCents;
+        } else {
+          val = Math.round(subtotal * (coupon.discount_percentage / 100));
+          if (
+            coupon.max_discount_in_cents &&
+            val > coupon.max_discount_in_cents
+          ) {
+            val = coupon.max_discount_in_cents;
+          }
         }
+        return val;
+      };
 
-        // Garante que não desconta mais que o valor do frete (não pode ficar negativo)
-        if (calculatedDiscount > shippingCost) {
-          calculatedDiscount = shippingCost;
-        }
-      } else {
-        // --- CUPOM DE PRODUTO (Subtotal) ---
-        // Base de cálculo é o subtotal
-        calculatedDiscount = Math.round(
-          subtotal * (validCoupon.discount_percentage / 100),
-        );
+      // CENÁRIO A: Soma dos Cumulativos
+      const cumulativeCoupons = validCoupons.filter((c) => c.is_cumulative);
+      let cumulativeTotalDiscount = 0;
+      let cumulativeAppliedSnapshots = [];
 
-        // Aplica Teto Máximo (se houver)
-        if (
-          validCoupon.max_discount_in_cents &&
-          calculatedDiscount > validCoupon.max_discount_in_cents
-        ) {
-          calculatedDiscount = validCoupon.max_discount_in_cents;
-        }
+      for (const c of cumulativeCoupons) {
+        const disc = calculateSingleDiscount(c);
+        cumulativeTotalDiscount += disc;
+        cumulativeAppliedSnapshots.push({
+          id: c.id,
+          code: c.code,
+          discount_in_cents: disc,
+          type: c.type,
+        });
+      }
 
-        // Regra do Piso (Hard Floor dos Produtos)
-        // O subtotal final não pode ser menor que o totalMinimumFloor
-        const maxAllowedDiscount = subtotal - totalMinimumFloor;
+      // CENÁRIO B: O Melhor Não-Cumulativo
+      const singleCoupons = validCoupons.filter((c) => !c.is_cumulative);
+      let bestSingleDiscount = 0;
+      let bestSingleSnapshot = [];
 
-        if (maxAllowedDiscount < 0) {
-          calculatedDiscount = 0;
-        } else if (calculatedDiscount > maxAllowedDiscount) {
-          calculatedDiscount = maxAllowedDiscount;
+      for (const c of singleCoupons) {
+        const disc = calculateSingleDiscount(c);
+        if (disc > bestSingleDiscount) {
+          bestSingleDiscount = disc;
+          bestSingleSnapshot = [
+            {
+              id: c.id,
+              code: c.code,
+              discount_in_cents: disc,
+              type: c.type,
+            },
+          ];
         }
       }
 
-      discount = calculatedDiscount;
+      // DECISÃO: Quem ganha?
+      // Nota: Cupons cumulativos "ganham" se a soma deles for maior que o melhor individual.
+      // Se não houver cumulativos, o melhor individual ganha.
+      // Se houver cumulativos mas um individual for melhor (ex: 90% off), o individual ganha.
+
+      if (cumulativeTotalDiscount >= bestSingleDiscount) {
+        finalDiscount = cumulativeTotalDiscount;
+        appliedCouponsList = cumulativeAppliedSnapshots;
+      } else {
+        finalDiscount = bestSingleDiscount;
+        appliedCouponsList = bestSingleSnapshot;
+      }
+
+      // --- VALIDAÇÃO FINAL DE LIMITES (Pisos e Tetos Globais) ---
+
+      // 1. Separa o desconto total em "Parcela Frete" e "Parcela Produto" para validar limites
+      const shippingDiscountTotal = appliedCouponsList
+        .filter((c) => c.type === "shipping")
+        .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+      const productDiscountTotal = appliedCouponsList
+        .filter((c) => c.type !== "shipping")
+        .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+      // Trava Frete: Desconto não pode ser maior que o custo do frete
+      let effectiveShippingDiscount = shippingDiscountTotal;
+      if (effectiveShippingDiscount > shippingCostInCents) {
+        effectiveShippingDiscount = shippingCostInCents;
+      }
+
+      // Trava Produto (Hard Floor): Subtotal - Desconto não pode ser menor que Preço Mínimo
+      let effectiveProductDiscount = productDiscountTotal;
+      const maxAllowedProductDiscount = subtotal - totalMinimumFloor;
+
+      if (effectiveProductDiscount > maxAllowedProductDiscount) {
+        effectiveProductDiscount = maxAllowedProductDiscount;
+      }
+
+      // Recalcula o total final real
+      finalDiscount = effectiveShippingDiscount + effectiveProductDiscount;
+
+      // Atualiza os valores nos snapshots para refletir os cortes (opcional, mas bom para auditoria)
+      // (Simplificação: apenas salvamos o total geral descontado no pedido)
     }
 
-    const total = subtotal + cleanValues.shipping_cost_in_cents - discount;
+    const total = subtotal + shippingCostInCents - finalDiscount;
 
     const orderQuery = {
       text: `
@@ -173,25 +226,25 @@ async function createFromCart({
           total_in_cents,
           payment_method,
           shipping_address_snapshot,
-          applied_coupon_id,
           shipping_method,
           shipping_details,
           status,
-          created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', now())
+          created_at,
+          applied_coupons
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', now(), $10)
         RETURNING *;
       `,
       values: [
         cleanValues.user_id,
         subtotal,
-        discount,
+        finalDiscount,
         cleanValues.shipping_cost_in_cents,
         total,
         cleanValues.payment_method,
         JSON.stringify(cleanValues.shipping_address_snapshot),
-        appliedCouponId,
         cleanValues.shipping_method,
         JSON.stringify(cleanValues.shipping_details || {}),
+        JSON.stringify(appliedCouponsList),
       ],
     };
 

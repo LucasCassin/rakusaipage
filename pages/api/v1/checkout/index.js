@@ -33,11 +33,19 @@ function validateCheckoutBody(req, res, next) {
   try {
     const body = req.body || {};
 
+    let normalizedCodes = [];
+    if (body.codes && Array.isArray(body.codes)) {
+      normalizedCodes = body.codes;
+    } else if (body.code) {
+      normalizedCodes = [body.code];
+    }
+
     const dataToValidate = {
       ...body,
       shop_items: body.items,
       username: body.customer?.username || body.username,
       email: body.customer?.email || body.email,
+      coupon_codes: normalizedCodes,
     };
 
     // Define regras dinâmicas baseadas na autenticação
@@ -49,6 +57,7 @@ function validateCheckoutBody(req, res, next) {
       shop_items: "optional",
       shipping_method: "required",
       shipping_details: "optional",
+      coupon_codes: "optional",
     };
 
     // Se não tem ID na sessão, é Guest: Exige dados de cadastro
@@ -68,6 +77,7 @@ function validateCheckoutBody(req, res, next) {
         username: cleanData.username,
         email: cleanData.email,
       },
+      code: normalizedCodes,
     };
 
     next();
@@ -159,7 +169,7 @@ async function checkoutHandler(req, res) {
       paymentMethod: payment_method,
       shippingAddress: shipping_address_snapshot,
       shippingCostInCents: shipping_cost_in_cents,
-      couponCode: code,
+      couponCodes: code,
       shippingMethod: shipping_method,
       shippingDetails: shipping_details,
     });

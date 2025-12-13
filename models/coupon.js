@@ -45,7 +45,7 @@ async function validate(code, userId, amountInCents) {
   // 1. Verifica se está ativo
   if (!coupon.is_active) {
     throw new ValidationError({
-      message: "Este cupom foi desativado.",
+      message: `O cupom ${coupon.code} foi desativado.`,
     });
   }
 
@@ -55,7 +55,7 @@ async function validate(code, userId, amountInCents) {
     const expiration = new Date(coupon.expiration_date);
     if (now > expiration) {
       throw new ValidationError({
-        message: "Este cupom expirou.",
+        message: `O cupom ${coupon.code} expirou.`,
       });
     }
   }
@@ -68,23 +68,26 @@ async function validate(code, userId, amountInCents) {
   ) {
     const minReais = (coupon.min_purchase_value_in_cents / 100).toFixed(2);
     throw new ValidationError({
-      message: `Este cupom requer um valor mínimo de compra de R$ ${minReais}.`,
+      message: `O cupom ${coupon.code} requer um valor mínimo de compra de R$ ${minReais}.`,
     });
   }
 
   // 4. Verifica Limites de Uso (Requer consulta na tabela de pedidos)
   if (coupon.usage_limit_global || coupon.usage_limit_per_user) {
+    // Busca pedidos não cancelados que contenham este cupom no array 'applied_coupons'
+    // O operador @> verifica se o JSON do banco contém o objeto passado (pelo ID)
     const usageQuery = {
       text: `
         SELECT 
           count(*) as total_usage,
           count(*) filter (where user_id = $2) as user_usage
         FROM orders 
-        WHERE applied_coupon_id = $1 
+        WHERE applied_coupons @> $1::jsonb
         AND status <> 'canceled'
         AND status <> 'refunded';
       `,
-      values: [coupon.id, cleanValues.user_id],
+      // Montamos um JSON parcial `[{ "id": "..." }]` para o Postgres buscar dentro do array
+      values: [JSON.stringify([{ id: coupon.id }]), cleanValues.user_id],
     };
 
     const usageResult = await database.query(usageQuery);
@@ -93,7 +96,7 @@ async function validate(code, userId, amountInCents) {
 
     if (coupon.usage_limit_global && totalUsage >= coupon.usage_limit_global) {
       throw new ValidationError({
-        message: "Este cupom atingiu o limite máximo de utilizações.",
+        message: `O cupom ${coupon.code} atingiu o limite máximo de utilizações.`,
       });
     }
 
@@ -102,12 +105,32 @@ async function validate(code, userId, amountInCents) {
       userUsage >= coupon.usage_limit_per_user
     ) {
       throw new ValidationError({
-        message: "Você já atingiu o limite de uso para este cupom.",
+        message: `Você já atingiu o limite de uso para este cupom (${coupon.code}).`,
       });
     }
   }
 
   return coupon;
+}
+
+/**
+ * Valida múltiplos cupons e remove duplicados.
+ */
+async function validateMultiple(codes, userId, amountInCents) {
+  if (!Array.isArray(codes) || codes.length === 0) return [];
+
+  // Remove duplicados e normaliza
+  const uniqueCodes = [...new Set(codes.map((c) => c.toUpperCase()))];
+  const validCoupons = [];
+
+  for (const code of uniqueCodes) {
+    // Validamos um a um. Se um falhar, lançamos erro ou ignoramos?
+    // Regra de negócio: Se o cliente mandou código inválido, avisa erro.
+    const coupon = await validate(code, userId, amountInCents);
+    validCoupons.push(coupon);
+  }
+
+  return validCoupons;
 }
 
 /**
@@ -125,7 +148,7 @@ async function create(couponData) {
       usage_limit_per_user: "optional",
       expiration_date: "optional",
       is_active: "optional",
-      // NOVOS CAMPOS
+      is_cumulative: "optional",
       coupon_type: "optional", // 'subtotal' ou 'shipping'
       max_discount_in_cents: "optional",
     },
@@ -137,8 +160,8 @@ async function create(couponData) {
         code, description, discount_percentage, 
         min_purchase_value_in_cents, usage_limit_global, usage_limit_per_user,
         expiration_date, is_active,
-        type, max_discount_in_cents
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        type, max_discount_in_cents, is_cumulative
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `,
     values: [
@@ -150,10 +173,9 @@ async function create(couponData) {
       cleanValues.usage_limit_per_user || 1,
       cleanValues.expiration_date || null,
       cleanValues.is_active ?? true,
-      // Default: 'subtotal'
       cleanValues.coupon_type || "subtotal",
-      // Default: null (sem teto)
       cleanValues.max_discount_in_cents || null,
+      cleanValues.is_cumulative ?? false,
     ],
   };
 
@@ -176,4 +198,5 @@ export default {
   create,
   findByCode,
   validate,
+  validateMultiple,
 };
