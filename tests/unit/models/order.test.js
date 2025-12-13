@@ -2,7 +2,7 @@ import order from "models/order.js";
 import cart from "models/cart.js";
 import product from "models/product.js";
 import coupon from "models/coupon.js";
-import { ValidationError } from "errors/index.js";
+import { ValidationError, ServiceError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 
@@ -24,6 +24,7 @@ describe("Model: Order", () => {
     });
     userId = user1.id;
 
+    // Criamos um produto com estoque controlado (10 unidades)
     const prod = await product.create({
       name: "Produto Pedido",
       slug: "prod-pedido",
@@ -31,7 +32,7 @@ describe("Model: Order", () => {
       category: "Test",
       price_in_cents: 5000,
       minimum_price_in_cents: 1000,
-      stock_quantity: 100,
+      stock_quantity: 10, // ESTOQUE INICIAL
       weight_in_grams: 100,
       length_cm: 10,
       height_cm: 10,
@@ -62,6 +63,91 @@ describe("Model: Order", () => {
     expect(newOrder.total_in_cents).toBe(12000);
   });
 
+  test("should reduce stock quantity when order is created", async () => {
+    // Estoque inicial era 10. Teste anterior comprou 2. Estoque atual deve ser 8.
+    // Vamos comprar mais 3.
+    await cart.addItem(userId, { product_id: productId, quantity: 3 });
+
+    await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "000" },
+      shippingCostInCents: 1000,
+      shippingMethod: "PAC",
+    });
+
+    // Verifica no banco
+    const dbProduct = await product.findById(productId);
+    expect(dbProduct.stock_quantity).toBe(5); // 8 - 3 = 5
+  });
+
+  test("should fail if product stock is insufficient (and not change stock)", async () => {
+    // Estoque atual é 5. Tentar comprar 6.
+    await cart.addItem(userId, { product_id: productId, quantity: 6 });
+
+    const promise = order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: {},
+      shippingCostInCents: 0,
+      shippingMethod: "PICKUP",
+    });
+
+    await expect(promise).rejects.toThrow(ValidationError);
+    await expect(promise).rejects.toThrow(/insuficiente/);
+
+    // O estoque deve permanecer 5 (Rollback funcionou)
+    const dbProduct = await product.findById(productId);
+    expect(dbProduct.stock_quantity).toBe(5);
+  });
+
+  test("should return items to stock when order is canceled", async () => {
+    // 1. Compra 2 itens. Estoque (5) vai para (3).
+    await cart.addItem(userId, { product_id: productId, quantity: 2 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "123" },
+      shippingCostInCents: 1000,
+      shippingMethod: "PAC",
+    });
+
+    let dbProduct = await product.findById(productId);
+    expect(dbProduct.stock_quantity).toBe(3);
+
+    // 2. Cancela Pedido
+    const canceledOrder = await order.cancel(newOrder.id);
+    expect(canceledOrder.status).toBe("canceled");
+
+    // 3. Verifica retorno de estoque (3 + 2 = 5)
+    dbProduct = await product.findById(productId);
+    expect(dbProduct.stock_quantity).toBe(5);
+  });
+
+  test("should fail to cancel if order is already shipped", async () => {
+    // Setup: Cria pedido
+    await cart.addItem(userId, { product_id: productId, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: {},
+      shippingCostInCents: 0,
+      shippingMethod: "PAC",
+    });
+
+    // Simula envio (atualização manual via orchestrator/query pois não temos model method para 'ship')
+    // Precisamos importar database ou usar orchestrator query
+    const db = await import("infra/database.js").then((m) => m.default);
+    await db.query({
+      text: "UPDATE orders SET status = 'shipped' WHERE id = $1",
+      values: [newOrder.id],
+    });
+
+    // Tenta cancelar
+    await expect(order.cancel(newOrder.id)).rejects.toThrow(ServiceError);
+    await expect(order.cancel(newOrder.id)).rejects.toThrow(/enviado/);
+  });
+
   test("should create an order with coupon applied using 'code' parameter", async () => {
     await coupon.create({
       code: "DESCONTO10",
@@ -86,8 +172,6 @@ describe("Model: Order", () => {
 
   // NOVO TESTE DE HARD FLOOR
   test("should cap discount if it violates product minimum price (Hard Floor)", async () => {
-    // 1. Cria produto com margem apertada
-    // Preço: 100,00 | Mínimo: 80,00
     const floorProduct = await product.create({
       name: "Produto Margem Baixa",
       slug: "margin-test",
@@ -103,9 +187,6 @@ describe("Model: Order", () => {
       images: [],
     });
 
-    // 2. Cupom Agressivo: 50% de desconto
-    // Se aplicado puramente: 50% de 100,00 = 50,00. Preço final seria 50,00.
-    // MAS o mínimo é 80,00. Logo, o desconto máximo permitido é 20,00.
     await coupon.create({
       code: "SUPER50",
       description: "50 off",
@@ -123,10 +204,6 @@ describe("Model: Order", () => {
       shippingMethod: "PAC",
     });
 
-    // Verificação
-    // Subtotal: 20000
-    // Desconto Esperado: 4000 (Para não baixar de 16000)
-    // Total: 16000
     expect(newOrder.subtotal_in_cents).toBe(20000);
     expect(newOrder.discount_in_cents).toBe(4000); // Travou em 40 reais
     expect(newOrder.total_in_cents).toBe(16000); // Respeitou o piso
@@ -144,22 +221,7 @@ describe("Model: Order", () => {
     await expect(promise).rejects.toThrow(ValidationError);
   });
 
-  test("should fail if product stock is insufficient", async () => {
-    await cart.addItem(userId, { product_id: productId, quantity: 101 });
-
-    const promise = order.createFromCart({
-      userId,
-      paymentMethod: "pix",
-      shippingAddress: {},
-      shippingCostInCents: 0,
-      shippingMethod: "PICKUP",
-    });
-
-    await expect(promise).rejects.toThrow("Estoque insuficiente");
-  });
-
   test("should update payment info with gateway data", async () => {
-    // 1. Cria um pedido base
     await cart.addItem(userId, { product_id: productId, quantity: 1 });
     const newOrder = await order.createFromCart({
       userId,
@@ -169,7 +231,6 @@ describe("Model: Order", () => {
       shippingMethod: "SEDEX",
     });
 
-    // 2. Simula dados do Mercado Pago
     const gatewayMock = {
       gatewayId: "123456789",
       gatewayData: {
@@ -179,13 +240,11 @@ describe("Model: Order", () => {
       status: "pending",
     };
 
-    // 3. Atualiza
     const updatedOrder = await order.updatePaymentInfo(
       newOrder.id,
       gatewayMock,
     );
 
-    // 4. Valida
     expect(updatedOrder.payment_gateway_id).toBe("123456789");
     expect(updatedOrder.gateway_data.qr_code).toBe(
       gatewayMock.gatewayData.qr_code,
@@ -201,7 +260,6 @@ describe("Model: Order", () => {
       paymentMethod: "pix",
       shippingAddress: { zip: "123" },
       shippingCostInCents: 1500,
-      // Novos dados vindos do frontend
       shippingMethod: "PAC",
       shippingDetails: { carrier: "Correios", days: 5 },
     });

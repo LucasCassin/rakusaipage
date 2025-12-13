@@ -2,7 +2,7 @@ import database from "infra/database.js";
 import cart from "models/cart.js";
 import coupon from "models/coupon.js";
 import validator from "models/validator.js";
-import { ValidationError, NotFoundError } from "errors/index.js";
+import { ValidationError, NotFoundError, ServiceError } from "errors/index.js";
 
 async function createFromCart({
   userId,
@@ -53,14 +53,19 @@ async function createFromCart({
     const itemsToInsert = [];
 
     for (const item of userCart.items) {
+      // 1. Validação de Disponibilidade (Ativo)
       if (!item.is_active) {
+        // Nota: Em uma transação que falha (Rollback), não conseguimos persistir a remoção do item.
+        // O comportamento correto é impedir a compra e avisar o usuário para ele remover.
         throw new ValidationError({
-          message: `O produto "${item.name}" não está mais disponível.`,
+          message: `O produto "${item.name}" não está mais disponível. Remova-o do carrinho para continuar.`,
         });
       }
+
+      // 2. Validação de Estoque
       if (item.stock_quantity < item.quantity) {
         throw new ValidationError({
-          message: `Estoque insuficiente para o produto "${item.name}".`,
+          message: `Estoque insuficiente para o produto "${item.name}". Restam apenas ${item.stock_quantity} unidades.`,
         });
       }
 
@@ -78,9 +83,19 @@ async function createFromCart({
         unit_price: item.unit_price_in_cents,
         total: totalItem,
       });
+
+      // 3. ATUALIZAÇÃO DE ESTOQUE (Reserva)
+      await client.query({
+        text: `
+          UPDATE products 
+          SET stock_quantity = stock_quantity - $1 
+          WHERE id = $2
+        `,
+        values: [item.quantity, item.product_id],
+      });
     }
 
-    // 3. Aplicação de Cupom com Regra de Piso (Minimum Price)
+    // 4. Aplicação de Cupom com Regra de Piso (Minimum Price)
     let discount = 0;
     let appliedCouponId = null;
 
@@ -102,10 +117,8 @@ async function createFromCart({
       const maxAllowedDiscount = subtotal - totalMinimumFloor;
 
       if (maxAllowedDiscount < 0) {
-        // Caso raro onde o preço de venda já está abaixo do mínimo configurado (erro de cadastro)
         discount = 0;
       } else if (calculatedDiscount > maxAllowedDiscount) {
-        // Limita o desconto ao máximo permitido para não furar o piso
         discount = maxAllowedDiscount;
       } else {
         discount = calculatedDiscount;
@@ -221,9 +234,9 @@ async function updatePaymentInfo(
     { id: orderId, gatewayId, gatewayData, gatewayStatus },
     {
       id: "required",
-      gatewayId: "required", // ID do pagamento no MP
-      gatewayData: "required", // JSON completo (QR code etc)
-      gatewayStatus: "optional", // Status inicial (pending)
+      gatewayId: "required",
+      gatewayData: "required",
+      gatewayStatus: "optional",
     },
   );
 
@@ -257,8 +270,78 @@ async function updatePaymentInfo(
   return result.rows[0];
 }
 
+/**
+ * Cancela um pedido e devolve os itens ao estoque.
+ */
+async function cancel(orderId) {
+  const cleanId = validator({ id: orderId }, { id: "required" }).id;
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Verifica status atual com Lock
+    const orderCheck = await client.query({
+      text: "SELECT status FROM orders WHERE id = $1 FOR UPDATE",
+      values: [cleanId],
+    });
+
+    if (orderCheck.rowCount === 0) {
+      throw new NotFoundError({ message: "Pedido não encontrado." });
+    }
+    const currentStatus = orderCheck.rows[0].status;
+
+    if (currentStatus === "canceled") {
+      await client.query("ROLLBACK");
+      return orderCheck.rows[0]; // Já está cancelado
+    }
+
+    // Impede cancelamento automático se já foi enviado ou entregue
+    if (["shipped", "delivered"].includes(currentStatus)) {
+      throw new ServiceError({
+        message:
+          "Não é possível cancelar um pedido que já foi enviado ou entregue.",
+      });
+    }
+
+    // 2. Busca os itens para devolver ao estoque
+    const itemsRes = await client.query({
+      text: "SELECT product_id, quantity FROM order_items WHERE order_id = $1",
+      values: [cleanId],
+    });
+
+    // 3. Devolve Estoque
+    for (const item of itemsRes.rows) {
+      await client.query({
+        text: "UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2",
+        values: [item.quantity, item.product_id],
+      });
+    }
+
+    // 4. Atualiza Status do Pedido
+    const updateRes = await client.query({
+      text: `
+        UPDATE orders 
+        SET status = 'canceled', updated_at = (now() at time zone 'utc') 
+        WHERE id = $1 
+        RETURNING *
+      `,
+      values: [cleanId],
+    });
+
+    await client.query("COMMIT");
+    return updateRes.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.end();
+  }
+}
+
 export default {
   createFromCart,
   findById,
   updatePaymentInfo,
+  cancel,
 };
