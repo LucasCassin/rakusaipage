@@ -61,6 +61,7 @@ async function validate(code, userId, amountInCents) {
   }
 
   // 3. Verifica Valor Mínimo de Compra
+  // Nota: Mesmo para cupons de frete, o gatilho pode ser o valor dos produtos (Ex: Frete grátis em compras acima de X)
   if (
     coupon.min_purchase_value_in_cents &&
     cleanValues.amount < coupon.min_purchase_value_in_cents
@@ -73,8 +74,6 @@ async function validate(code, userId, amountInCents) {
 
   // 4. Verifica Limites de Uso (Requer consulta na tabela de pedidos)
   if (coupon.usage_limit_global || coupon.usage_limit_per_user) {
-    // Conta quantas vezes este cupom aparece em pedidos que NÃO foram cancelados
-    // (Assumindo que pedidos cancelados devolvem o uso do cupom)
     const usageQuery = {
       text: `
         SELECT 
@@ -115,28 +114,35 @@ async function validate(code, userId, amountInCents) {
  * Cria um novo cupom (Função administrativa).
  */
 async function create(couponData) {
-  const cleanValues = validator(couponData, {
-    code: "required",
-    description: "required",
-    discount_percentage: "required",
-    min_purchase_value_in_cents: "optional",
-    usage_limit_global: "optional",
-    usage_limit_per_user: "optional",
-    expiration_date: "optional",
-    is_active: "optional",
-  });
+  const cleanValues = validator(
+    { ...couponData, coupon_type: couponData.type },
+    {
+      code: "required",
+      description: "required",
+      discount_percentage: "required",
+      min_purchase_value_in_cents: "optional",
+      usage_limit_global: "optional",
+      usage_limit_per_user: "optional",
+      expiration_date: "optional",
+      is_active: "optional",
+      // NOVOS CAMPOS
+      coupon_type: "optional", // 'subtotal' ou 'shipping'
+      max_discount_in_cents: "optional",
+    },
+  );
 
   const query = {
     text: `
       INSERT INTO coupons (
         code, description, discount_percentage, 
         min_purchase_value_in_cents, usage_limit_global, usage_limit_per_user,
-        expiration_date, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        expiration_date, is_active,
+        type, max_discount_in_cents
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *;
     `,
     values: [
-      cleanValues.code.toUpperCase(), // Salva sempre em maiúsculo
+      cleanValues.code.toUpperCase(),
       cleanValues.description,
       cleanValues.discount_percentage,
       cleanValues.min_purchase_value_in_cents || 0,
@@ -144,10 +150,13 @@ async function create(couponData) {
       cleanValues.usage_limit_per_user || 1,
       cleanValues.expiration_date || null,
       cleanValues.is_active ?? true,
+      // Default: 'subtotal'
+      cleanValues.coupon_type || "subtotal",
+      // Default: null (sem teto)
+      cleanValues.max_discount_in_cents || null,
     ],
   };
 
-  // Tratamento de Unique Key (Code duplicado)
   try {
     const result = await database.query(query);
     return result.rows[0];

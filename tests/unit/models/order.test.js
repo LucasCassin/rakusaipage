@@ -32,7 +32,7 @@ describe("Model: Order", () => {
       category: "Test",
       price_in_cents: 5000,
       minimum_price_in_cents: 1000,
-      stock_quantity: 10, // ESTOQUE INICIAL
+      stock_quantity: 11, // ESTOQUE INICIAL
       weight_in_grams: 100,
       length_cm: 10,
       height_cm: 10,
@@ -64,7 +64,7 @@ describe("Model: Order", () => {
   });
 
   test("should reduce stock quantity when order is created", async () => {
-    // Estoque inicial era 10. Teste anterior comprou 2. Estoque atual deve ser 8.
+    // Estoque inicial era 11. Teste anterior comprou 2. Estoque atual deve ser 9.
     // Vamos comprar mais 3.
     await cart.addItem(userId, { product_id: productId, quantity: 3 });
 
@@ -78,12 +78,12 @@ describe("Model: Order", () => {
 
     // Verifica no banco
     const dbProduct = await product.findById(productId);
-    expect(dbProduct.stock_quantity).toBe(5); // 8 - 3 = 5
+    expect(dbProduct.stock_quantity).toBe(6); // 9 - 3 = 6
   });
 
   test("should fail if product stock is insufficient (and not change stock)", async () => {
-    // Estoque atual é 5. Tentar comprar 6.
-    await cart.addItem(userId, { product_id: productId, quantity: 6 });
+    // Estoque atual é 6. Tentar comprar 7.
+    await cart.addItem(userId, { product_id: productId, quantity: 7 });
 
     const promise = order.createFromCart({
       userId,
@@ -96,13 +96,13 @@ describe("Model: Order", () => {
     await expect(promise).rejects.toThrow(ValidationError);
     await expect(promise).rejects.toThrow(/insuficiente/);
 
-    // O estoque deve permanecer 5 (Rollback funcionou)
+    // O estoque deve permanecer 6 (Rollback funcionou)
     const dbProduct = await product.findById(productId);
-    expect(dbProduct.stock_quantity).toBe(5);
+    expect(dbProduct.stock_quantity).toBe(6);
   });
 
   test("should return items to stock when order is canceled", async () => {
-    // 1. Compra 2 itens. Estoque (5) vai para (3).
+    // 1. Compra 2 itens. Estoque (6) vai para (4).
     await cart.addItem(userId, { product_id: productId, quantity: 2 });
     const newOrder = await order.createFromCart({
       userId,
@@ -113,15 +113,15 @@ describe("Model: Order", () => {
     });
 
     let dbProduct = await product.findById(productId);
-    expect(dbProduct.stock_quantity).toBe(3);
+    expect(dbProduct.stock_quantity).toBe(4);
 
     // 2. Cancela Pedido
     const canceledOrder = await order.cancel(newOrder.id);
     expect(canceledOrder.status).toBe("canceled");
 
-    // 3. Verifica retorno de estoque (3 + 2 = 5)
+    // 3. Verifica retorno de estoque (4 + 2 = 6)
     dbProduct = await product.findById(productId);
-    expect(dbProduct.stock_quantity).toBe(5);
+    expect(dbProduct.stock_quantity).toBe(6);
   });
 
   test("should fail to cancel if order is already shipped", async () => {
@@ -266,5 +266,96 @@ describe("Model: Order", () => {
 
     expect(newOrder.shipping_method).toBe("PAC");
     expect(newOrder.shipping_details.carrier).toBe("Correios");
+  });
+
+  test("should apply free shipping coupon (100% off shipping)", async () => {
+    // 1. Cria cupom de frete grátis para compras acima de R$ 30,00
+    await coupon.create({
+      code: "FRETEGRATIS",
+      discount_percentage: 100,
+      expiration_date: new Date(Date.now() + 86400000), // Amanhã
+      min_purchase_amount: 3000,
+      description: "100% de frete grátis",
+      type: "shipping",
+      max_discount_in_cents: null, // Sem limite
+    });
+
+    // 2. Compra produto de 50 reais (Passa do mínimo)
+    await cart.addItem(userId, { product_id: productId, quantity: 1 }); // 50.00
+
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: {},
+      shippingCostInCents: 2500, // Frete R$ 25,00
+      couponCode: "FRETEGRATIS",
+      shippingMethod: "PAC",
+    });
+
+    // Subtotal: 5000
+    // Frete: 2500
+    // Desconto: 2500 (100% do frete)
+    // Total: 5000 + 2500 - 2500 = 5000
+    expect(newOrder.shipping_cost_in_cents).toBe(2500);
+    expect(newOrder.discount_in_cents).toBe(2500);
+    expect(newOrder.total_in_cents).toBe(5000);
+  });
+
+  // NOVO: Teste de Cupom de Frete com TETO (Limitado a R$ 50)
+  test("should cap shipping discount at max_discount_in_cents", async () => {
+    // 1. Cupom: 100% de frete, mas limitado a R$ 50,00
+    await coupon.create({
+      code: "FRETELIMITADO",
+      discount_percentage: 100,
+      description: "100% de frete",
+      expiration_date: new Date(Date.now() + 86400000),
+      min_purchase_amount: 0,
+      type: "shipping",
+      max_discount_in_cents: 5000, // Max R$ 50,00
+    });
+
+    await cart.addItem(userId, { product_id: productId, quantity: 1 });
+
+    // 2. Frete Caro (R$ 80,00)
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: {},
+      shippingCostInCents: 8000,
+      couponCode: "FRETELIMITADO",
+      shippingMethod: "SEDEX",
+    });
+
+    // Desconto esperado: 5000 (Teto), e não 8000
+    // Total: 5000 (Prod) + 8000 (Frete) - 5000 (Desc) = 8000
+    expect(newOrder.discount_in_cents).toBe(5000);
+    expect(newOrder.total_in_cents).toBe(8000);
+  });
+
+  // NOVO: Teste de Mínimo de Compra no Cupom de Frete
+  test("should fail shipping coupon if product subtotal is too low", async () => {
+    await coupon.create({
+      code: "FRETECARO",
+      discount_percentage: 100,
+      description: "100% de frete",
+      expiration_date: new Date(Date.now() + 86400000),
+      min_purchase_amount: 10000, // Mínimo R$ 100,00
+      type: "shipping",
+    });
+
+    // Compra só R$ 50,00
+    await cart.addItem(userId, { product_id: productId, quantity: 1 });
+
+    const promise = order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: {},
+      shippingCostInCents: 2000,
+      couponCode: "FRETECARO",
+      shippingMethod: "PAC",
+    });
+
+    // Deve falhar pois subtotal (5000) < minimo (10000)
+    await expect(promise).rejects.toThrow(ValidationError);
   });
 });

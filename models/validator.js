@@ -1248,6 +1248,19 @@ const schemas = {
         }),
     }),
 
+  max_discount_in_cents: () =>
+    Joi.object({
+      max_discount_in_cents: Joi.number()
+        .allow(null)
+        .integer()
+        .min(0)
+        .when("$required.max_discount_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   limit: () =>
     Joi.object({
       limit: Joi.number().integer().min(0).when("$required.limit", {
@@ -1439,6 +1452,18 @@ const schemas = {
       shipping_details: Joi.object()
         .unknown(true)
         .when("$required.shipping_details", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  coupon_type: () =>
+    Joi.object({
+      coupon_type: Joi.string()
+        .trim()
+        .valid("subtotal", "shipping")
+        .when("$required.coupon_type", {
           is: "required",
           then: Joi.required(),
           otherwise: Joi.optional(),

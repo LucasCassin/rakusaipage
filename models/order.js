@@ -95,7 +95,7 @@ async function createFromCart({
       });
     }
 
-    // 4. Aplicação de Cupom com Regra de Piso (Minimum Price)
+    // 4. Aplicação de Cupom
     let discount = 0;
     let appliedCouponId = null;
 
@@ -103,26 +103,62 @@ async function createFromCart({
       const validCoupon = await coupon.validate(
         cleanValues.code,
         cleanValues.user_id,
-        subtotal,
+        subtotal, // Mínimo de compra sempre valida pelo subtotal dos produtos
       );
 
       appliedCouponId = validCoupon.id;
+      let calculatedDiscount = 0;
 
-      // Desconto Ideal (Calculado)
-      let calculatedDiscount = Math.round(
-        subtotal * (validCoupon.discount_percentage / 100),
-      );
+      // LOGICA BIFURCADA
+      if (validCoupon.type === "shipping") {
+        // --- CUPOM DE FRETE ---
+        // Base de cálculo é o valor do frete
+        const shippingCost = cleanValues.shipping_cost_in_cents;
 
-      // Regra do Piso: O subtotal final (subtotal - desconto) não pode ser menor que totalMinimumFloor
-      const maxAllowedDiscount = subtotal - totalMinimumFloor;
+        // Calcula porcentagem (Ex: 100% off)
+        calculatedDiscount = Math.round(
+          shippingCost * (validCoupon.discount_percentage / 100),
+        );
 
-      if (maxAllowedDiscount < 0) {
-        discount = 0;
-      } else if (calculatedDiscount > maxAllowedDiscount) {
-        discount = maxAllowedDiscount;
+        // Aplica Teto Máximo (Ex: Limitado a R$ 50,00)
+        if (
+          validCoupon.max_discount_in_cents &&
+          calculatedDiscount > validCoupon.max_discount_in_cents
+        ) {
+          calculatedDiscount = validCoupon.max_discount_in_cents;
+        }
+
+        // Garante que não desconta mais que o valor do frete (não pode ficar negativo)
+        if (calculatedDiscount > shippingCost) {
+          calculatedDiscount = shippingCost;
+        }
       } else {
-        discount = calculatedDiscount;
+        // --- CUPOM DE PRODUTO (Subtotal) ---
+        // Base de cálculo é o subtotal
+        calculatedDiscount = Math.round(
+          subtotal * (validCoupon.discount_percentage / 100),
+        );
+
+        // Aplica Teto Máximo (se houver)
+        if (
+          validCoupon.max_discount_in_cents &&
+          calculatedDiscount > validCoupon.max_discount_in_cents
+        ) {
+          calculatedDiscount = validCoupon.max_discount_in_cents;
+        }
+
+        // Regra do Piso (Hard Floor dos Produtos)
+        // O subtotal final não pode ser menor que o totalMinimumFloor
+        const maxAllowedDiscount = subtotal - totalMinimumFloor;
+
+        if (maxAllowedDiscount < 0) {
+          calculatedDiscount = 0;
+        } else if (calculatedDiscount > maxAllowedDiscount) {
+          calculatedDiscount = maxAllowedDiscount;
+        }
       }
+
+      discount = calculatedDiscount;
     }
 
     const total = subtotal + cleanValues.shipping_cost_in_cents - discount;
