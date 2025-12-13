@@ -1371,6 +1371,79 @@ const schemas = {
         otherwise: Joi.optional(),
       }),
     }),
+
+  allow_delivery: () =>
+    Joi.object({
+      allow_delivery: Joi.boolean().when("$required.allow_delivery", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  allow_pickup: () =>
+    Joi.object({
+      allow_pickup: Joi.boolean().when("$required.allow_pickup", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  pickup_address: () =>
+    Joi.object({
+      pickup_address: Joi.string().min(10).when("$required.pickup_address", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  pickup_instructions: () =>
+    Joi.object({
+      pickup_instructions: Joi.string()
+        .min(10)
+        .when("$required.pickup_instructions", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  shipping_method: () =>
+    Joi.object({
+      shipping_method: Joi.string()
+        .min(3)
+        .max(50)
+        .when("$required.shipping_method", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  zip_code: () =>
+    Joi.object({
+      zip_code: Joi.string()
+        // Regex exemplo para CEP (8 dígitos, com ou sem traço: 12345-678 ou 12345678)
+        .pattern(/^\d{5}-?\d{3}$/)
+        .when("$required.zip_code", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  shipping_details: () =>
+    Joi.object({
+      shipping_details: Joi.object()
+        .unknown(true)
+        .when("$required.shipping_details", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

@@ -10,6 +10,8 @@ async function createFromCart({
   shippingAddress,
   shippingCostInCents,
   couponCode,
+  shippingMethod, // "PAC", "SEDEX", "PICKUP"
+  shippingDetails,
 }) {
   const cleanValues = validator(
     {
@@ -18,6 +20,8 @@ async function createFromCart({
       shipping_address_snapshot: shippingAddress,
       shipping_cost_in_cents: shippingCostInCents,
       code: couponCode,
+      shipping_method: shippingMethod,
+      shipping_details: shippingDetails,
     },
     {
       user_id: "required",
@@ -25,6 +29,8 @@ async function createFromCart({
       shipping_address_snapshot: "required",
       shipping_cost_in_cents: "required",
       code: "optional",
+      shipping_method: "required",
+      shipping_details: "optional",
     },
   );
 
@@ -119,9 +125,11 @@ async function createFromCart({
           payment_method,
           shipping_address_snapshot,
           applied_coupon_id,
+          shipping_method,
+          shipping_details,
           status,
           created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', now())
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', now())
         RETURNING *;
       `,
       values: [
@@ -133,6 +141,8 @@ async function createFromCart({
         cleanValues.payment_method,
         JSON.stringify(cleanValues.shipping_address_snapshot),
         appliedCouponId,
+        cleanValues.shipping_method,
+        JSON.stringify(cleanValues.shipping_details || {}),
       ],
     };
 

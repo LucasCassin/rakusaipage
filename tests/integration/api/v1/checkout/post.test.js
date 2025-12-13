@@ -61,6 +61,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
         email: "guest_new@test.com",
         // Itens locais
         items: [{ product_id: testProduct.id, quantity: 2 }],
+        shipping_method: "PAC",
+        shipping_details: { carrier: "Correios", days: 5 },
       };
 
       const response = await fetch(
@@ -100,6 +102,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
         username: "visitante01",
         email: "guest_new@test.com", // Mesmo email
         items: [{ product_id: testProduct.id, quantity: 1 }],
+        shipping_method: "PAC",
+        shipping_details: { carrier: "Correios", days: 5 },
       };
 
       const response = await fetch(
@@ -128,6 +132,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
         username: "imposter",
         email: "real@test.com", // Email do usuário real
         items: [{ product_id: testProduct.id, quantity: 5 }],
+        shipping_method: "PAC",
+        shipping_details: { carrier: "Correios", days: 5 },
       };
 
       const response = await fetch(
@@ -179,6 +185,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
             payment_method: "pix",
             shipping_cost_in_cents: 0,
             shipping_address_snapshot: { street: "Home" },
+            shipping_method: "PAC",
+            shipping_details: { carrier: "Correios", days: 5 },
             // items não é enviado aqui, usa o do banco
           }),
         },
@@ -204,6 +212,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
             // payment_method faltando
             shipping_cost_in_cents: 1000,
             shipping_address_snapshot: { zip: "00000" },
+            shipping_method: "PAC",
+            shipping_details: { carrier: "Correios", days: 5 },
           }),
         },
       );
@@ -266,6 +276,8 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
             shipping_address_snapshot: { zip: "00000" },
             customer: { username: "fail", email: "fail@test.com" },
             items: [], // Carrinho vazio
+            shipping_method: "PAC",
+            shipping_details: { carrier: "Correios", days: 5 },
           }),
         },
       );

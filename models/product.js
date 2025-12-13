@@ -8,6 +8,9 @@ import { ValidationError, NotFoundError } from "errors/index.js";
  * @returns {Promise<Object>} - O produto criado.
  */
 async function create(productData) {
+  const isPickup =
+    productData.allow_pickup === true || productData.allow_pickup === "true";
+
   // 1. Validação
   const cleanValues = validator(
     { ...productData, shop_images: productData.images },
@@ -33,6 +36,11 @@ async function create(productData) {
       available_at: "optional",
       unavailable_at: "optional",
       is_active: "optional",
+
+      allow_delivery: "optional", // Default false
+      allow_pickup: "optional", // Default true
+      pickup_address: isPickup ? "required" : "optional",
+      pickup_instructions: isPickup ? "required" : "optional",
     },
   );
 
@@ -45,14 +53,14 @@ async function create(productData) {
         stock_quantity, purchase_limit_per_user,
         allowed_features, available_at, unavailable_at, is_active,
         production_days, weight_in_grams, length_cm, height_cm, width_cm,
-        images
+        images, allow_delivery, allow_pickup, pickup_address, pickup_instructions
       ) VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8,
         $9, $10,
         $11, $12, $13, $14,
         $15, $16, $17, $18, $19,
-        $20
+        $20, $21, $22, $23, $24
       ) RETURNING *;
     `,
     values: [
@@ -76,6 +84,10 @@ async function create(productData) {
       cleanValues.height_cm,
       cleanValues.width_cm,
       JSON.stringify(cleanValues.shop_images || []),
+      cleanValues.allow_delivery ?? false, // Default false se null
+      cleanValues.allow_pickup ?? true, // Default true se null
+      cleanValues.pickup_address || null,
+      cleanValues.pickup_instructions || null,
     ],
   };
 

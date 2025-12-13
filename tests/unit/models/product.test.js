@@ -236,4 +236,60 @@ describe("Model: Product", () => {
       );
     });
   });
+
+  describe("Product Model Validation Pickup Delivery", () => {
+    const baseProduct = {
+      name: "Produto Teste",
+      slug: "prod-teste",
+      description: "Desc",
+      category: "Test",
+      price_in_cents: 1000,
+      minimum_price_in_cents: 100,
+      stock_quantity: 10,
+      weight_in_grams: 100,
+      length_cm: 10,
+      height_cm: 10,
+      width_cm: 10,
+      images: [],
+    };
+
+    test("should fail if allow_pickup is true but address/instructions are missing", async () => {
+      const invalidData = {
+        ...baseProduct,
+        allow_pickup: true,
+        // pickup_address FALTANDO
+      };
+
+      const promise = product.create(invalidData);
+      await expect(promise).rejects.toThrow(ValidationError);
+    });
+
+    test("should succeed if allow_pickup is true and details provided", async () => {
+      const validData = {
+        ...baseProduct,
+        slug: "prod-pickup-ok",
+        allow_pickup: true,
+        pickup_address: "Rua Teste, 123",
+        pickup_instructions: "Horário comercial",
+      };
+
+      const created = await product.create(validData);
+      expect(created.id).toBeDefined();
+      expect(created.allow_pickup).toBe(true);
+      expect(created.pickup_address).toBe("Rua Teste, 123");
+    });
+
+    test("should succeed if allow_pickup is false and details missing", async () => {
+      const validData = {
+        ...baseProduct,
+        slug: "prod-no-pickup",
+        allow_pickup: false,
+      };
+
+      const created = await product.create(validData);
+      expect(created.id).toBeDefined();
+      expect(created.allow_pickup).toBe(false);
+      expect(created.pickup_address).toBeNull();
+    });
+  });
 });

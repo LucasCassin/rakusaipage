@@ -53,6 +53,7 @@ describe("Model: Order", () => {
       paymentMethod: "pix",
       shippingAddress: { street: "Rua Teste", number: "123" },
       shippingCostInCents: 2000,
+      shippingMethod: "PAC",
     });
 
     expect(newOrder.id).toBeDefined();
@@ -76,6 +77,7 @@ describe("Model: Order", () => {
       shippingAddress: { zip: "00000" },
       shippingCostInCents: 1000,
       couponCode: "DESCONTO10",
+      shippingMethod: "PAC",
     });
 
     expect(newOrder.discount_in_cents).toBe(500);
@@ -118,6 +120,7 @@ describe("Model: Order", () => {
       shippingAddress: {},
       shippingCostInCents: 0,
       couponCode: "SUPER50",
+      shippingMethod: "PAC",
     });
 
     // Verificação
@@ -135,6 +138,7 @@ describe("Model: Order", () => {
       paymentMethod: "pix",
       shippingAddress: {},
       shippingCostInCents: 0,
+      shippingMethod: "PAC",
     });
 
     await expect(promise).rejects.toThrow(ValidationError);
@@ -148,6 +152,7 @@ describe("Model: Order", () => {
       paymentMethod: "pix",
       shippingAddress: {},
       shippingCostInCents: 0,
+      shippingMethod: "PICKUP",
     });
 
     await expect(promise).rejects.toThrow("Estoque insuficiente");
@@ -161,6 +166,7 @@ describe("Model: Order", () => {
       paymentMethod: "pix",
       shippingAddress: { zip: "123" },
       shippingCostInCents: 1000,
+      shippingMethod: "SEDEX",
     });
 
     // 2. Simula dados do Mercado Pago
@@ -185,5 +191,22 @@ describe("Model: Order", () => {
       gatewayMock.gatewayData.qr_code,
     );
     expect(updatedOrder.status).toBe("pending");
+  });
+
+  test("should save shipping method and details in order", async () => {
+    await cart.addItem(userId, { product_id: productId, quantity: 1 });
+
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "123" },
+      shippingCostInCents: 1500,
+      // Novos dados vindos do frontend
+      shippingMethod: "PAC",
+      shippingDetails: { carrier: "Correios", days: 5 },
+    });
+
+    expect(newOrder.shipping_method).toBe("PAC");
+    expect(newOrder.shipping_details.carrier).toBe("Correios");
   });
 });

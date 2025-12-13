@@ -47,6 +47,8 @@ function validateCheckoutBody(req, res, next) {
       shipping_address_snapshot: "required", // validator.js usa este nome para o JSONB
       code: "optional",
       shop_items: "optional",
+      shipping_method: "required",
+      shipping_details: "optional",
     };
 
     // Se não tem ID na sessão, é Guest: Exige dados de cadastro
@@ -84,6 +86,8 @@ async function checkoutHandler(req, res) {
       code,
       customer,
       items,
+      shipping_method,
+      shipping_details,
     } = req.cleanBody;
 
     // --- LÓGICA DE GUEST / SHADOW USER ---
@@ -156,6 +160,8 @@ async function checkoutHandler(req, res) {
       shippingAddress: shipping_address_snapshot,
       shippingCostInCents: shipping_cost_in_cents,
       couponCode: code,
+      shippingMethod: shipping_method,
+      shippingDetails: shipping_details,
     });
 
     // 2. Pagamento
