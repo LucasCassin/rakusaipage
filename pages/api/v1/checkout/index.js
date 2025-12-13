@@ -33,7 +33,7 @@ function validateCheckoutBody(req, res, next) {
   try {
     const body = req.body || {};
 
-    let normalizedCodes = [];
+    let normalizedCodes = undefined;
     if (body.codes && Array.isArray(body.codes)) {
       normalizedCodes = body.codes;
     } else if (body.code) {

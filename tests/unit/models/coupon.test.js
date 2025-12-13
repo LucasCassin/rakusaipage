@@ -118,10 +118,10 @@ describe("Model: Coupon", () => {
       await database.query({
         text: `
           INSERT INTO orders (
-            user_id, subtotal_in_cents, total_in_cents, status, shipping_address_snapshot, applied_coupon_id
+            user_id, subtotal_in_cents, total_in_cents, status, shipping_address_snapshot, applied_coupons
           ) VALUES ($1, 1000, 500, 'paid', '{}', $2)
         `,
-        values: [userId, limitCoupon.id],
+        values: [userId, JSON.stringify([{ id: limitCoupon.id }])],
       });
 
       // 3. Tenta usar de novo

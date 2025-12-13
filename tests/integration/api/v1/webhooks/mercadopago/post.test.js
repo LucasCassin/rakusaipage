@@ -51,6 +51,8 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
       paymentMethod: "pix",
       shippingAddress: { zip: "00000" },
       shippingCostInCents: 0,
+      shippingMethod: "PAC",
+      shippingDetails: { carrier: "Correios", days: 5 },
     });
 
     // Forçamos um payment_gateway_id conhecido para simular que o MP conhece esse pedido
