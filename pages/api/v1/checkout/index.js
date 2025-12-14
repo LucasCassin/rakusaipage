@@ -51,12 +51,10 @@ function validateCheckoutBody(req, res, next) {
     // Define regras dinâmicas baseadas na autenticação
     const validationSchema = {
       payment_method: "required",
-      shipping_cost_in_cents: "required",
       shipping_address_snapshot: "required", // validator.js usa este nome para o JSONB
       code: "optional",
       shop_items: "optional",
       shipping_method: "required",
-      shipping_details: "optional",
       coupon_codes: "optional",
     };
 
@@ -91,13 +89,11 @@ async function checkoutHandler(req, res) {
     let currentUser = req.context.user;
     const {
       payment_method,
-      shipping_cost_in_cents,
       shipping_address_snapshot,
       code,
       customer,
       items,
       shipping_method,
-      shipping_details,
     } = req.cleanBody;
 
     // --- LÓGICA DE GUEST / SHADOW USER ---
@@ -168,10 +164,8 @@ async function checkoutHandler(req, res) {
       userId: currentUser.id,
       paymentMethod: payment_method,
       shippingAddress: shipping_address_snapshot,
-      shippingCostInCents: shipping_cost_in_cents,
       couponCodes: code,
       shippingMethod: shipping_method,
-      shippingDetails: shipping_details,
     });
 
     // 2. Pagamento

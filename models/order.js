@@ -1,38 +1,248 @@
 import database from "infra/database.js";
 import cart from "models/cart.js";
-import coupon from "models/coupon.js";
+import couponModel from "models/coupon.js";
 import validator from "models/validator.js";
+import shippingService from "services/shipping.js"; // Importado para recalcular frete
 import { ValidationError, NotFoundError, ServiceError } from "errors/index.js";
 
+/**
+ * Valida os dados de entrada brutos para criação do pedido.
+ */
+function validateOrderInput(inputData) {
+  return validator(inputData, {
+    user_id: "required",
+    payment_method: "required",
+    shipping_address_snapshot: "required",
+    shipping_method: "required", // "PAC", "SEDEX", etc.
+    coupon_codes: "optional",
+    shipping_details: "optional",
+  });
+}
+
+/**
+ * Busca itens do carrinho, valida disponibilidade (ativo) e estoque.
+ * Retorna os itens prontos para cálculo ou lança erro.
+ */
+async function fetchAndValidateCartItems(userId, client) {
+  // 1. Busca Carrinho
+  const userCart = await cart.getCart(userId, client);
+
+  if (userCart.items.length === 0) {
+    throw new ValidationError({
+      message: "O carrinho está vazio.",
+    });
+  }
+
+  // 2. Validações de Negócio (Ativo e Estoque)
+  for (const item of userCart.items) {
+    if (!item.is_active) {
+      throw new ValidationError({
+        message: `O produto "${item.name}" não está mais disponível. Remova-o do carrinho para continuar.`,
+      });
+    }
+
+    if (item.stock_quantity < item.quantity) {
+      throw new ValidationError({
+        message: `Estoque insuficiente para o produto "${item.name}". Restam apenas ${item.stock_quantity} unidades.`,
+      });
+    }
+  }
+
+  return userCart.items;
+}
+
+/**
+ * Recalcula o frete no servidor para garantir integridade do valor.
+ * Impede que o usuário envie um custo de frete "0" maliciosamente.
+ */
+async function recalculateShippingCost(items, shippingAddress, selectedMethod) {
+  // Extrai o CEP do snapshot de endereço (suportando formatos comuns)
+  const zipCodePre =
+    shippingAddress.zip_code || shippingAddress.zip || shippingAddress.cep;
+
+  const zipCode = validator(
+    { zip_code: zipCodePre },
+    { zip_code: "required" },
+  ).zip_code;
+
+  if (!zipCode) {
+    throw new ValidationError({
+      message: "CEP de destino não encontrado no endereço.",
+    });
+  }
+
+  // Chama o serviço de frete (que conecta nos Correios/API externa)
+  // Nota: O serviço de frete deve hidratar/verificar pesos internamente ou confiar nos itens passados
+  // Como `items` veio do `fetchAndValidateCartItems` (banco), os pesos são confiáveis.
+  const options = await shippingService.calculateShippingOptions(
+    zipCode,
+    items.map((i) => ({
+      product_id: i.product_id, // O formato que o shippingService espera
+      quantity: i.quantity,
+    })),
+  );
+  // Encontra a opção escolhida pelo usuário
+  const selectedOption = options.find((opt) => opt.type === selectedMethod);
+
+  if (!selectedOption) {
+    throw new ValidationError({
+      message: `O método de entrega "${selectedMethod}" não está disponível para este pedido.`,
+    });
+  }
+
+  return {
+    costInCents: selectedOption.price_in_cents,
+    details: selectedOption, // Retorna detalhes atualizados (prazo, transportadora)
+  };
+}
+
+/**
+ * Motor de Cálculo Financeiro.
+ * Processa Subtotal, Múltiplos Cupons, Regras de Melhor Desconto e Limites.
+ */
+async function calculateTotals({
+  userId,
+  items,
+  shippingCostInCents,
+  couponCodes,
+}) {
+  let subtotal = 0;
+  let totalMinimumFloor = 0; // Soma dos preços mínimos dos produtos
+
+  // 1. Calcula Subtotal
+  for (const item of items) {
+    const totalItem = item.unit_price_in_cents * item.quantity;
+    subtotal += totalItem;
+    totalMinimumFloor += (item.minimum_price_in_cents || 0) * item.quantity;
+  }
+
+  // 2. Lógica de Cupons
+  let finalDiscount = 0;
+  let appliedCouponsList = [];
+
+  if (couponCodes && couponCodes.length > 0) {
+    const validCoupons = await couponModel.validateMultiple(
+      couponCodes,
+      userId,
+      subtotal,
+    );
+
+    // Função auxiliar para calcular desconto de UM cupom isolado
+    const calculateSingleDiscount = (coupon) => {
+      let val = 0;
+      const baseValue =
+        coupon.type === "shipping" ? shippingCostInCents : subtotal;
+
+      val = Math.round(baseValue * (coupon.discount_percentage / 100));
+
+      if (coupon.max_discount_in_cents && val > coupon.max_discount_in_cents) {
+        val = coupon.max_discount_in_cents;
+      }
+      return val;
+    };
+
+    // Estratégia A: Soma dos Cumulativos
+    const cumulativeCoupons = validCoupons.filter((c) => c.is_cumulative);
+    let cumulativeTotal = 0;
+    const cumulativeSnapshots = [];
+
+    for (const c of cumulativeCoupons) {
+      const val = calculateSingleDiscount(c);
+      cumulativeTotal += val;
+      cumulativeSnapshots.push({
+        id: c.id,
+        code: c.code,
+        discount_in_cents: val,
+        type: c.type,
+      });
+    }
+
+    // Estratégia B: O Melhor Não-Cumulativo
+    const singleCoupons = validCoupons.filter((c) => !c.is_cumulative);
+    let bestSingleTotal = 0;
+    let bestSingleSnapshot = [];
+
+    for (const c of singleCoupons) {
+      const val = calculateSingleDiscount(c);
+      if (val > bestSingleTotal) {
+        bestSingleTotal = val;
+        bestSingleSnapshot = [
+          {
+            id: c.id,
+            code: c.code,
+            discount_in_cents: val,
+            type: c.type,
+          },
+        ];
+      }
+    }
+
+    // Decisão: Qual estratégia vence?
+    if (cumulativeTotal >= bestSingleTotal) {
+      finalDiscount = cumulativeTotal;
+      appliedCouponsList = cumulativeSnapshots;
+    } else {
+      finalDiscount = bestSingleTotal;
+      appliedCouponsList = bestSingleSnapshot;
+    }
+
+    // --- Travas Finais (Limites Globais) ---
+    const shippingDiscountSum = appliedCouponsList
+      .filter((c) => c.type === "shipping")
+      .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+    const productDiscountSum = appliedCouponsList
+      .filter((c) => c.type !== "shipping")
+      .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+    // Trava Frete: Não pode ser negativo
+    let effectiveShippingDiscount = Math.min(
+      shippingDiscountSum,
+      shippingCostInCents,
+    );
+
+    // Trava Produto: Não pode furar o preço mínimo (Floor)
+    let effectiveProductDiscount = productDiscountSum;
+    const maxAllowedProductDiscount = subtotal - totalMinimumFloor;
+
+    if (effectiveProductDiscount > maxAllowedProductDiscount) {
+      effectiveProductDiscount = maxAllowedProductDiscount;
+    }
+
+    // Recalcula total do desconto validado
+    finalDiscount = effectiveShippingDiscount + effectiveProductDiscount;
+  }
+
+  const total = subtotal + shippingCostInCents - finalDiscount;
+
+  return {
+    subtotal,
+    shipping_cost: shippingCostInCents,
+    discount: finalDiscount,
+    total,
+    applied_coupons: appliedCouponsList,
+  };
+}
+
+/**
+ * Função Principal (Facade/Orquestrador).
+ * Cria o pedido a partir do carrinho de compras.
+ */
 async function createFromCart({
   userId,
   paymentMethod,
   shippingAddress,
-  shippingCostInCents,
   couponCodes,
   shippingMethod, // "PAC", "SEDEX", "PICKUP"
-  shippingDetails,
 }) {
-  const cleanValues = validator(
-    {
-      user_id: userId,
-      payment_method: paymentMethod,
-      shipping_address_snapshot: shippingAddress,
-      shipping_cost_in_cents: shippingCostInCents,
-      coupon_codes: couponCodes,
-      shipping_method: shippingMethod,
-      shipping_details: shippingDetails,
-    },
-    {
-      user_id: "required",
-      payment_method: "required",
-      shipping_address_snapshot: "required",
-      shipping_cost_in_cents: "required",
-      coupon_codes: "optional",
-      shipping_method: "required",
-      shipping_details: "optional",
-    },
-  );
+  // 1. Validação de Entrada
+  const cleanValues = validateOrderInput({
+    user_id: userId,
+    payment_method: paymentMethod,
+    shipping_address_snapshot: shippingAddress,
+    shipping_method: shippingMethod,
+    coupon_codes: couponCodes,
+  });
 
   const client = await database.getNewClient();
   let createdOrder = null;
@@ -40,182 +250,35 @@ async function createFromCart({
   try {
     await client.query("BEGIN");
 
-    const userCart = await cart.getCart(cleanValues.user_id, client);
+    // 2. Busca e Valida Itens do Carrinho
+    // Passamos o `client` para garantir leitura consistente dentro da transação
+    const items = await fetchAndValidateCartItems(cleanValues.user_id, client);
 
-    if (userCart.items.length === 0) {
-      throw new ValidationError({
-        message: "O carrinho está vazio.",
-      });
-    }
+    // 3. Recalcula Frete (Segurança)
+    // Usa os items do banco e o CEP do endereço para obter o valor real
+    const shippingInfo = await recalculateShippingCost(
+      items,
+      cleanValues.shipping_address_snapshot,
+      cleanValues.shipping_method,
+    );
 
-    let subtotal = 0;
-    let totalMinimumFloor = 0; // Soma dos preços mínimos
-    const itemsToInsert = [];
+    // 4. Calcula Totais e Descontos
+    const calculation = await calculateTotals({
+      userId: cleanValues.user_id,
+      items: items,
+      shippingCostInCents: shippingInfo.costInCents,
+      couponCodes: cleanValues.coupon_codes,
+    });
 
-    for (const item of userCart.items) {
-      // 1. Validação de Disponibilidade (Ativo)
-      if (!item.is_active) {
-        // Nota: Em uma transação que falha (Rollback), não conseguimos persistir a remoção do item.
-        // O comportamento correto é impedir a compra e avisar o usuário para ele remover.
-        throw new ValidationError({
-          message: `O produto "${item.name}" não está mais disponível. Remova-o do carrinho para continuar.`,
-        });
-      }
-
-      // 2. Validação de Estoque
-      if (item.stock_quantity < item.quantity) {
-        throw new ValidationError({
-          message: `Estoque insuficiente para o produto "${item.name}". Restam apenas ${item.stock_quantity} unidades.`,
-        });
-      }
-
-      const totalItem = item.unit_price_in_cents * item.quantity;
-      const totalItemMinimum =
-        (item.minimum_price_in_cents || 0) * item.quantity;
-
-      subtotal += totalItem;
-      totalMinimumFloor += totalItemMinimum;
-
-      itemsToInsert.push({
-        product_id: item.product_id,
-        product_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price_in_cents,
-        total: totalItem,
-      });
-
-      // 3. ATUALIZAÇÃO DE ESTOQUE (Reserva)
+    // 5. Atualiza Estoque (Reserva)
+    for (const item of items) {
       await client.query({
-        text: `
-          UPDATE products 
-          SET stock_quantity = stock_quantity - $1 
-          WHERE id = $2
-        `,
+        text: `UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2`,
         values: [item.quantity, item.product_id],
       });
     }
 
-    // 4. Aplicação de Cupom
-    let finalDiscount = 0;
-    let appliedCouponsList = []; // Array para salvar no banco
-
-    if (cleanValues.coupon_codes && cleanValues.coupon_codes.length > 0) {
-      // 1. Valida todos os cupons enviados
-      const validCoupons = await coupon.validateMultiple(
-        cleanValues.coupon_codes,
-        userId,
-        subtotal,
-      );
-
-      // Função auxiliar para calcular desconto de UM cupom isolado
-      const calculateSingleDiscount = (coupon) => {
-        let val = 0;
-        if (coupon.type === "shipping") {
-          val = Math.round(
-            shippingCostInCents * (coupon.discount_percentage / 100),
-          );
-          if (
-            coupon.max_discount_in_cents &&
-            val > coupon.max_discount_in_cents
-          ) {
-            val = coupon.max_discount_in_cents;
-          }
-          if (val > shippingCostInCents) val = shippingCostInCents;
-        } else {
-          val = Math.round(subtotal * (coupon.discount_percentage / 100));
-          if (
-            coupon.max_discount_in_cents &&
-            val > coupon.max_discount_in_cents
-          ) {
-            val = coupon.max_discount_in_cents;
-          }
-        }
-        return val;
-      };
-
-      // CENÁRIO A: Soma dos Cumulativos
-      const cumulativeCoupons = validCoupons.filter((c) => c.is_cumulative);
-      let cumulativeTotalDiscount = 0;
-      let cumulativeAppliedSnapshots = [];
-
-      for (const c of cumulativeCoupons) {
-        const disc = calculateSingleDiscount(c);
-        cumulativeTotalDiscount += disc;
-        cumulativeAppliedSnapshots.push({
-          id: c.id,
-          code: c.code,
-          discount_in_cents: disc,
-          type: c.type,
-        });
-      }
-
-      // CENÁRIO B: O Melhor Não-Cumulativo
-      const singleCoupons = validCoupons.filter((c) => !c.is_cumulative);
-      let bestSingleDiscount = 0;
-      let bestSingleSnapshot = [];
-
-      for (const c of singleCoupons) {
-        const disc = calculateSingleDiscount(c);
-        if (disc > bestSingleDiscount) {
-          bestSingleDiscount = disc;
-          bestSingleSnapshot = [
-            {
-              id: c.id,
-              code: c.code,
-              discount_in_cents: disc,
-              type: c.type,
-            },
-          ];
-        }
-      }
-
-      // DECISÃO: Quem ganha?
-      // Nota: Cupons cumulativos "ganham" se a soma deles for maior que o melhor individual.
-      // Se não houver cumulativos, o melhor individual ganha.
-      // Se houver cumulativos mas um individual for melhor (ex: 90% off), o individual ganha.
-
-      if (cumulativeTotalDiscount >= bestSingleDiscount) {
-        finalDiscount = cumulativeTotalDiscount;
-        appliedCouponsList = cumulativeAppliedSnapshots;
-      } else {
-        finalDiscount = bestSingleDiscount;
-        appliedCouponsList = bestSingleSnapshot;
-      }
-
-      // --- VALIDAÇÃO FINAL DE LIMITES (Pisos e Tetos Globais) ---
-
-      // 1. Separa o desconto total em "Parcela Frete" e "Parcela Produto" para validar limites
-      const shippingDiscountTotal = appliedCouponsList
-        .filter((c) => c.type === "shipping")
-        .reduce((acc, c) => acc + c.discount_in_cents, 0);
-
-      const productDiscountTotal = appliedCouponsList
-        .filter((c) => c.type !== "shipping")
-        .reduce((acc, c) => acc + c.discount_in_cents, 0);
-
-      // Trava Frete: Desconto não pode ser maior que o custo do frete
-      let effectiveShippingDiscount = shippingDiscountTotal;
-      if (effectiveShippingDiscount > shippingCostInCents) {
-        effectiveShippingDiscount = shippingCostInCents;
-      }
-
-      // Trava Produto (Hard Floor): Subtotal - Desconto não pode ser menor que Preço Mínimo
-      let effectiveProductDiscount = productDiscountTotal;
-      const maxAllowedProductDiscount = subtotal - totalMinimumFloor;
-
-      if (effectiveProductDiscount > maxAllowedProductDiscount) {
-        effectiveProductDiscount = maxAllowedProductDiscount;
-      }
-
-      // Recalcula o total final real
-      finalDiscount = effectiveShippingDiscount + effectiveProductDiscount;
-
-      // Atualiza os valores nos snapshots para refletir os cortes (opcional, mas bom para auditoria)
-      // (Simplificação: apenas salvamos o total geral descontado no pedido)
-    }
-
-    const total = subtotal + shippingCostInCents - finalDiscount;
-
+    // 6. Insere o Pedido
     const orderQuery = {
       text: `
         INSERT INTO orders (
@@ -236,22 +299,24 @@ async function createFromCart({
       `,
       values: [
         cleanValues.user_id,
-        subtotal,
-        finalDiscount,
-        cleanValues.shipping_cost_in_cents,
-        total,
+        calculation.subtotal,
+        calculation.discount,
+        calculation.shipping_cost,
+        calculation.total,
         cleanValues.payment_method,
         JSON.stringify(cleanValues.shipping_address_snapshot),
         cleanValues.shipping_method,
-        JSON.stringify(cleanValues.shipping_details || {}),
-        JSON.stringify(appliedCouponsList),
+        JSON.stringify(shippingInfo.details), // Usa os detalhes atualizados do serviço de frete
+        JSON.stringify(calculation.applied_coupons),
       ],
     };
 
     const orderResult = await client.query(orderQuery);
     createdOrder = orderResult.rows[0];
 
-    for (const item of itemsToInsert) {
+    // 7. Insere Itens do Pedido
+    for (const item of items) {
+      const totalItem = item.unit_price_in_cents * item.quantity;
       await client.query({
         text: `
           INSERT INTO order_items (
@@ -262,14 +327,15 @@ async function createFromCart({
         values: [
           createdOrder.id,
           item.product_id,
-          item.product_name,
+          item.name,
           item.quantity,
-          item.unit_price,
-          item.total,
+          item.unit_price_in_cents,
+          totalItem,
         ],
       });
     }
 
+    // 8. Limpa o Carrinho
     await cart.clearCart(cleanValues.user_id, client);
 
     await client.query("COMMIT");
@@ -311,10 +377,6 @@ async function findById(orderId) {
   };
 }
 
-/**
- * Atualiza as informações de pagamento do pedido.
- * Usado após receber a resposta do Gateway (Mercado Pago).
- */
 async function updatePaymentInfo(
   orderId,
   { gatewayId, gatewayData, gatewayStatus },
@@ -359,9 +421,6 @@ async function updatePaymentInfo(
   return result.rows[0];
 }
 
-/**
- * Cancela um pedido e devolve os itens ao estoque.
- */
 async function cancel(orderId) {
   const cleanId = validator({ id: orderId }, { id: "required" }).id;
   const client = await database.getNewClient();
@@ -369,7 +428,6 @@ async function cancel(orderId) {
   try {
     await client.query("BEGIN");
 
-    // 1. Verifica status atual com Lock
     const orderCheck = await client.query({
       text: "SELECT status FROM orders WHERE id = $1 FOR UPDATE",
       values: [cleanId],
@@ -382,10 +440,9 @@ async function cancel(orderId) {
 
     if (currentStatus === "canceled") {
       await client.query("ROLLBACK");
-      return orderCheck.rows[0]; // Já está cancelado
+      return orderCheck.rows[0];
     }
 
-    // Impede cancelamento automático se já foi enviado ou entregue
     if (["shipped", "delivered"].includes(currentStatus)) {
       throw new ServiceError({
         message:
@@ -393,13 +450,11 @@ async function cancel(orderId) {
       });
     }
 
-    // 2. Busca os itens para devolver ao estoque
     const itemsRes = await client.query({
       text: "SELECT product_id, quantity FROM order_items WHERE order_id = $1",
       values: [cleanId],
     });
 
-    // 3. Devolve Estoque
     for (const item of itemsRes.rows) {
       await client.query({
         text: "UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2",
@@ -407,14 +462,8 @@ async function cancel(orderId) {
       });
     }
 
-    // 4. Atualiza Status do Pedido
     const updateRes = await client.query({
-      text: `
-        UPDATE orders 
-        SET status = 'canceled', updated_at = (now() at time zone 'utc') 
-        WHERE id = $1 
-        RETURNING *
-      `,
+      text: `UPDATE orders SET status = 'canceled', updated_at = (now() at time zone 'utc') WHERE id = $1 RETURNING *`,
       values: [cleanId],
     });
 
@@ -430,6 +479,10 @@ async function cancel(orderId) {
 
 export default {
   createFromCart,
+  // Exportamos estas funções para serem usadas pela rota de Simulação (Simulate)
+  calculateTotals,
+  fetchAndValidateCartItems,
+  recalculateShippingCost,
   findById,
   updatePaymentInfo,
   cancel,
