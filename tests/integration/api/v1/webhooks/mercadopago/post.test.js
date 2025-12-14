@@ -4,6 +4,7 @@ import user from "models/user.js";
 import product from "models/product.js";
 import session from "models/session.js";
 import cart from "models/cart.js";
+import { allow } from "joi";
 
 describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => {
   let userSession;
@@ -41,6 +42,10 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
       width_cm: 10,
       is_active: true,
       images: [],
+      allow_pickup: true,
+      allow_delivery: true,
+      pickup_address: "Rua Teste ABC",
+      pickup_instructions: "Instrucoes de retirada",
     });
 
     await cart.addItem(buyer.id, { product_id: testProduct.id, quantity: 1 });
@@ -49,7 +54,7 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
     createdOrder = await order.createFromCart({
       userId: buyer.id,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       shippingCostInCents: 0,
       shippingMethod: "PAC",
       shippingDetails: { carrier: "Correios", days: 5 },
