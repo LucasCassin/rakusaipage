@@ -1177,6 +1177,8 @@ const schemas = {
           "paid",
           "preparing",
           "shipped",
+          "ready_for_pickup",
+          "picked_up",
           "delivered",
           "canceled",
           "refunded",
@@ -1481,6 +1483,17 @@ const schemas = {
       shipping_details: Joi.object()
         .unknown(true)
         .when("$required.shipping_details", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  tracking_history: () =>
+    Joi.object({
+      tracking_history: Joi.object()
+        .unknown(true)
+        .when("$required.tracking_history", {
           is: "required",
           then: Joi.required(),
           otherwise: Joi.optional(),

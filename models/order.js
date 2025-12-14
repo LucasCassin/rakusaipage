@@ -2,8 +2,9 @@ import database from "infra/database.js";
 import cart from "models/cart.js";
 import couponModel from "models/coupon.js";
 import validator from "models/validator.js";
-import shippingService from "services/shipping.js"; // Importado para recalcular frete
+import shippingService from "services/shipping.js";
 import { ValidationError, NotFoundError, ServiceError } from "errors/index.js";
+import generateOrderCode from "src/utils/generateOrderCode.js";
 
 /**
  * Valida os dados de entrada brutos para criação do pedido.
@@ -278,11 +279,14 @@ async function createFromCart({
       });
     }
 
+    const orderCode = generateOrderCode();
+
     // 6. Insere o Pedido
     const orderQuery = {
       text: `
         INSERT INTO orders (
-          user_id, 
+          user_id,
+          code,
           subtotal_in_cents, 
           discount_in_cents, 
           shipping_cost_in_cents, 
@@ -294,11 +298,12 @@ async function createFromCart({
           status,
           created_at,
           applied_coupons
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', now(), $10)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', now(), $11)
         RETURNING *;
       `,
       values: [
         cleanValues.user_id,
+        orderCode,
         calculation.subtotal,
         calculation.discount,
         calculation.shipping_cost,
@@ -316,7 +321,6 @@ async function createFromCart({
 
     // 7. Insere Itens do Pedido
     for (const item of items) {
-      const totalItem = item.unit_price_in_cents * item.quantity;
       await client.query({
         text: `
           INSERT INTO order_items (
@@ -330,7 +334,7 @@ async function createFromCart({
           item.name,
           item.quantity,
           item.unit_price_in_cents,
-          totalItem,
+          item.total_in_cents,
         ],
       });
     }
@@ -342,6 +346,11 @@ async function createFromCart({
     return createdOrder;
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.message?.includes("orders_code_key")) {
+      throw new ServiceError({
+        message: "Erro ao gerar código do pedido. Tente novamente.",
+      });
+    }
     if (!error.code) {
       throw error;
     } else {
@@ -375,6 +384,248 @@ async function findById(orderId) {
     ...orderResult.rows[0],
     items: itemsResult.rows,
   };
+}
+
+async function markAsShipped(orderId, trackingCode) {
+  const cleanValues = validator(
+    { id: orderId, tracking_code: trackingCode },
+    { id: "required", tracking_code: "required" },
+  );
+
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+
+    const orderCheck = await client.query({
+      text: "SELECT status FROM orders WHERE id = $1 FOR UPDATE",
+      values: [cleanValues.id],
+    });
+
+    if (orderCheck.rowCount === 0)
+      throw new NotFoundError({ message: "Pedido não encontrado." });
+
+    const { status: currentStatus, shipping_method } = orderCheck.rows[0];
+
+    if (shipping_method === "PICKUP") {
+      throw new ServiceError({ message: "Este pedido não é para delivery." });
+    }
+
+    // Valida transição
+    if (!["paid", "preparing"].includes(currentStatus)) {
+      throw new ServiceError({
+        message: `Apenas pedidos pagos ou em preparação podem ser enviados. Status atual: ${currentStatus}`,
+      });
+    }
+
+    const result = await client.query({
+      text: `
+        UPDATE orders 
+        SET 
+          status = 'shipped', 
+          tracking_code = $2, 
+          updated_at = (now() at time zone 'utc'),
+          tracking_history = jsonb_build_array(jsonb_build_object(
+            'status', 'posted', 
+            'date', (now() at time zone 'utc'), 
+            'description', 'Objeto postado/enviado.'
+          ))
+        WHERE id = $1 
+        RETURNING *;
+      `,
+      values: [cleanValues.id, cleanValues.tracking_code],
+    });
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    client.end();
+  }
+}
+
+async function markAsReadyForPickup(orderId) {
+  const cleanId = validator({ id: orderId }, { id: "required" }).id;
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+
+    const orderCheck = await client.query({
+      text: "SELECT status, shipping_method FROM orders WHERE id = $1 FOR UPDATE",
+      values: [cleanId],
+    });
+
+    if (orderCheck.rowCount === 0)
+      throw new NotFoundError({ message: "Pedido não encontrado." });
+    const { status, shipping_method } = orderCheck.rows[0];
+
+    if (shipping_method !== "PICKUP") {
+      throw new ServiceError({ message: "Este pedido não é para retirada." });
+    }
+
+    if (!["paid", "preparing"].includes(status)) {
+      throw new ServiceError({
+        message: `Status inválido para liberar retirada: ${status}`,
+      });
+    }
+
+    const result = await client.query({
+      text: `
+        UPDATE orders 
+        SET status = 'ready_for_pickup', updated_at = (now() at time zone 'utc')
+        WHERE id = $1 
+        RETURNING *;
+      `,
+      values: [cleanId],
+    });
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    client.end();
+  }
+}
+
+async function markAsDelivered(orderId) {
+  const cleanId = validator({ id: orderId }, { id: "required" }).id;
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+    const orderCheck = await client.query({
+      text: "SELECT status FROM orders WHERE id = $1 FOR UPDATE",
+      values: [cleanId],
+    });
+
+    if (orderCheck.rowCount === 0) {
+      throw new NotFoundError({ message: "Pedido não encontrado." });
+    }
+    const currentStatus = orderCheck.rows[0].status;
+
+    let newStatus = "";
+    let historyDescription = "";
+    let historyStatusLabel = "";
+
+    // Lógica de Decisão de Status
+    if (currentStatus === "shipped") {
+      // Cenário 1: Entrega via Transportadora
+      newStatus = "delivered";
+      historyStatusLabel = "delivered";
+      historyDescription = "Entregue (Confirmado Manualmente)";
+    } else if (currentStatus === "ready_for_pickup") {
+      // Cenário 2: Retirada no Local
+      newStatus = "picked_up";
+      historyStatusLabel = "picked_up";
+      historyDescription = "Retirado pelo cliente (Confirmado Manualmente)";
+    } else {
+      // Cenário Inválido
+      throw new ServiceError({
+        message: `Apenas pedidos enviados ('shipped') ou prontos para retirada ('ready_for_pickup') podem ser finalizados. Status atual: ${currentStatus}`,
+      });
+    }
+
+    const result = await client.query({
+      text: `
+        UPDATE orders 
+        SET 
+          status = $2, 
+          updated_at = (now() at time zone 'utc'),
+          tracking_history = tracking_history || $3::jsonb
+        WHERE id = $1 
+        RETURNING *;
+      `,
+      values: [
+        cleanId,
+        newStatus,
+        JSON.stringify([
+          {
+            status: historyStatusLabel,
+            date: new Date().toISOString(),
+            description: historyDescription,
+          },
+        ]),
+      ],
+    });
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    client.end();
+  }
+}
+
+async function addTrackingEvent(orderId, eventData) {
+  const cleanId = validator({ id: orderId }, { id: "required" }).id;
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+
+    // Adiciona evento ao histórico
+    await client.query({
+      text: `
+        UPDATE orders 
+        SET tracking_history = tracking_history || $2::jsonb,
+            updated_at = (now() at time zone 'utc')
+        WHERE id = $1
+      `,
+      values: [cleanId, JSON.stringify([eventData])],
+    });
+
+    let updatedOrder = null;
+
+    // Se o evento indica entrega, atualiza o status do pedido
+    if (
+      eventData.status === "delivered" ||
+      (eventData.description &&
+        eventData.description.toLowerCase().includes("entregue"))
+    ) {
+      const res = await client.query({
+        text: "UPDATE orders SET status = 'delivered' WHERE id = $1 RETURNING *",
+        values: [cleanId],
+      });
+      updatedOrder = res.rows[0];
+    } else {
+      const res = await client.query({
+        text: "SELECT * FROM orders WHERE id = $1",
+        values: [cleanId],
+      });
+      updatedOrder = res.rows[0];
+    }
+
+    await client.query("COMMIT");
+    return updatedOrder;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (!error.code) {
+      throw error;
+    } else {
+      throw database.handleDatabaseError(error);
+    }
+  } finally {
+    client.end();
+  }
 }
 
 async function updatePaymentInfo(
@@ -486,4 +737,8 @@ export default {
   findById,
   updatePaymentInfo,
   cancel,
+  markAsShipped,
+  markAsReadyForPickup,
+  markAsDelivered,
+  addTrackingEvent,
 };

@@ -5,7 +5,7 @@ import coupon from "models/coupon.js";
 import { ValidationError, ServiceError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
-import { number } from "joi";
+import database from "infra/database.js";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -15,7 +15,7 @@ beforeAll(async () => {
 
 describe("Model: Order", () => {
   let user1, userId;
-  let productId, productId2;
+  let productId, productId2, pickupProductId;
 
   beforeAll(async () => {
     user1 = await user.create({
@@ -66,6 +66,25 @@ describe("Model: Order", () => {
       pickup_instructions: "Instrucoes de retirada",
     });
     productId2 = prod2.id;
+    const prod3 = await product.create({
+      name: "Produto Retirada",
+      slug: "prod-retirada",
+      description: "Desc",
+      category: "Test",
+      price_in_cents: 5000,
+      minimum_price_in_cents: 1000,
+      stock_quantity: 100,
+      weight_in_grams: 100,
+      length_cm: 10,
+      height_cm: 10,
+      width_cm: 10,
+      images: [],
+      allow_pickup: true,
+      allow_delivery: false,
+      pickup_address: "Loja Centro",
+      pickup_instructions: "Horario Comercial",
+    });
+    pickupProductId = prod3.id;
   });
 
   beforeEach(async () => {
@@ -91,6 +110,10 @@ describe("Model: Order", () => {
     expect(newOrder.subtotal_in_cents).toBe(10000); // 2 * 5000
     expect(newOrder.shipping_cost_in_cents).toBe(2100); // Mock do PAC
     expect(newOrder.total_in_cents).toBe(12100); // 10000 + 2100
+    expect(newOrder.code).toBeDefined();
+    expect(newOrder.code).toMatch(/^#[0-9A-F]{6}-\d{4}$/);
+    expect(Array.isArray(newOrder.tracking_history)).toBe(true);
+    expect(newOrder.tracking_history).toHaveLength(0);
   });
 
   test("should reduce stock quantity when order is created", async () => {
@@ -458,5 +481,181 @@ describe("Model: Order", () => {
 
     expect(newOrder.discount_in_cents).toBe(40000); // 400 reais
     expect(newOrder.applied_coupons).toHaveLength(2); // Usou 2 cupons
+  });
+
+  test("should mark order as SHIPPED and update history", async () => {
+    // 1. Cria Pedido
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+
+    // 2. Simula Pagamento (Update manual no banco pois markAsShipped exige paid/preparing)
+    await database.query({
+      text: "UPDATE orders SET status = 'paid' WHERE id = $1",
+      values: [newOrder.id],
+    });
+
+    // 3. Marca como Enviado
+    const trackingCode = "BR123456789";
+    const shippedOrder = await order.markAsShipped(newOrder.id, trackingCode);
+
+    expect(shippedOrder.status).toBe("shipped");
+    expect(shippedOrder.tracking_code).toBe(trackingCode);
+    expect(shippedOrder.tracking_history).toHaveLength(1);
+    expect(shippedOrder.tracking_history[0].status).toBe("posted");
+  });
+
+  test("should fail to mark as shipped if status is pending", async () => {
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+
+    // Tenta enviar sem estar pago
+    await expect(order.markAsShipped(newOrder.id, "BR123")).rejects.toThrow(
+      /Apenas pedidos pagos/,
+    );
+  });
+
+  test("should mark order as READY_FOR_PICKUP if method is PICKUP", async () => {
+    // 1. Cria Pedido com PICKUP
+    await cart.addItem(userId, { product_id: pickupProductId, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" }, // Endereço de fatura ainda é necessário
+      shippingMethod: "PICKUP",
+    });
+
+    // 2. Simula Pagamento
+    await database.query({
+      text: "UPDATE orders SET status = 'preparing' WHERE id = $1",
+      values: [newOrder.id],
+    });
+
+    // 3. Marca como Pronto
+    const readyOrder = await order.markAsReadyForPickup(newOrder.id);
+    expect(readyOrder.status).toBe("ready_for_pickup");
+  });
+
+  test("should fail to mark as ready for pickup if method is PAC", async () => {
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+
+    await database.query({
+      text: "UPDATE orders SET status = 'paid' WHERE id = $1",
+      values: [newOrder.id],
+    });
+
+    await expect(order.markAsReadyForPickup(newOrder.id)).rejects.toThrow(
+      /não é para retirada/,
+    );
+  });
+
+  test("should auto-update status to DELIVERED when tracking event arrives", async () => {
+    // 1. Setup: Pedido Enviado
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+    await database.query({
+      text: "UPDATE orders SET status = 'paid' WHERE id = $1",
+      values: [newOrder.id],
+    });
+    await order.markAsShipped(newOrder.id, "BR123");
+
+    // 2. Simula Evento de Entrega
+    const event = {
+      status: "delivered",
+      description: "Objeto entregue ao destinatário",
+      date: new Date().toISOString(),
+    };
+
+    const deliveredOrder = await order.addTrackingEvent(newOrder.id, event);
+
+    expect(deliveredOrder.status).toBe("delivered");
+    expect(deliveredOrder.tracking_history).toHaveLength(2); // Posted + Delivered
+  });
+
+  test("should manually mark SHIPPED order as DELIVERED", async () => {
+    // 1. Cria e Envia
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+    await database.query({
+      text: "UPDATE orders SET status = 'paid' WHERE id = $1",
+      values: [newOrder.id],
+    });
+    await order.markAsShipped(newOrder.id, "BR123");
+
+    // 2. Finaliza
+    const deliveredOrder = await order.markAsDelivered(newOrder.id);
+
+    expect(deliveredOrder.status).toBe("delivered");
+    expect(deliveredOrder.tracking_history[1].status).toBe("delivered");
+  });
+
+  test("should manually mark READY_FOR_PICKUP order as PICKED_UP", async () => {
+    // 1. Cria Pedido PICKUP
+    await cart.addItem(userId, { product_id: pickupProductId, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PICKUP",
+    });
+
+    // 2. Prepara para retirada
+    await database.query({
+      text: "UPDATE orders SET status = 'preparing' WHERE id = $1",
+      values: [newOrder.id],
+    });
+    await order.markAsReadyForPickup(newOrder.id); // Status -> ready_for_pickup
+
+    // 3. Finaliza (Cliente retirou)
+    const pickedUpOrder = await order.markAsDelivered(newOrder.id);
+
+    expect(pickedUpOrder.status).toBe("picked_up");
+    expect(pickedUpOrder.tracking_history[0].status).toBe("picked_up");
+    expect(pickedUpOrder.tracking_history[0].description).toContain(
+      "Retirado pelo cliente",
+    );
+  });
+
+  test("should fail to mark as delivered if order is just 'paid' (not shipped/ready)", async () => {
+    await cart.addItem(userId, { product_id: productId2, quantity: 1 });
+    const newOrder = await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+    });
+    await database.query({
+      text: "UPDATE orders SET status = 'paid' WHERE id = $1",
+      values: [newOrder.id],
+    });
+
+    await expect(order.markAsDelivered(newOrder.id)).rejects.toThrow(
+      /Apenas pedidos enviados/,
+    );
   });
 });
