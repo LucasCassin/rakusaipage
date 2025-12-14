@@ -2,7 +2,6 @@ import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import authentication from "models/authentication.js";
 import validator from "models/validator.js";
-import product from "models/product.js";
 import shippingService from "services/shipping.js";
 import { ValidationError } from "errors/index.js";
 import authorization from "models/authorization.js";
