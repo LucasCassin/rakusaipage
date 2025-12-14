@@ -31,16 +31,31 @@ async function findByCode(code) {
  * @param {number} amountInCents - Valor total dos produtos (sem frete) para validar regra de mínimo.
  */
 async function validate(code, userId, amountInCents) {
-  const cleanValues = validator(
-    { code, user_id: userId, price_in_cents: amountInCents },
-    {
-      code: "required",
-      user_id: "required",
-      price_in_cents: "required",
-    },
-  );
+  const isSimulation = userId === "guest_simulation";
+  let cleanValues;
+
+  if (!isSimulation) {
+    cleanValues = validator(
+      { code, user_id: userId, price_in_cents: amountInCents },
+      {
+        code: "required",
+        user_id: "required",
+        price_in_cents: "required",
+      },
+    );
+  } else {
+    cleanValues = validator(
+      { code, price_in_cents: amountInCents },
+      {
+        code: "required",
+        price_in_cents: "required",
+      },
+    );
+  }
   cleanValues.amount = cleanValues.price_in_cents;
   const coupon = await findByCode(cleanValues.code);
+
+  // Define se é uma simulação (Guest calculando frete/desconto)
 
   // 1. Verifica se está ativo
   if (!coupon.is_active) {
@@ -61,7 +76,6 @@ async function validate(code, userId, amountInCents) {
   }
 
   // 3. Verifica Valor Mínimo de Compra
-  // Nota: Mesmo para cupons de frete, o gatilho pode ser o valor dos produtos (Ex: Frete grátis em compras acima de X)
   if (
     coupon.min_purchase_value_in_cents &&
     cleanValues.amount < coupon.min_purchase_value_in_cents
@@ -72,12 +86,18 @@ async function validate(code, userId, amountInCents) {
     });
   }
 
-  // 4. Verifica Limites de Uso (Requer consulta na tabela de pedidos)
+  // 4. Verifica Limites de Uso
   if (coupon.usage_limit_global || coupon.usage_limit_per_user) {
-    // Busca pedidos não cancelados que contenham este cupom no array 'applied_coupons'
-    // O operador @> verifica se o JSON do banco contém o objeto passado (pelo ID)
-    const usageQuery = {
-      text: `
+    // PREVENÇÃO DE ERRO DE UUID:
+    // Se for simulação, o ID é uma string comum ("guest_simulation").
+    // O Postgres vai dar erro se passarmos isso para uma coluna UUID.
+    // Então passamos NULL para a query, pois na simulação não importa o histórico do usuário.
+
+    let usageQuery, usageResult, totalUsage, userUsage;
+
+    if (!isSimulation) {
+      usageQuery = {
+        text: `
         SELECT 
           count(*) as total_usage,
           count(*) filter (where user_id = $2) as user_usage
@@ -86,27 +106,46 @@ async function validate(code, userId, amountInCents) {
         AND status <> 'canceled'
         AND status <> 'refunded';
       `,
-      // Montamos um JSON parcial `[{ "id": "..." }]` para o Postgres buscar dentro do array
-      values: [JSON.stringify([{ id: coupon.id }]), cleanValues.user_id],
-    };
+        values: [JSON.stringify([{ id: coupon.id }]), cleanValues.user_id],
+      };
 
-    const usageResult = await database.query(usageQuery);
-    const totalUsage = parseInt(usageResult.rows[0].total_usage);
-    const userUsage = parseInt(usageResult.rows[0].user_usage);
+      usageResult = await database.query(usageQuery);
+      totalUsage = parseInt(usageResult.rows[0].total_usage);
+      userUsage = parseInt(usageResult.rows[0].user_usage);
+    } else {
+      usageQuery = {
+        text: `
+        SELECT 
+          count(*) as total_usage
+        FROM orders 
+        WHERE applied_coupons @> $1::jsonb
+        AND status <> 'canceled'
+        AND status <> 'refunded';
+      `,
+        values: [JSON.stringify([{ id: coupon.id }])],
+      };
+      usageResult = await database.query(usageQuery);
+      totalUsage = parseInt(usageResult.rows[0].total_usage);
+      userUsage = 0;
+    }
 
+    // Validação Global (Sempre ocorre, mesmo em simulação)
     if (coupon.usage_limit_global && totalUsage >= coupon.usage_limit_global) {
       throw new ValidationError({
         message: `O cupom ${coupon.code} atingiu o limite máximo de utilizações.`,
       });
     }
 
-    if (
-      coupon.usage_limit_per_user &&
-      userUsage >= coupon.usage_limit_per_user
-    ) {
-      throw new ValidationError({
-        message: `Você já atingiu o limite de uso para este cupom (${coupon.code}).`,
-      });
+    // Validação Por Usuário (PULA se for simulação)
+    if (!isSimulation) {
+      if (
+        coupon.usage_limit_per_user &&
+        userUsage >= coupon.usage_limit_per_user
+      ) {
+        throw new ValidationError({
+          message: `Você já atingiu o limite de uso para este cupom (${coupon.code}).`,
+        });
+      }
     }
   }
 

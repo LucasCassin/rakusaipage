@@ -3,6 +3,10 @@ import { ValidationError, NotFoundError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import database from "infra/database";
+import product from "models/product.js";
+import cart from "models/cart.js";
+import order from "models/order.js";
+import { allow } from "joi";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -11,7 +15,7 @@ beforeAll(async () => {
 });
 
 describe("Model: Coupon", () => {
-  let user1, userId;
+  let user1, userId, testProduct;
 
   beforeAll(async () => {
     user1 = await user.create({
@@ -20,6 +24,25 @@ describe("Model: Coupon", () => {
       password: "StrongPassword123@",
     });
     userId = user1.id;
+
+    testProduct = await product.create({
+      name: "Produto Cupom",
+      slug: "prod-cupom",
+      price_in_cents: 1000,
+      stock_quantity: 100,
+      description: "...",
+      category: "test",
+      minimum_price_in_cents: 100,
+      weight_in_grams: 100,
+      length_cm: 10,
+      height_cm: 10,
+      width_cm: 10,
+      images: [],
+      allow_pickup: true,
+      allow_delivery: true,
+      pickup_address: "Rua Teste ABC",
+      pickup_instructions: "Instrucoes de retirada",
+    });
   });
 
   describe("create", () => {
@@ -129,5 +152,45 @@ describe("Model: Coupon", () => {
         "atingiu o limite de uso",
       );
     });
+  });
+
+  test("should skip per-user limit check if userId is 'guest_simulation'", async () => {
+    // 1. Cria cupom limitado a 1 uso por pessoa
+    await coupon.create({
+      code: "SIMULACAO",
+      description: "Teste Simulação",
+      discount_percentage: 10,
+      usage_limit_per_user: 1,
+    });
+
+    // 2. Simulação não deve dar erro de UUID nem de limite (pois é guest_simulation)
+    // Passamos valor suficiente (1000)
+    const valid = await coupon.validate("SIMULACAO", "guest_simulation", 1000);
+    expect(valid.code).toBe("SIMULACAO");
+  });
+
+  test("should still enforce GLOBAL limit even for guest_simulation", async () => {
+    // 1. Cria cupom com limite GLOBAL esgotado
+    const globalLimitCoupon = await coupon.create({
+      code: "ESGOTADO",
+      description: "Global Limit",
+      discount_percentage: 10,
+      usage_limit_global: 1, // Limite global 1
+    });
+
+    // 2. Simula que alguém já usou (insere pedido fake)
+    await cart.clearCart(userId);
+    await cart.addItem(userId, { product_id: testProduct.id, quantity: 1 });
+    await order.createFromCart({
+      userId,
+      paymentMethod: "pix",
+      shippingAddress: { zip: "00000000", number: "123" },
+      shippingMethod: "PAC",
+      couponCodes: ["ESGOTADO"],
+    });
+    // 3. Tenta simular. Deve falhar pois o cupom acabou para TODOS
+    await expect(
+      coupon.validate("ESGOTADO", "guest_simulation", 1000),
+    ).rejects.toThrow("limite máximo");
   });
 });

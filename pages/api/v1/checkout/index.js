@@ -36,6 +36,8 @@ function validateCheckoutBody(req, res, next) {
     let normalizedCodes = undefined;
     if (body.codes && Array.isArray(body.codes)) {
       normalizedCodes = body.codes;
+    } else if (body.coupon_code) {
+      normalizedCodes = [body.coupon_code];
     } else if (body.code) {
       normalizedCodes = [body.code];
     }
