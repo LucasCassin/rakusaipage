@@ -1293,8 +1293,26 @@ const schemas = {
   // Objetos complexos (JSONB snapshots)
   shipping_address_snapshot: () =>
     Joi.object({
-      shipping_address_snapshot: Joi.object()
+      shipping_address_snapshot: Joi.object({
+        // 1. Definimos as possíveis chaves para o CEP (todas opcionais individualmente)
+        zip: Joi.string(),
+        zip_code: Joi.string(),
+        cep: Joi.string(),
+
+        // 2. Definimos o número da casa como obrigatório
+        // (Estou assumindo que a chave no JSON é 'number', ajuste se for 'numero')
+        number: Joi.string().required(),
+
+        // 3. Complemento opcional (permite string vazia ou null se necessário)
+        complement: Joi.string().allow("", null).optional(),
+      })
+        // 4. A mágica acontece aqui: Exige que PELO MENOS UM destes campos exista
+        .or("zip", "zip_code", "cep")
+
+        // Mantém a permissão para outros campos (city, state, street, etc.)
         .unknown(true)
+
+        // Mantém sua lógica original de obrigatoriedade do objeto pai
         .when("$required.shipping_address_snapshot", {
           is: "required",
           then: Joi.required(),

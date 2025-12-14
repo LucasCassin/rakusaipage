@@ -58,7 +58,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
     test("should create a new shadow user and complete order with calculated shipping", async () => {
       const guestPayload = {
         payment_method: "pix",
-        shipping_address_snapshot: { zip: "00000000" },
+        shipping_address_snapshot: { number: "123", zip: "00000000" },
         username: "visitante01",
         email: "guest_new@test.com",
         items: [{ product_id: testProduct.id, quantity: 2 }],
@@ -99,7 +99,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
     test("should reuse existing shadow user for subsequent purchases", async () => {
       const guestPayload = {
         payment_method: "pix",
-        shipping_address_snapshot: { zip: "00000000" },
+        shipping_address_snapshot: { number: "123", zip: "00000000" },
         username: "visitante01",
         email: "guest_new@test.com",
         items: [{ product_id: testProduct.id, quantity: 1 }],
@@ -126,7 +126,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
     test("should REJECT guest checkout if email belongs to a REAL user", async () => {
       const attackPayload = {
         payment_method: "pix",
-        shipping_address_snapshot: { zip: "00000000" },
+        shipping_address_snapshot: { number: "123", zip: "00000000" },
         username: "imposter",
         email: "real@test.com",
         items: [{ product_id: testProduct.id, quantity: 5 }],
@@ -167,7 +167,11 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
           },
           body: JSON.stringify({
             payment_method: "pix",
-            shipping_address_snapshot: { zip: "12345678", street: "Home" },
+            shipping_address_snapshot: {
+              number: "123",
+              zip: "12345678",
+              street: "Home",
+            },
             shipping_method: "PAC",
           }),
         },
@@ -190,7 +194,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
             cookie: `session_id=${userSession.token}`,
           },
           body: JSON.stringify({
-            shipping_address_snapshot: { zip: "00000000" },
+            shipping_address_snapshot: { number: "123", zip: "00000000" },
             shipping_method: "PAC",
           }),
         },
@@ -231,7 +235,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
           },
           body: JSON.stringify({
             payment_method: "pix",
-            shipping_address_snapshot: { zip: "00000000" },
+            shipping_address_snapshot: { number: "123", zip: "00000000" },
           }),
         },
       );
@@ -249,7 +253,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             payment_method: "pix",
-            shipping_address_snapshot: { zip: "00000000" },
+            shipping_address_snapshot: { number: "123", zip: "00000000" },
             items: [{ product_id: testProduct.id, quantity: 1 }],
             shipping_method: "PAC",
           }),
@@ -267,7 +271,7 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             payment_method: "pix",
-            shipping_address_snapshot: { zip: "00000000" },
+            shipping_address_snapshot: { number: "123", zip: "00000000" },
             customer: { username: "fail", email: "fail@test.com" },
             items: [], // Carrinho vazio
             shipping_method: "PAC",

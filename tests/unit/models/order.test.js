@@ -5,6 +5,7 @@ import coupon from "models/coupon.js";
 import { ValidationError, ServiceError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
+import { number } from "joi";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -100,7 +101,7 @@ describe("Model: Order", () => {
     await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -116,7 +117,7 @@ describe("Model: Order", () => {
     const promise = order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -133,7 +134,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "12345678" },
+      shippingAddress: { zip: "12345678", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -154,7 +155,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -175,7 +176,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "12345678" },
+      shippingAddress: { zip: "12345678", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -196,7 +197,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["DESCONTO10"],
       shippingMethod: "PAC",
     });
@@ -242,7 +243,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["SUPER50"],
       shippingMethod: "PAC",
     });
@@ -261,7 +262,7 @@ describe("Model: Order", () => {
     const promise = order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -273,7 +274,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "12345678" },
+      shippingAddress: { zip: "12345678", number: "123" },
       shippingMethod: "PAC",
     });
 
@@ -310,7 +311,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["FRETEGRATIS"],
       shippingMethod: "PAC",
     });
@@ -340,7 +341,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["FRETELIMITADO"],
       shippingMethod: "PAC",
     });
@@ -366,7 +367,7 @@ describe("Model: Order", () => {
     const promise = order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["FRETECARO"],
       shippingMethod: "PAC",
     });
@@ -406,7 +407,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["CUMULATIVO10", "CUMULATIVO20", "UNICO50"],
       shippingMethod: "PAC",
     });
@@ -450,7 +451,7 @@ describe("Model: Order", () => {
     const newOrder = await order.createFromCart({
       userId,
       paymentMethod: "pix",
-      shippingAddress: { zip: "00000000" },
+      shippingAddress: { zip: "00000000", number: "123" },
       couponCodes: ["CUMU20A", "CUMU20B", "WEAK10"],
       shippingMethod: "PAC",
     });
