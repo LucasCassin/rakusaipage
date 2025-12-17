@@ -1511,6 +1511,11 @@ const schemas = {
           otherwise: Joi.optional(),
         }),
     }),
+
+  search_term: () =>
+    Joi.object({
+      search_term: Joi.string().trim().min(1).max(100).allow("").optional(),
+    }),
 };
 
 // Helper function to check if the username is reserved.

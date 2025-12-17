@@ -727,6 +727,69 @@ async function cancel(orderId) {
     client.end();
   }
 }
+async function findAll({ limit = 20, offset = 0, status, search }) {
+  const cleanValues = validator(
+    { limit, offset, shop_status: status, search_term: search },
+    {
+      limit: "optional",
+      offset: "optional",
+      shop_status: "optional",
+      search_term: "optional",
+    },
+  );
+
+  const values = [cleanValues.limit || 20, cleanValues.offset || 0];
+  let whereClause = "WHERE 1=1";
+  let paramIndex = 3;
+
+  // Filtro por Status (Para as colunas do Kanban)
+  if (cleanValues.shop_status) {
+    whereClause += ` AND o.status = $${paramIndex}`;
+    values.push(cleanValues.shop_status);
+    paramIndex++;
+  }
+
+  // Busca por Código, Nome do Cliente ou Email (Busca Geral)
+  if (cleanValues.search_term) {
+    whereClause += ` AND (
+      o.code ILIKE $${paramIndex} OR 
+      u.username ILIKE $${paramIndex} OR 
+      u.email ILIKE $${paramIndex}
+    )`;
+    values.push(`%${cleanValues.search_term}%`);
+    paramIndex++;
+  }
+
+  const query = {
+    text: `
+      SELECT 
+        o.id, o.code, o.status, o.total_in_cents, o.created_at, o.updated_at,
+        o.payment_method, o.shipping_method,
+        o.tracking_code,
+        jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email) as customer,
+        count(*) OVER() as total_count
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      ${whereClause}
+      ORDER BY o.created_at DESC
+      LIMIT $1 OFFSET $2;
+    `,
+    values,
+  };
+
+  const result = await database.query(query);
+  const rows = result.rows;
+  const total = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+
+  return {
+    orders: rows,
+    pagination: {
+      total,
+      limit: cleanValues.limit,
+      offset: cleanValues.offset,
+    },
+  };
+}
 
 export default {
   createFromCart,
@@ -741,4 +804,5 @@ export default {
   markAsReadyForPickup,
   markAsDelivered,
   addTrackingEvent,
+  findAll,
 };
