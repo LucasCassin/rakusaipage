@@ -193,4 +193,110 @@ describe("Model: Coupon", () => {
       coupon.validate("ESGOTADO", "guest_simulation", 1000),
     ).rejects.toThrow("limite máximo");
   });
+
+  describe("findAll", () => {
+    beforeAll(async () => {
+      // Garante que a tabela está limpa para este conjunto de testes
+      await database.query("DELETE FROM coupons;");
+      // Cria 25 cupons para testar a paginação
+      for (let i = 1; i <= 25; i++) {
+        await coupon.create({
+          code: `PAGE${i}`,
+          description: `Cupom de Paginação ${i}`,
+          discount_percentage: 1,
+        });
+      }
+    });
+
+    test("should return the first page with default limit (20)", async () => {
+      const result = await coupon.findAll();
+      expect(result.coupons).toHaveLength(20);
+      expect(result.count).toBe(25);
+    });
+
+    test("should return a specific page using limit and offset", async () => {
+      const result = await coupon.findAll({ limit: 5, offset: 20 });
+      expect(result.coupons).toHaveLength(5);
+      expect(result.count).toBe(25);
+      expect(result.coupons[0].code).toBe("PAGE5");
+    });
+
+    test("should return coupons ordered by creation date (newest first)", async () => {
+      const result = await coupon.findAll({ limit: 5 });
+      const firstCouponDate = new Date(result.coupons[0].created_at);
+      const secondCouponDate = new Date(result.coupons[1].created_at);
+      expect(firstCouponDate > secondCouponDate).toBe(true);
+    });
+  });
+
+  describe("update", () => {
+    let couponToUpdate;
+
+    beforeEach(async () => {
+      // Cria um cupom fresco antes de cada teste de update
+      await database.query("DELETE FROM coupons;");
+      couponToUpdate = await coupon.create({
+        code: "EDITAVEL",
+        description: "Descrição Original",
+        discount_percentage: 15,
+        type: "subtotal",
+      });
+    });
+
+    test("should update a single field (e.g., description)", async () => {
+      const updated = await coupon.update(couponToUpdate.id, {
+        description: "Nova Descrição",
+      });
+      expect(updated.description).toBe("Nova Descrição");
+      expect(updated.code).toBe("EDITAVEL"); // Não deve mudar
+    });
+
+    test("should update multiple fields (is_active and type)", async () => {
+      const updated = await coupon.update(couponToUpdate.id, {
+        is_active: false,
+        type: "shipping",
+      });
+      expect(updated.is_active).toBe(false);
+      expect(updated.type).toBe("shipping");
+    });
+
+    test("should throw ValidationError when trying to update code to a duplicate", async () => {
+      // Cria um segundo cupom para ser o alvo do conflito
+      await coupon.create({
+        code: "EXISTENTE",
+        description: "...",
+        discount_percentage: 1,
+      });
+
+      const promise = coupon.update(couponToUpdate.id, { code: "EXISTENTE" });
+
+      await expect(promise).rejects.toThrow(ValidationError);
+      await expect(promise).rejects.toThrow(
+        "Já existe um cupom com este código.",
+      );
+    });
+
+    test("should throw NotFoundError for a non-existent coupon ID", async () => {
+      const nonExistentId = "00000000-0000-4000-8000-000000000000";
+      const promise = coupon.update(nonExistentId, { is_active: false });
+
+      await expect(promise).rejects.toThrow(NotFoundError);
+      await expect(promise).rejects.toThrow("Cupom não encontrado.");
+    });
+
+    test("should throw ValidationError if no valid data is provided for update", async () => {
+      const promise = coupon.update(couponToUpdate.id, {});
+      await expect(promise).rejects.toThrow(ValidationError);
+      await expect(promise).rejects.toThrow(
+        "Objeto enviado deve ter no mínimo uma chave.",
+      );
+    });
+
+    test("should correctly handle the 'type' to 'coupon_type' mapping", async () => {
+      const updated = await coupon.update(couponToUpdate.id, {
+        type: "shipping",
+      });
+      expect(updated.type).toBe("shipping");
+    });
+  });
 });

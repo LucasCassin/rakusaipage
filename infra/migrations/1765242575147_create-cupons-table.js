@@ -20,6 +20,10 @@ exports.up = async (pgm) => {
       type: "timestamp with time zone",
       default: pgm.func("(now() at time zone 'utc')"),
     },
+    updated_at: {
+      type: "timestamp with time zone",
+      default: pgm.func("(now() at time zone 'utc')"),
+    },
   });
 };
 

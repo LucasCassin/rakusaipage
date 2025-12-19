@@ -312,10 +312,33 @@ async function update(id, productData) {
   return result.rows[0];
 }
 
+/**
+ * Remove um produto pelo ID.
+ */
+async function del(id) {
+  const cleanId = validator({ id }, { id: "required" }).id;
+
+  const query = {
+    text: "DELETE FROM products WHERE id = $1 RETURNING *;",
+    values: [cleanId],
+  };
+
+  const result = await database.query(query);
+
+  if (result.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Produto não encontrado para exclusão.",
+    });
+  }
+
+  return result.rows[0];
+}
+
 export default {
   create,
   findById,
   findBySlug,
   findAll,
   update,
+  del,
 };

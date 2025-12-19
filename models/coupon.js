@@ -222,14 +222,126 @@ async function create(couponData) {
     const result = await database.query(query);
     return result.rows[0];
   } catch (error) {
-    if (
-      (error.cause = `duplicate key value violates unique constraint "coupons_code_key"`)
-    ) {
+    if (error.cause?.code && error.cause.code == "23505") {
       throw new ValidationError({
         message: "Já existe um cupom com este código.",
       });
     }
-    throw error;
+    if (!error.code) {
+      throw error;
+    }
+    throw database.handleDatabaseError(error);
+  }
+}
+
+/**
+ * Lista todos os cupons.
+ */
+async function findAll({ limit = 20, offset = 0 } = {}) {
+  const validateData = validator(
+    { limit, offset },
+    {
+      limit: "required",
+      offset: "required",
+    },
+  );
+
+  const query = {
+    text: `
+      SELECT *, count(*) OVER() as total_count
+      FROM coupons
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2;
+    `,
+    values: [validateData.limit, validateData.offset],
+  };
+  const result = await database.query(query);
+  return {
+    coupons: result.rows,
+    count: result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0,
+  };
+}
+
+/**
+ * Atualiza um cupom existente.
+ */
+async function update(couponId, couponData) {
+  const cleanId = validator({ id: couponId }, { id: "required" }).id;
+
+  // Mapeamento para validação (type -> coupon_type)
+  const mappedData = { ...couponData };
+  if (mappedData.type !== undefined) {
+    mappedData.coupon_type = mappedData.type;
+    delete mappedData.type;
+  }
+
+  const cleanValues = validator(mappedData, {
+    code: "optional",
+    description: "optional",
+    discount_percentage: "optional",
+    min_purchase_value_in_cents: "optional",
+    usage_limit_global: "optional",
+    usage_limit_per_user: "optional",
+    expiration_date: "optional",
+    is_active: "optional",
+    coupon_type: "optional",
+    max_discount_in_cents: "optional",
+    is_cumulative: "optional",
+  });
+
+  if (Object.keys(cleanValues).length === 0) {
+    throw new ValidationError({
+      message: "Nenhum dado válido para atualização.",
+    });
+  }
+
+  // Mapeamento reverso (coupon_type -> type)
+  if (cleanValues.coupon_type !== undefined) {
+    cleanValues.type = cleanValues.coupon_type;
+    delete cleanValues.coupon_type;
+  }
+
+  const sets = [];
+  const values = [cleanId];
+  let paramIndex = 2;
+
+  Object.entries(cleanValues).forEach(([key, value]) => {
+    if (key === "code") {
+      value = value.toUpperCase();
+    }
+    sets.push(`${key} = $${paramIndex}`);
+    values.push(value);
+    paramIndex++;
+  });
+
+  const query = {
+    text: `
+      UPDATE coupons
+      SET ${sets.join(", ")}, updated_at = (now() at time zone 'utc')
+      WHERE id = $1
+      RETURNING *;
+    `,
+    values,
+  };
+  try {
+    const result = await database.query(query);
+    if (result.rowCount === 0) {
+      throw new NotFoundError({
+        message: "Cupom não encontrado.",
+      });
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    if (error.cause?.code && error.cause.code == "23505") {
+      throw new ValidationError({
+        message: "Já existe um cupom com este código.",
+      });
+    }
+    if (!error.code) {
+      throw error;
+    }
+    throw database.handleDatabaseError(error);
   }
 }
 
@@ -238,4 +350,6 @@ export default {
   findByCode,
   validate,
   validateMultiple,
+  findAll,
+  update,
 };
