@@ -97,6 +97,96 @@ async function recalculateShippingCost(items, shippingAddress, selectedMethod) {
   };
 }
 
+// --- Funções Auxiliares de Cálculo (Refatoração) ---
+
+function calculateSingleCouponDiscount(coupon, subtotal, shippingCostInCents) {
+  const baseValue = coupon.type === "shipping" ? shippingCostInCents : subtotal;
+  let val = Math.round(baseValue * (coupon.discount_percentage / 100));
+
+  if (coupon.max_discount_in_cents && val > coupon.max_discount_in_cents) {
+    val = coupon.max_discount_in_cents;
+  }
+  return val;
+}
+
+function resolveBestCouponStrategy(
+  validCoupons,
+  subtotal,
+  shippingCostInCents,
+) {
+  // Estratégia A: Soma dos Cumulativos
+  const cumulativeCoupons = validCoupons.filter((c) => c.is_cumulative);
+  let cumulativeTotal = 0;
+  const cumulativeSnapshots = [];
+
+  for (const c of cumulativeCoupons) {
+    const val = calculateSingleCouponDiscount(c, subtotal, shippingCostInCents);
+    cumulativeTotal += val;
+    cumulativeSnapshots.push({
+      id: c.id,
+      code: c.code,
+      discount_in_cents: val,
+      type: c.type,
+    });
+  }
+
+  // Estratégia B: O Melhor Não-Cumulativo
+  const singleCoupons = validCoupons.filter((c) => !c.is_cumulative);
+  let bestSingleTotal = 0;
+  let bestSingleSnapshot = [];
+
+  for (const c of singleCoupons) {
+    const val = calculateSingleCouponDiscount(c, subtotal, shippingCostInCents);
+    if (val > bestSingleTotal) {
+      bestSingleTotal = val;
+      bestSingleSnapshot = [
+        {
+          id: c.id,
+          code: c.code,
+          discount_in_cents: val,
+          type: c.type,
+        },
+      ];
+    }
+  }
+
+  // Decisão: Qual estratégia vence?
+  if (cumulativeTotal >= bestSingleTotal) {
+    return cumulativeSnapshots;
+  }
+  return bestSingleSnapshot;
+}
+
+function applyDiscountCaps(
+  appliedCoupons,
+  subtotal,
+  shippingCostInCents,
+  totalMinimumFloor,
+) {
+  const shippingDiscountSum = appliedCoupons
+    .filter((c) => c.type === "shipping")
+    .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+  const productDiscountSum = appliedCoupons
+    .filter((c) => c.type !== "shipping")
+    .reduce((acc, c) => acc + c.discount_in_cents, 0);
+
+  // Trava Frete: Não pode ser negativo
+  const effectiveShippingDiscount = Math.min(
+    shippingDiscountSum,
+    shippingCostInCents,
+  );
+
+  // Trava Produto: Não pode furar o preço mínimo (Floor)
+  const maxAllowedProductDiscount = Math.max(0, subtotal - totalMinimumFloor);
+  const effectiveProductDiscount = Math.min(
+    productDiscountSum,
+    maxAllowedProductDiscount,
+  );
+
+  return effectiveShippingDiscount + effectiveProductDiscount;
+}
+
 /**
  * Motor de Cálculo Financeiro.
  * Processa Subtotal, Múltiplos Cupons, Regras de Melhor Desconto e Limites.
@@ -128,90 +218,17 @@ async function calculateTotals({
       subtotal,
     );
 
-    // Função auxiliar para calcular desconto de UM cupom isolado
-    const calculateSingleDiscount = (coupon) => {
-      let val = 0;
-      const baseValue =
-        coupon.type === "shipping" ? shippingCostInCents : subtotal;
-
-      val = Math.round(baseValue * (coupon.discount_percentage / 100));
-
-      if (coupon.max_discount_in_cents && val > coupon.max_discount_in_cents) {
-        val = coupon.max_discount_in_cents;
-      }
-      return val;
-    };
-
-    // Estratégia A: Soma dos Cumulativos
-    const cumulativeCoupons = validCoupons.filter((c) => c.is_cumulative);
-    let cumulativeTotal = 0;
-    const cumulativeSnapshots = [];
-
-    for (const c of cumulativeCoupons) {
-      const val = calculateSingleDiscount(c);
-      cumulativeTotal += val;
-      cumulativeSnapshots.push({
-        id: c.id,
-        code: c.code,
-        discount_in_cents: val,
-        type: c.type,
-      });
-    }
-
-    // Estratégia B: O Melhor Não-Cumulativo
-    const singleCoupons = validCoupons.filter((c) => !c.is_cumulative);
-    let bestSingleTotal = 0;
-    let bestSingleSnapshot = [];
-
-    for (const c of singleCoupons) {
-      const val = calculateSingleDiscount(c);
-      if (val > bestSingleTotal) {
-        bestSingleTotal = val;
-        bestSingleSnapshot = [
-          {
-            id: c.id,
-            code: c.code,
-            discount_in_cents: val,
-            type: c.type,
-          },
-        ];
-      }
-    }
-
-    // Decisão: Qual estratégia vence?
-    if (cumulativeTotal >= bestSingleTotal) {
-      finalDiscount = cumulativeTotal;
-      appliedCouponsList = cumulativeSnapshots;
-    } else {
-      finalDiscount = bestSingleTotal;
-      appliedCouponsList = bestSingleSnapshot;
-    }
-
-    // --- Travas Finais (Limites Globais) ---
-    const shippingDiscountSum = appliedCouponsList
-      .filter((c) => c.type === "shipping")
-      .reduce((acc, c) => acc + c.discount_in_cents, 0);
-
-    const productDiscountSum = appliedCouponsList
-      .filter((c) => c.type !== "shipping")
-      .reduce((acc, c) => acc + c.discount_in_cents, 0);
-
-    // Trava Frete: Não pode ser negativo
-    let effectiveShippingDiscount = Math.min(
-      shippingDiscountSum,
+    appliedCouponsList = resolveBestCouponStrategy(
+      validCoupons,
+      subtotal,
       shippingCostInCents,
     );
-
-    // Trava Produto: Não pode furar o preço mínimo (Floor)
-    let effectiveProductDiscount = productDiscountSum;
-    const maxAllowedProductDiscount = subtotal - totalMinimumFloor;
-
-    if (effectiveProductDiscount > maxAllowedProductDiscount) {
-      effectiveProductDiscount = maxAllowedProductDiscount;
-    }
-
-    // Recalcula total do desconto validado
-    finalDiscount = effectiveShippingDiscount + effectiveProductDiscount;
+    finalDiscount = applyDiscountCaps(
+      appliedCouponsList,
+      subtotal,
+      shippingCostInCents,
+      totalMinimumFloor,
+    );
   }
 
   const total = subtotal + shippingCostInCents - finalDiscount;
@@ -357,7 +374,7 @@ async function createFromCart({
       throw database.handleDatabaseError(error);
     }
   } finally {
-    client.end();
+    await client.end();
   }
 }
 
@@ -446,7 +463,7 @@ async function markAsShipped(orderId, trackingCode) {
       throw database.handleDatabaseError(error);
     }
   } finally {
-    client.end();
+    await client.end();
   }
 }
 
@@ -496,7 +513,7 @@ async function markAsReadyForPickup(orderId) {
       throw database.handleDatabaseError(error);
     }
   } finally {
-    client.end();
+    await client.end();
   }
 }
 
@@ -571,7 +588,7 @@ async function markAsDelivered(orderId) {
       throw database.handleDatabaseError(error);
     }
   } finally {
-    client.end();
+    await client.end();
   }
 }
 
@@ -624,7 +641,7 @@ async function addTrackingEvent(orderId, eventData) {
       throw database.handleDatabaseError(error);
     }
   } finally {
-    client.end();
+    await client.end();
   }
 }
 
@@ -724,7 +741,7 @@ async function cancel(orderId) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
-    client.end();
+    await client.end();
   }
 }
 async function findAll({ limit = 20, offset = 0, status, search }) {
@@ -791,6 +808,33 @@ async function findAll({ limit = 20, offset = 0, status, search }) {
   };
 }
 
+/**
+ * Busca pedido pelo Código Amigável (Ex: #A1B2-2024).
+ * Usado para rastreio público.
+ */
+async function findByCode(code) {
+  const cleanCode = validator({ code }, { code: "required" }).code;
+
+  const orderResult = await database.query({
+    text: "SELECT * FROM orders WHERE code = $1;",
+    values: [cleanCode],
+  });
+
+  if (orderResult.rowCount === 0) {
+    throw new NotFoundError({ message: "Pedido não encontrado." });
+  }
+
+  const orderId = orderResult.rows[0].id;
+
+  // Busca os itens também
+  const itemsResult = await database.query({
+    text: "SELECT * FROM order_items WHERE order_id = $1;",
+    values: [orderId],
+  });
+
+  return { ...orderResult.rows[0], items: itemsResult.rows };
+}
+
 export default {
   createFromCart,
   // Exportamos estas funções para serem usadas pela rota de Simulação (Simulate)
@@ -805,4 +849,5 @@ export default {
   markAsDelivered,
   addTrackingEvent,
   findAll,
+  findByCode,
 };
