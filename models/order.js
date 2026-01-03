@@ -77,10 +77,7 @@ async function recalculateShippingCost(items, shippingAddress, selectedMethod) {
   // Como `items` veio do `fetchAndValidateCartItems` (banco), os pesos são confiáveis.
   const options = await shippingService.calculateShippingOptions(
     zipCode,
-    items.map((i) => ({
-      product_id: i.product_id, // O formato que o shippingService espera
-      quantity: i.quantity,
-    })),
+    items, // Passa o objeto completo do item, que já contém os dados do produto
   );
   // Encontra a opção escolhida pelo usuário
   const selectedOption = options.find((opt) => opt.type === selectedMethod);

@@ -5,9 +5,8 @@ import session from "models/session.js";
 import cart from "models/cart.js";
 
 describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
-  let userSession;
-  let testProduct;
-  let buyer;
+  let userSession, buyer;
+  let testProduct, digitalProduct;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -46,6 +45,25 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
       allow_delivery: true,
       pickup_address: "Rua Teste ABC",
       pickup_instructions: "Instrucoes de retirada",
+    });
+
+    // 3. Criar Produto Digital
+    digitalProduct = await product.create({
+      name: "Produto Digital",
+      slug: "prod-digital",
+      description: "...",
+      category: "Digital",
+      price_in_cents: 500,
+      minimum_price_in_cents: 100,
+      stock_quantity: 9999,
+      weight_in_grams: 0, // Sem peso
+      length_cm: 1, // Dimensões mínimas
+      height_cm: 1,
+      width_cm: 1,
+      is_digital: true, // Flag digital
+      is_active: true,
+      images: [],
+      allow_delivery: false,
     });
   });
 
@@ -180,6 +198,86 @@ describe("Test Checkout Flow (POST /api/v1/checkout)", () => {
       expect(response.status).toBe(201);
       const body = await response.json();
       expect(body.order.user_id).toBeDefined();
+    });
+
+    test("should process checkout with only digital products (free shipping)", async () => {
+      // Adiciona apenas o produto digital ao carrinho
+      await cart.addItem(buyer.id, {
+        product_id: digitalProduct.id,
+        quantity: 1,
+      });
+
+      const response = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${userSession.token}`,
+          },
+          body: JSON.stringify({
+            payment_method: "pix",
+            shipping_address_snapshot: {
+              // Endereço ainda é necessário para o snapshot do pedido, mas não para cálculo
+              number: "N/A",
+              zip: "00000000",
+              street: "Digital Delivery",
+            },
+            shipping_method: "DIGITAL", // Método específico para produtos digitais
+          }),
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const body = await response.json();
+
+      // Valida que o frete é zero e o método é digital
+      expect(body.order.user_id).toBe(buyer.id);
+      expect(body.order.shipping_cost_in_cents).toBe(0);
+      expect(body.order.shipping_method).toBe("DIGITAL");
+      expect(body.order.total_in_cents).toBe(500); // Apenas o preço do produto
+    });
+
+    test("should process checkout with mixed cart (digital + physical)", async () => {
+      // Adiciona um produto físico e um digital
+      await cart.addItem(buyer.id, {
+        product_id: testProduct.id, // Físico: 1000 cents
+        quantity: 1,
+      });
+      await cart.addItem(buyer.id, {
+        product_id: digitalProduct.id, // Digital: 500 cents
+        quantity: 1,
+      });
+
+      const response = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: `session_id=${userSession.token}`,
+          },
+          body: JSON.stringify({
+            payment_method: "pix",
+            shipping_address_snapshot: {
+              number: "123",
+              zip: "12345678",
+              street: "Home",
+            },
+            shipping_method: "PAC", // Método físico
+          }),
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const body = await response.json();
+
+      // Valida que o frete foi calculado apenas para o item físico
+      expect(body.order.user_id).toBe(buyer.id);
+      expect(body.order.shipping_cost_in_cents).toBe(2100); // Mock do PAC
+      expect(body.order.shipping_method).toBe("PAC");
+      // Total = 1000 (físico) + 500 (digital) + 2100 (frete) = 3600
+      expect(body.order.total_in_cents).toBe(3600);
     });
   });
 

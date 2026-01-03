@@ -36,6 +36,7 @@ async function create(productData) {
       available_at: "optional",
       unavailable_at: "optional",
       is_active: "optional",
+      is_digital: "optional",
 
       allow_delivery: "optional", // Default false
       allow_pickup: "optional", // Default true
@@ -53,14 +54,14 @@ async function create(productData) {
         stock_quantity, purchase_limit_per_user,
         allowed_features, available_at, unavailable_at, is_active,
         production_days, weight_in_grams, length_cm, height_cm, width_cm,
-        images, allow_delivery, allow_pickup, pickup_address, pickup_instructions
+        images, allow_delivery, allow_pickup, pickup_address, pickup_instructions, is_digital
       ) VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8,
         $9, $10,
         $11, $12, $13, $14,
         $15, $16, $17, $18, $19,
-        $20, $21, $22, $23, $24
+        $20, $21, $22, $23, $24, $25
       ) RETURNING *;
     `,
     values: [
@@ -88,6 +89,7 @@ async function create(productData) {
       cleanValues.allow_pickup ?? true, // Default true se null
       cleanValues.pickup_address || null,
       cleanValues.pickup_instructions || null,
+      cleanValues.is_digital ?? false, // Default false se undefined
     ],
   };
 

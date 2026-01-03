@@ -154,7 +154,16 @@ async function getCart(userId, transactionClient) {
         p.minimum_price_in_cents, 
         p.images,
         p.stock_quantity,
-        p.is_active
+        p.is_active,
+        p.is_digital,
+        p.weight_in_grams,
+        p.length_cm,
+        p.width_cm,
+        p.height_cm,
+        p.allow_pickup,
+        p.allow_delivery,
+        p.pickup_address,
+        p.pickup_instructions
       FROM cart_items ci
       JOIN products p ON ci.product_id = p.id
       WHERE ci.cart_id = $1

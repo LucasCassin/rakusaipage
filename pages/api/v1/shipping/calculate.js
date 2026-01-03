@@ -5,6 +5,7 @@ import validator from "models/validator.js";
 import shippingService from "services/shipping.js";
 import { ValidationError } from "errors/index.js";
 import authorization from "models/authorization.js";
+import productModel from "models/product.js";
 
 const router = createRouter();
 
@@ -52,9 +53,25 @@ async function calculateHandler(req, res) {
       throw new ValidationError({ message: "A lista de itens é obrigatória." });
     }
 
+    // O serviço de frete foi refatorado para esperar os itens já enriquecidos
+    // com os dados do produto. Como esta é uma rota de simulação pública,
+    // precisamos buscar os dados do produto aqui antes de chamar o serviço.
+    const enrichedItems = await Promise.all(
+      items.map(async (item) => {
+        const product = await productModel.findById(item.product_id);
+        // O serviço de frete espera o objeto do produto enriquecido, mas sua
+        // validação interna ainda checa por 'product_id'. Adicionamos ele aqui.
+        return {
+          ...product,
+          product_id: item.product_id,
+          quantity: item.quantity,
+        };
+      }),
+    );
+
     const options = await shippingService.calculateShippingOptions(
       zip_code,
-      items,
+      enrichedItems,
     );
 
     res.status(200).json(options);

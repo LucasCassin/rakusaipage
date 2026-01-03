@@ -60,6 +60,28 @@ describe("Model: Product", () => {
       expect(created.is_active).toBe(true);
     });
 
+    test("should create a digital product correctly", async () => {
+      const productData = {
+        name: "E-book de Taiko",
+        slug: "ebook-taiko-2025",
+        description: "Livro digital",
+        category: "Digital",
+        price_in_cents: 2500,
+        minimum_price_in_cents: 2000,
+        stock_quantity: 9999, // Estoque "infinito"
+        weight_in_grams: 0, // Sem peso
+        length_cm: 1, // Dimensões mínimas
+        height_cm: 1,
+        width_cm: 1,
+        is_digital: true,
+      };
+
+      const created = await product.create(productData);
+      expect(created.id).toBeDefined();
+      expect(created.is_digital).toBe(true);
+      expect(created.weight_in_grams).toBe(0);
+    });
+
     test("should throw ValidationError when creating product with duplicate slug", async () => {
       await createBaseProduct("duplicate");
 
@@ -204,6 +226,19 @@ describe("Model: Product", () => {
       });
 
       expect(updated.is_active).toBe(false);
+    });
+
+    test("should update is_digital status", async () => {
+      const original = await createBaseProduct("to-digital", {
+        is_digital: false,
+      });
+      expect(original.is_digital).toBe(false);
+
+      const updated = await product.update(original.id, {
+        is_digital: true,
+      });
+
+      expect(updated.is_digital).toBe(true);
     });
 
     test("should update JSON fields (images array) successfully", async () => {

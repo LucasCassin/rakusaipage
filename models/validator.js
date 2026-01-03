@@ -1157,6 +1157,15 @@ const schemas = {
       }),
     }),
 
+  is_digital: () =>
+    Joi.object({
+      is_digital: Joi.boolean().when("$required.is_digital", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   expiration_date: () =>
     Joi.object({
       expiration_date: Joi.date()
@@ -1329,7 +1338,7 @@ const schemas = {
           Joi.object({
             product_id: Joi.string().guid({ version: "uuidv4" }).required(),
             quantity: Joi.number().integer().min(1).required(),
-          }),
+          }).unknown(true), // Permite que outros campos (weight, is_digital) passem
         )
         .when("$required.shop_items", {
           is: "required",
