@@ -1,6 +1,6 @@
 import database from "infra/database.js";
 import validator from "models/validator.js";
-import { ValidationError, NotFoundError, ServiceError } from "errors/index.js";
+import { ValidationError, NotFoundError } from "errors/index.js";
 
 /**
  * Cria um novo Grupo de Produtos (Vitrine/Coleção).
@@ -33,7 +33,9 @@ async function create(groupData) {
     const result = await database.query(query);
     return result.rows[0];
   } catch (error) {
-    if (error.message && error.message.includes("product_groups_slug_key")) {
+    if (
+      (error.cause = `duplicate key value violates unique constraint "products_groups_slug_key"`)
+    ) {
       throw new ValidationError({
         message: "Já existe um grupo com este slug (URL).",
         action: "Escolha um nome diferente ou altere o slug manualmente.",
@@ -260,9 +262,13 @@ async function addItem(groupId, productId, variations = {}) {
     const result = await database.query(query);
     return result.rows[0];
   } catch (error) {
-    if (error.message && error.message.includes("product_group_items_pkey")) {
+    if (
+      (error.cause = `duplicate key value violates unique constraint "product_group_items_pkey"`)
+    ) {
       throw new ValidationError({
         message: "Este produto já está adicionado neste grupo.",
+        action:
+          "Verifique os produtos já adicionados ou atualize as variações do produto existente.",
       });
     }
     throw error;
