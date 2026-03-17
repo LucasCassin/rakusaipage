@@ -1521,6 +1521,56 @@ const schemas = {
         }),
     }),
 
+  // Group product schemas (product groups + items)
+  product_group: () =>
+    Joi.object({
+      name: Joi.string().trim().min(2).max(255).required(),
+      slug: Joi.string()
+        .trim()
+        .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+        .min(2)
+        .max(255)
+        .required(),
+      description: Joi.string().trim().allow(null, ""),
+      images: Joi.array().items(Joi.string().uri().trim()).min(0).optional(),
+      is_active: Joi.boolean().optional(),
+    }).when("$required.product_group", {
+      is: "required",
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+
+  product_group_item: () =>
+    Joi.object({
+      product_id: Joi.string().trim().guid({ version: "uuidv4" }).required(),
+      variations: Joi.object().unknown(true).required(),
+    }).when("$required.product_group_item", {
+      is: "required",
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+
+  images: () =>
+    Joi.object({
+      images: Joi.array()
+        .items(Joi.string().uri().trim())
+        .min(0)
+        .when("$required.images", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  variations: () =>
+    Joi.object({
+      variations: Joi.object().unknown(true).when("$required.variations", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
   search_term: () =>
     Joi.object({
       search_term: Joi.string().trim().min(1).max(100).allow("").optional(),
