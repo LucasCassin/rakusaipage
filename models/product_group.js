@@ -33,9 +33,12 @@ async function create(groupData) {
     const result = await database.query(query);
     return result.rows[0];
   } catch (error) {
-    if (
-      (error.cause = `duplicate key value violates unique constraint "products_groups_slug_key"`)
-    ) {
+    // Postgres unique violation for slug
+    const isSlugUniqueViolation =
+      error.cause.code === "23505" &&
+      (error.cause.constraint === "product_groups_slug_key" ||
+        error.cause.detail?.includes("product_groups_slug_key"));
+    if (isSlugUniqueViolation) {
       throw new ValidationError({
         message: "Já existe um grupo com este slug (URL).",
         action: "Escolha um nome diferente ou altere o slug manualmente.",
@@ -262,9 +265,12 @@ async function addItem(groupId, productId, variations = {}) {
     const result = await database.query(query);
     return result.rows[0];
   } catch (error) {
-    if (
-      (error.cause = `duplicate key value violates unique constraint "product_group_items_pkey"`)
-    ) {
+    const isDuplicateItem =
+      error.cause.code === "23505" &&
+      (error.cause.constraint === "product_group_items_pkey" ||
+        error.cause.detail?.includes("product_group_items_pkey"));
+
+    if (isDuplicateItem) {
       throw new ValidationError({
         message: "Este produto já está adicionado neste grupo.",
         action:
