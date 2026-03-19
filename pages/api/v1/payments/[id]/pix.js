@@ -42,9 +42,13 @@ async function postHandler(req, res) {
       }
     }
 
-    if (targetPayment.status !== "PENDING") {
+    if (
+      targetPayment.status !== "PENDING" &&
+      targetPayment.status !== "OVERDUE"
+    ) {
       throw new ValidationError({
-        message: "Somente pagamentos pendentes podem gerar PIX.",
+        message:
+          "Somente pagamentos pendentes ou vencidos podem gerar PIX (PENDING / OVERDUE).",
       });
     }
 
@@ -75,6 +79,22 @@ async function postHandler(req, res) {
 
     res.status(200).json({ payment: updatedPayment, pix: pixPayload });
   } catch (error) {
+    // Ajuste de UX: erro de coluna não encontrada geralmente indica migration não aplicada
+    if (
+      error?.cause?.code === "42703" ||
+      error?.message?.includes("payment_gateway_id") ||
+      error?.message?.includes("payment_gateway_data")
+    ) {
+      const migrateError = new ServiceError({
+        message:
+          "Banco de dados incompleto para o recurso PIX. Verifique se a migration 'add-payment-gateway-fields' foi aplicada.",
+        action:
+          "Execute as migrations pendentes e reinicie o serviço. Contate o devops se necessário.",
+        cause: error,
+      });
+      return controller.errorsHandlers.onError(migrateError, req, res);
+    }
+
     controller.errorsHandlers.onError(error, req, res);
   }
 }

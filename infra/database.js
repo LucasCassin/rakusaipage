@@ -48,6 +48,16 @@ function handleDatabaseError(err) {
         statusCode: 400, // Bad Request
       });
 
+    case "42703": // undefined_column
+      return new ServiceError({
+        cause: err,
+        message:
+          "Coluna de banco de dados não encontrada (possível migration pendente).",
+        action:
+          "Execute as migrations pendentes (ex: add-payment-gateway-fields) e reinicie o serviço.",
+        statusCode: 503,
+      });
+
     default:
       // Para outros erros de DB que não mapeamos (ex: syntax error)
       return new ServiceError({
