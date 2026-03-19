@@ -4,7 +4,6 @@ import authentication from "models/authentication.js";
 import authorization from "models/authorization.js";
 import productGroup from "models/product_group.js";
 import validator from "models/validator.js";
-import { Contrail_One } from "next/font/google";
 
 const router = createRouter();
 
