@@ -120,7 +120,6 @@ const StudentPaymentListItem = ({
             <p className="text-sm text-gray-500">
               Vencimento: <span className="font-medium">{formattedDate}</span>
             </p>
-            <p className="text-sm text-gray-500">Usuário: {payment.username}</p>
           </div>
         </div>
       </div>

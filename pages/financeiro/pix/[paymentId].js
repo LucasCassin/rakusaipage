@@ -56,14 +56,24 @@ export default function PixPaymentPage() {
 
   useEffect(() => {
     if (!payment) return;
+
+    let localTimer = 60;
+    setTimer(localTimer);
+
     const interval = setInterval(() => {
-      fetchCurrentPayment();
-      setTimer((t) => (t > 0 ? t - 5 : 0));
-    }, 5000);
+      localTimer = localTimer > 0 ? localTimer - 1 : 0;
+      setTimer(localTimer);
+
+      if (localTimer === 0) {
+        fetchCurrentPayment();
+        localTimer = 60;
+        setTimer(localTimer);
+      }
+    }, 1000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentId, user]);
+  }, [paymentId, user, payment]);
 
   const statusInfo = useMemo(() => {
     if (!payment) return null;
@@ -107,7 +117,8 @@ export default function PixPaymentPage() {
     );
   }
 
-  const gatewayData = payment.gateway_data || {};
+  const gatewayData =
+    payment.payment_gateway_data || payment.gateway_data || {};
   const pixInfo =
     gatewayData.qr_code_base64 || gatewayData.qr_code || gatewayData.ticket_url
       ? gatewayData
@@ -139,12 +150,12 @@ export default function PixPaymentPage() {
           </p>
           {payment.status !== "CONFIRMED" && (
             <p className="text-sm text-blue-600 mt-2">
-              Atualizando a cada 5 segundos. Resta: {timer}s
+              Atualizando automaticamente. Nova tentativa em: {timer}s
             </p>
           )}
         </div>
 
-        {pixInfo && (
+        {pixInfo ? (
           <div className="rounded-md border p-4">
             <h2 className="text-xl font-semibold mb-2">QR Code PIX</h2>
             {pixInfo.qr_code_base64 ? (
@@ -181,6 +192,13 @@ export default function PixPaymentPage() {
                 </a>
               </p>
             )}
+          </div>
+        ) : (
+          <div className="rounded-md border p-4 bg-yellow-50">
+            <p className="text-sm text-yellow-800">
+              Não foi encontrado QR Code PIX no pagamento. Aguarde o status ser
+              retornado pelo gateway ou gere novamente.
+            </p>
           </div>
         )}
 
