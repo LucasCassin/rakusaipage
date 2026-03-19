@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Button from "components/ui/Button";
 
-const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
+const StudentPaymentListItem = ({
+  payment,
+  onIndicateClick,
+  onGeneratePix,
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [isGeneratePixProcessing, setIsGeneratePixProcessing] = useState(false);
 
   const formattedAmount = new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -14,7 +19,7 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
     timeZone: "UTC",
   });
 
-  // Reseta o botão "Certeza?" após 3 segundos
+  // Reset de pending action
   useEffect(() => {
     if (!pendingAction) return;
     const timer = setTimeout(() => setPendingAction(null), 3000);
@@ -28,9 +33,9 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
     }
     setIsProcessing(true);
     await onIndicateClick(payment.id);
+    setIsProcessing(false);
   };
 
-  // Determina o status/botão
   let statusBadge;
   let actionButton;
 
@@ -59,54 +64,69 @@ const StudentPaymentListItem = ({ payment, onIndicateClick }) => {
       </span>
     );
     actionButton = (
-      <Button
-        size="small"
-        variant={pendingAction === "indicate" ? "warning" : "primary"}
-        className="w-full sm:w-auto transition-all" // Adicionado transition para suavidade
-        onClick={handleIndicate}
-        disabled={isProcessing}
-      >
-        {isProcessing
-          ? "Avisando..."
-          : pendingAction === "indicate"
-            ? "Certeza?"
-            : "Avisar Pagamento"}
-      </Button>
+      <div className="flex gap-2 flex-col sm:flex-row">
+        <Button
+          size="small"
+          variant={pendingAction === "indicate" ? "warning" : "primary"}
+          className="w-full sm:w-auto transition-all"
+          onClick={handleIndicate}
+          disabled={isProcessing}
+        >
+          {isProcessing
+            ? "Avisando..."
+            : pendingAction === "indicate"
+              ? "Certeza?"
+              : "Avisar Pagamento"}
+        </Button>
+
+        {onGeneratePix && (
+          <Button
+            size="small"
+            variant="secondary"
+            className="w-full sm:w-auto transition-all"
+            onClick={async () => {
+              setIsGeneratePixProcessing(true);
+              try {
+                await onGeneratePix(payment.id);
+              } finally {
+                setIsGeneratePixProcessing(false);
+              }
+            }}
+            disabled={isGeneratePixProcessing}
+          >
+            {isGeneratePixProcessing ? "Gerando PIX..." : "Gerar PIX"}
+          </Button>
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="bg-white p-4 rounded-md shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all hover:shadow-md">
-      {/* --- BLOCO DE INFORMAÇÕES (Esquerda Desktop / Topo Mobile) --- */}
-      <div className="flex-1">
-        {/* Linha Superior: Nome do Plano e Preço (Mobile apenas) */}
-        <div className="flex justify-between items-start">
-          <p className="font-bold text-gray-800 text-base sm:text-lg">
-            {payment.plan_name}
-          </p>
-
-          {/* PREÇO MOBILE: Visível apenas em telas pequenas, alinhado ao topo direita */}
-          <p className="font-semibold text-gray-700 sm:hidden">
-            {formattedAmount}
-          </p>
-        </div>
-
-        {/* Linha Inferior: Badge e Data */}
-        <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-x-4 gap-y-2 mt-2 sm:mt-0">
-          {statusBadge}
-
-          <p className="text-sm text-gray-500">
-            Vencimento: <span className="font-medium">{formattedDate}</span>
-          </p>
+    <div className="bg-white p-4 rounded-md shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="w-full sm:flex-1">
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-2 flex-wrap pr-2">
+              <p className="font-bold text-gray-800 text-base sm:text-lg">
+                {payment.plan_name}
+              </p>
+              {statusBadge}
+            </div>
+            <p className="font-semibold text-gray-700 sm:hidden">
+              {formattedAmount}
+            </p>
+          </div>
+          <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-x-4 gap-y-2 mt-2 sm:mt-0">
+            <p className="text-sm text-gray-500">
+              Vencimento: <span className="font-medium">{formattedDate}</span>
+            </p>
+            <p className="text-sm text-gray-500">Usuário: {payment.username}</p>
+          </div>
         </div>
       </div>
 
-      {/* --- BLOCO DE AÇÃO E PREÇO (Direita Desktop / Baixo Mobile) --- */}
       <div className="flex flex-col-reverse sm:flex-row items-center gap-3 sm:gap-6">
-        {/* Botão de Ação: Se existir, ocupa 100% no mobile e tamanho auto no desktop */}
         {actionButton && <div className="w-full sm:w-auto">{actionButton}</div>}
-
-        {/* PREÇO DESKTOP: Visível apenas em telas md/lg */}
         <p className="hidden sm:block font-semibold text-lg text-gray-700 min-w-[100px] text-right">
           {formattedAmount}
         </p>

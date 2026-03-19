@@ -76,6 +76,7 @@ export default function StudentFinancePage() {
     isLoading: isLoadingFinancials,
     error,
     indicatePaid,
+    generatePix,
     fetchUserFinancials, // <-- 3. PEGAR A FUNÇÃO DE BUSCA
   } = useUserFinancials(user);
 
@@ -175,6 +176,12 @@ export default function StudentFinancePage() {
                           key={payment.id}
                           payment={payment}
                           onIndicateClick={indicatePaid}
+                          onGeneratePix={async (paymentId) => {
+                            const result = await generatePix(paymentId);
+                            if (result) {
+                              router.push(`/financeiro/pix/${paymentId}`);
+                            }
+                          }}
                         />
                       ))
                     ) : (

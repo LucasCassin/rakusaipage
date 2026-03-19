@@ -202,9 +202,6 @@ export function useUserFinancials(user) {
           router,
           setError,
           onSuccess: (updatedPayment) => {
-            // --- CORREÇÃO (Atualização de Estado Local) ---
-            // Em vez de recarregar tudo, atualizamos apenas
-            // o item de pagamento dentro do estado 'financialData'.
             setFinancialData((prevData) => {
               const newPayments = prevData.payments.map((p) =>
                 p.id === paymentId ? { ...p, ...updatedPayment } : p,
@@ -214,8 +211,6 @@ export function useUserFinancials(user) {
                 payments: newPayments,
               };
             });
-
-            // REMOVIDO: triggerKpiRefetch();
           },
         });
       } catch (e) {
@@ -223,7 +218,49 @@ export function useUserFinancials(user) {
         console.error("Erro ao avisar pagamento:", e);
       }
     },
-    [router], // <-- REMOVIDO 'triggerKpiRefetch' das dependências
+    [router],
+  );
+
+  const generatePix = useCallback(
+    async (paymentId) => {
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}/pix`,
+          {
+            method: "POST",
+          },
+        );
+
+        const data = await handleApiResponse({
+          response,
+          router,
+          setError,
+          onSuccess: (value) => value,
+        });
+
+        if (data && data.payment) {
+          setFinancialData((prevData) => {
+            if (!prevData) return prevData;
+            const newPayments = prevData.payments.map((p) =>
+              p.id === paymentId ? { ...p, ...data.payment } : p,
+            );
+            return {
+              ...prevData,
+              payments: newPayments,
+            };
+          });
+        }
+
+        return data;
+      } catch (e) {
+        setError("Erro de conexão ao gerar o PIX.");
+        console.error("Erro ao gerar PIX:", e);
+        return null;
+      }
+    },
+    [router],
   );
 
   return {
@@ -245,5 +282,6 @@ export function useUserFinancials(user) {
     createSubscription,
     updateSubscription,
     indicatePaid,
+    generatePix,
   };
 }
