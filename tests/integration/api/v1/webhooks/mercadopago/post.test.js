@@ -1,14 +1,18 @@
 import orchestrator from "tests/orchestrator.js";
 import order from "models/order.js";
 import user from "models/user.js";
+import plan from "models/payment_plan.js";
+import subscription from "models/subscription.js";
+import payment from "models/payment.js";
 import product from "models/product.js";
 import session from "models/session.js";
 import cart from "models/cart.js";
-import { allow } from "joi";
 
 describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => {
   let userSession;
   let createdOrder;
+  let subscriptionPayment;
+  let buyer;
 
   beforeAll(async () => {
     await orchestrator.waitForAllServices();
@@ -16,7 +20,7 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
     await orchestrator.runPendingMigrations();
 
     // 1. Setup Básico (Usuário, Produto, Carrinho)
-    let buyer = await user.create({
+    buyer = await user.create({
       username: "buyer",
       email: "buyer@test.com",
       password: "StrongPassword123@",
@@ -67,6 +71,24 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
       gatewayData: {},
       gatewayStatus: "pending",
     });
+
+    // 3. Criar um cenário de assinatura + pagamento pendente para PIX via boleto
+    const testPlan = await plan.create({
+      name: "Plano Teste PIX",
+      full_value: 200,
+      period_unit: "month",
+      period_value: 1,
+    });
+
+    await subscription.create({
+      user_id: buyer.id,
+      plan_id: testPlan.id,
+      payment_day: 15,
+      start_date: "2025-09-15",
+    });
+
+    const userPayments = await payment.findByUserId(buyer.id);
+    subscriptionPayment = userPayments.find((p) => p.status === "PENDING");
   });
 
   describe("Webhook Reception", () => {
@@ -90,6 +112,45 @@ describe("Test Webhook Mercado Pago (POST /api/v1/webhooks/mercadopago)", () => 
         }),
       });
       expect(response.status).toBe(200);
+    });
+
+    test("should confirm subscription payment after webhook payment.approved", async () => {
+      expect(subscriptionPayment).toBeDefined();
+
+      const sessionToken = await session.create(buyer);
+      const pixResponse = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/payments/${subscriptionPayment.id}/pix`,
+        {
+          method: "POST",
+          headers: { cookie: `session_id=${sessionToken.token}` },
+        },
+      );
+      expect(pixResponse.status).toBe(200);
+      const pixBody = await pixResponse.json();
+      expect(pixBody.pix).toHaveProperty("gateway_id");
+
+      const webhookUrl = `${orchestrator.webserverUrl}/api/v1/webhooks/mercadopago?topic=payment&id=${pixBody.pix.gateway_id}`;
+      const mpResponse = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "payment.updated",
+          api_version: "v1",
+          data: { id: pixBody.pix.gateway_id },
+          date_created: new Date().toISOString(),
+          id: pixBody.pix.gateway_id,
+          live_mode: false,
+          type: "payment",
+          user_id: "123456",
+          status: "approved",
+          external_reference: subscriptionPayment.id,
+        }),
+      });
+
+      expect(mpResponse.status).toBe(200);
+
+      const updatedPayment = await payment.findById(subscriptionPayment.id);
+      expect(updatedPayment.status).toBe("CONFIRMED");
     });
 
     test("should ignore non-payment events (return 200)", async () => {

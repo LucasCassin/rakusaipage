@@ -101,6 +101,38 @@ describe("Payment Model", () => {
     });
   });
 
+  describe("gateway helpers", () => {
+    it("should find, update gateway info and confirm by gateway id", async () => {
+      const newSub = await subscription.create({
+        user_id: testUser.id,
+        plan_id: testPlan.id,
+        payment_day: 5,
+        start_date: "2025-10-01",
+      });
+      const newPayment = (await payment.findByUserId(testUser.id)).find(
+        (p) => p.subscription_id === newSub.id,
+      );
+
+      const updated = await payment.updateGatewayInfo(newPayment.id, {
+        gatewayId: "mp_test_123",
+        gatewayStatus: "pending",
+        gatewayData: { transaction: "test" },
+      });
+
+      expect(updated.payment_gateway_id).toBe("mp_test_123");
+      expect(updated.payment_gateway_status).toBe("pending");
+      expect(updated.payment_gateway_data).toMatchObject({
+        transaction: "test",
+      });
+
+      const foundByGateway = await payment.findByGatewayId("mp_test_123");
+      expect(foundByGateway.id).toBe(newPayment.id);
+
+      const confirmed = await payment.confirmByGatewayId("mp_test_123");
+      expect(confirmed.status).toBe("CONFIRMED");
+    });
+  });
+
   describe("findAndSetOverdue()", () => {
     it("should find and update pending payments past their due date", async () => {
       // Cria um pagamento com data no passado

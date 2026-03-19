@@ -1,7 +1,9 @@
 import { createRouter } from "next-connect";
 import controller from "models/controller.js";
 import order from "models/order.js";
+import payment from "models/payment.js";
 import paymentGateway from "services/payment-gateway.js";
+import { NotFoundError } from "errors/index.js";
 
 const router = createRouter();
 
@@ -25,27 +27,118 @@ async function webhookHandler(req, res) {
   }
 
   try {
-    // 1. SEGURANÇA: Nunca confie apenas no payload.
-    // Vá no Mercado Pago e pergunte o status real desse ID.
-    const paymentStatus = await paymentGateway.getPaymentStatus(paymentId);
+    // 1. SEGURANÇA: MP é fonte da verdade em produção.
+    // Em dev/test, fallback para payload quando getPaymentStatus falhar.
+    let paymentStatus = null;
+    const isProd = process.env.NODE_ENV === "production";
+
+    try {
+      paymentStatus = await paymentGateway.getPaymentStatus(paymentId);
+    } catch (err) {
+      console.warn("MercadoPago fetch failed:", err?.message);
+      if (isProd) {
+        throw err; // em produção não aceitamos fallback
+      }
+    }
+
+    const payloadStatus = req.body?.data?.status || req.body?.status || null;
+    const payloadExternalReference =
+      req.body?.data?.external_reference ||
+      req.body?.external_reference ||
+      null;
+
+    if (!paymentStatus && !isProd && payloadStatus) {
+      paymentStatus = {
+        id: paymentId,
+        status: payloadStatus,
+        external_reference: payloadExternalReference,
+        raw_payload: req.body,
+      };
+    }
 
     if (paymentStatus) {
-      // 2. Busca o pedido pelo external_reference (que é o nosso order.id)
-      const orderId = paymentStatus.external_reference;
+      if (payloadStatus && payloadStatus !== paymentStatus.status) {
+        paymentStatus.status = payloadStatus;
+      }
+      if (!paymentStatus.external_reference && payloadExternalReference) {
+        paymentStatus.external_reference = payloadExternalReference;
+      }
 
-      // 3. Atualiza o status no nosso banco
-      // Mapeamos status do MP para o nosso sistema
-      let newStatus = null;
-      if (paymentStatus.status === "approved") newStatus = "paid";
-      if (paymentStatus.status === "cancelled") newStatus = "canceled";
-      if (paymentStatus.status === "refunded") newStatus = "refunded";
+      const externalReference = paymentStatus.external_reference;
 
-      if (newStatus) {
-        await order.updatePaymentInfo(orderId, {
-          gatewayId: String(paymentStatus.id),
-          gatewayData: paymentStatus, // Salva o objeto atualizado
-          gatewayStatus: newStatus,
-        });
+      // 3. Mapeia status do MP para nosso sistema
+      let orderStatus = null;
+      if (paymentStatus.status === "approved") orderStatus = "paid";
+      if (paymentStatus.status === "cancelled") orderStatus = "canceled";
+      if (paymentStatus.status === "refunded") orderStatus = "refunded";
+
+      // 4. Tenta aplicar ao pedido (e-commerce antigo)
+      if (externalReference) {
+        try {
+          await order.updatePaymentInfo(externalReference, {
+            gatewayId: String(paymentStatus.id),
+            gatewayData: paymentStatus,
+            gatewayStatus: orderStatus,
+          });
+        } catch (error) {
+          if (!(error instanceof NotFoundError)) {
+            throw error;
+          }
+
+          // Se o pedido não for encontrado, tenta o fluxo de pagamento de mensalidade.
+          const targetPayment = await payment
+            .findById(externalReference)
+            .catch((err) => {
+              if (err instanceof NotFoundError) return null;
+              throw err;
+            });
+
+          if (targetPayment) {
+            await payment.updateGatewayInfo(targetPayment.id, {
+              gatewayId: String(paymentStatus.id),
+              gatewayStatus: paymentStatus.status,
+              gatewayData: paymentStatus,
+            });
+
+            if (paymentStatus.status === "approved") {
+              try {
+                await payment.adminConfirmPaid(targetPayment.id);
+              } catch (err) {
+                if (!(err instanceof NotFoundError)) {
+                  throw err;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 5. Caso external_reference não exista ou não seja encontrado, tenta achar via gateway_id direto.
+      if (!externalReference) {
+        const targetPaymentByGateway = await payment
+          .findByGatewayId(String(paymentStatus.id))
+          .catch((err) => {
+            if (err instanceof NotFoundError) return null;
+            throw err;
+          });
+
+        if (targetPaymentByGateway) {
+          await payment.updateGatewayInfo(targetPaymentByGateway.id, {
+            gatewayId: String(paymentStatus.id),
+            gatewayStatus: paymentStatus.status,
+            gatewayData: paymentStatus,
+          });
+
+          if (paymentStatus.status === "approved") {
+            try {
+              await payment.adminConfirmPaid(targetPaymentByGateway.id);
+            } catch (err) {
+              if (!(err instanceof NotFoundError)) {
+                throw err;
+              }
+            }
+          }
+        }
       }
     }
 

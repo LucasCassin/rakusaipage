@@ -165,6 +165,93 @@ async function adminConfirmPaid(paymentId) {
 }
 
 /**
+ * Busca um pagamento pelo gateway_id do Mercado Pago (uso no webhook).
+ */
+async function findByGatewayId(gatewayId) {
+  const validatedId = validator(
+    { payment_gateway_id: gatewayId },
+    { payment_gateway_id: "required" },
+  );
+
+  const query = {
+    text: `
+      SELECT p.*, sub.user_id
+      FROM payments p
+      JOIN user_subscriptions sub ON p.subscription_id = sub.id
+      WHERE p.payment_gateway_id = $1
+      LIMIT 1;
+    `,
+    values: [validatedId.payment_gateway_id],
+  };
+
+  const results = await database.query(query);
+  return results.rows[0];
+}
+
+/**
+ * Atualiza dados do gateway no pagamento (gateway ID / status / full payload).
+ */
+async function updateGatewayInfo(
+  paymentId,
+  { gatewayId, gatewayStatus, gatewayData },
+) {
+  const validatedValues = validator(
+    {
+      id: paymentId,
+      payment_gateway_id: gatewayId,
+      gatewayStatus,
+      gatewayData,
+    },
+    {
+      id: "required",
+      payment_gateway_id: "optional",
+      gatewayStatus: "optional",
+      gatewayData: "optional",
+    },
+  );
+
+  const query = {
+    text: `
+      UPDATE payments
+      SET
+        payment_gateway_id = COALESCE($2, payment_gateway_id),
+        payment_gateway_status = COALESCE($3, payment_gateway_status),
+        payment_gateway_data = COALESCE($4, payment_gateway_data),
+        updated_at = now()
+      WHERE id = $1
+      RETURNING *;
+    `,
+    values: [
+      validatedValues.id,
+      validatedValues.payment_gateway_id || null,
+      validatedValues.gatewayStatus || null,
+      validatedValues.gatewayData
+        ? JSON.stringify(validatedValues.gatewayData)
+        : null,
+    ],
+  };
+
+  const results = await database.query(query);
+  if (results.rowCount === 0) {
+    throw new NotFoundError({ message: "Pagamento não encontrado." });
+  }
+  return results.rows[0];
+}
+
+/**
+ * Confirma um pagamento a partir do ID do gateway (Mercado Pago).
+ */
+async function confirmByGatewayId(gatewayId) {
+  const foundPayment = await findByGatewayId(gatewayId);
+  if (!foundPayment) {
+    throw new NotFoundError({
+      message: "Pagamento não encontrado para gateway ID informado.",
+    });
+  }
+  return adminConfirmPaid(foundPayment.id);
+}
+
+/**
  * Busca todos os pagamentos de um usuário.
  */
 async function findByUserId(userId) {
@@ -219,7 +306,7 @@ async function findByUsername(username) {
  * Busca um pagamento específico pelo seu ID, incluindo o user_id.
  */
 async function findById(paymentId) {
-  const validatedId = validator({ id: paymentId }, { id: "required|uuid" });
+  const validatedId = validator({ id: paymentId }, { id: "required" });
   const query = {
     text: `
           SELECT 
@@ -317,6 +404,9 @@ export default {
   createInitialPayment,
   userIndicatePaid,
   adminConfirmPaid,
+  findByGatewayId,
+  updateGatewayInfo,
+  confirmByGatewayId,
   findByUserId,
   findByUsername,
   findById,
