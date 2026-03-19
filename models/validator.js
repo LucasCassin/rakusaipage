@@ -1418,11 +1418,14 @@ const schemas = {
   gatewayStatus: () =>
     // Status específicos do Mercado Pago (diferente do seu status interno)
     Joi.object({
-      gatewayStatus: Joi.string().trim().allow(null).when("$required.gatewayStatus", {
-        is: "required",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
-      }),
+      gatewayStatus: Joi.string()
+        .trim()
+        .allow(null)
+        .when("$required.gatewayStatus", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
     }),
 
   allow_delivery: () =>

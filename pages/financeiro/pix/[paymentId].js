@@ -13,13 +13,11 @@ export default function PixPaymentPage() {
 
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
-  const [isFetching, setIsFetching] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [timer, setTimer] = useState(60);
 
   const fetchCurrentPayment = async () => {
     if (!user?.username || !paymentId) return;
-    setIsFetching(true);
     setError(null);
 
     try {
@@ -33,15 +31,12 @@ export default function PixPaymentPage() {
       const found = payments.find((p) => p.id === paymentId);
       if (!found) {
         setError("Pagamento não encontrado.");
-        setIsFetching(false);
         return;
       }
       setPayment(found);
       setLastUpdatedAt(Date.now());
     } catch (err) {
       setError(err.message || "Erro ao buscar o pagamento.");
-    } finally {
-      setIsFetching(false);
     }
   };
 
