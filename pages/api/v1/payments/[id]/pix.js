@@ -9,6 +9,7 @@ import {
   NotFoundError,
   ValidationError,
   ForbiddenError,
+  ServiceError,
 } from "errors/index.js";
 
 const router = createRouter()
