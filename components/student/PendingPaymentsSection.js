@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useUserFinancials } from "src/hooks/useUserFinancials";
 import StudentPaymentListItem from "components/finance/StudentPaymentListItem";
 import PaymentListSkeleton from "components/ui/PaymentListSkeleton";
@@ -25,11 +26,13 @@ export default function PendingPaymentsSection({ user }) {
     );
   }, [user]);
 
+  const router = useRouter();
   const {
     financialData,
     isLoading: isLoadingFinancials,
     error,
     indicatePaid,
+    generatePix,
     fetchUserFinancials,
   } = useUserFinancials(user);
 
@@ -125,6 +128,12 @@ export default function PendingPaymentsSection({ user }) {
             key={payment.id}
             payment={payment}
             onIndicateClick={indicatePaid}
+            onGeneratePix={async (paymentId) => {
+              const result = await generatePix(paymentId);
+              if (result) {
+                router.push(`/financeiro/pix/${paymentId}`);
+              }
+            }}
           />
         ))}
       </div>
