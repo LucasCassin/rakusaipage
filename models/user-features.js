@@ -115,6 +115,14 @@ const availableFeatures = new Set([
   // Tipos de Elementos (admin global)
   "manage:element_types",
 
+  // E-commerce
+  "shop:consumer:view",
+  "shop:products:manage",
+  "shop:products:read_all",
+  "shop:orders:manage",
+  "shop:orders:read_all",
+  "shop:coupons:manage",
+
   //Feature para teste
   "test:feature",
   "test:feature:2",

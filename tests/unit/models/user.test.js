@@ -136,7 +136,11 @@ describe("User Model", () => {
     it("should return an anonymous user with default permissions", () => {
       const result = user.createAnonymous();
       expect(result).toEqual({
-        features: [/*"create:user", */ "create:session", "read:presentation"],
+        features: [
+          /*"create:user", */ "create:session",
+          "read:presentation",
+          "shop:consumer:view",
+        ],
       });
     });
   });

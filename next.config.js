@@ -24,6 +24,7 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    domains: ["res.cloudinary.com"],
   },
   async headers() {
     return [

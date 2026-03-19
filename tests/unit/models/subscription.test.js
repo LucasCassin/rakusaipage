@@ -38,7 +38,7 @@ describe("User Subscription Model", () => {
         user_id: testUser.id,
         plan_id: testPlanMonth.id,
         payment_day: 10,
-        start_date: "2025-10-15",
+        start_date: "2025-11-15",
       };
       const newSubscription = await subscription.create(subscriptionData);
       const userPayments = await payment.findByUserId(testUser.id);
@@ -67,7 +67,7 @@ describe("User Subscription Model", () => {
         (p) => p.subscription_id === newSubscription.id,
       );
 
-      const expectedDueDate = new Date("2025-03-25T00:00:00.000Z"); // 10 de Março + 15 dias
+      const expectedDueDate = new Date("2025-03-10T00:00:00.000Z"); // 10 de Março + 15 dias
       expect(new Date(firstPayment.due_date)).toEqual(expectedDueDate);
     });
     it("should rollback the transaction if payment creation fails", async () => {

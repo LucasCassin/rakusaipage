@@ -26,6 +26,7 @@ const DEFAULT_FEATURES = [
   "read:payment:self",
   "update:payment:indicate_paid",
   "read:presentation",
+  "shop:consumer:view",
 ];
 
 /**
@@ -72,7 +73,11 @@ async function create(userData) {
  */
 function createAnonymous() {
   return {
-    features: [/*"create:user",*/ "create:session", "read:presentation"],
+    features: [
+      /*"create:user",*/ "create:session",
+      "read:presentation",
+      "shop:consumer:view",
+    ],
   };
 }
 
