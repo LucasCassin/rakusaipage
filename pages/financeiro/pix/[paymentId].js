@@ -19,6 +19,7 @@ export default function PixPaymentPage() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [timer, setTimer] = useState(60);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isGeneratingPix, setIsGeneratingPix] = useState(false);
 
   const fetchCurrentPayment = async () => {
     if (!user?.username || !paymentId) return;
@@ -57,10 +58,10 @@ export default function PixPaymentPage() {
   }, [user, paymentId]);
 
   useEffect(() => {
-    if (!payment || payment.status !== "CONFIRMED") return;
+    if (!payment || payment.status === "PENDING") return;
     const timerId = setTimeout(() => {
       router.push("/financeiro");
-    }, 1000);
+    }, 800);
     return () => clearTimeout(timerId);
   }, [payment, router]);
 
@@ -105,6 +106,26 @@ export default function PixPaymentPage() {
     };
   }, [payment]);
 
+  const gatewayData =
+    payment?.payment_gateway_data || payment?.gateway_data || {};
+  const pixInfo =
+    gatewayData.qr_code_base64 || gatewayData.qr_code || gatewayData.ticket_url
+      ? gatewayData
+      : null;
+  const pixCode = pixInfo?.qr_code || pixInfo?.qr_code_base64;
+
+  useEffect(() => {
+    if (!payment) return;
+    console.info("[pix-page] gatewayData eval", {
+      paymentId: payment.id,
+      status: payment.status,
+      gatewayData,
+      pixInfoAvailable: Boolean(pixInfo),
+      pixCodeAvailable: Boolean(pixCode),
+      ticketUrl: gatewayData.ticket_url,
+    });
+  }, [payment, gatewayData, pixInfo, pixCode]);
+
   if (isLoadingAuth || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -127,25 +148,19 @@ export default function PixPaymentPage() {
     );
   }
 
-  const gatewayData =
-    payment.payment_gateway_data || payment.gateway_data || {};
-  const pixInfo =
-    gatewayData.qr_code_base64 || gatewayData.qr_code || gatewayData.ticket_url
-      ? gatewayData
-      : null;
-  const pixCode = pixInfo?.qr_code || pixInfo?.qr_code_base64;
-
-  useEffect(() => {
-    if (!payment) return;
-    console.info("[pix-page] gatewayData eval", {
-      paymentId: payment.id,
-      status: payment.status,
-      gatewayData,
-      pixInfoAvailable: Boolean(pixInfo),
-      pixCodeAvailable: Boolean(pixCode),
-      ticketUrl: gatewayData.ticket_url,
-    });
-  }, [payment, gatewayData, pixInfo, pixCode]);
+  if (payment.status !== "PENDING") {
+    return (
+      <PageLayout title="Pagamento PIX" description="Pagamento indisponível">
+        <div className="max-w-2xl mx-auto p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-900">
+            O pagamento está em status <strong>{payment.status}</strong> e não
+            pode ser pago por PIX nesta tela. Você será redirecionado para o
+            financeiro em instantes.
+          </p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   const copyPixCode = async () => {
     if (!pixCode) return;
@@ -155,6 +170,27 @@ export default function PixPaymentPage() {
       setTimeout(() => setCopySuccess(false), 3000);
     } catch (copyErr) {
       console.error("Erro ao copiar código PIX:", copyErr);
+    }
+  };
+
+  const handleGeneratePix = async () => {
+    setIsGeneratingPix(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}/pix`,
+        { method: "POST" },
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "Erro ao gerar PIX");
+      }
+      await fetchCurrentPayment();
+    } catch (err) {
+      setError(err.message || "Erro de conexão ao gerar o PIX.");
+    } finally {
+      setIsGeneratingPix(false);
     }
   };
 
@@ -288,11 +324,20 @@ export default function PixPaymentPage() {
             )}
           </div>
         ) : (
-          <div className="rounded-md border p-4 bg-yellow-50">
+          <div className="rounded-lg border border-yellow-200 p-6 bg-yellow-50 flex flex-col items-center text-center space-y-4 shadow-sm">
             <p className="text-sm text-yellow-800">
-              Não foi encontrado QR Code PIX no pagamento. Aguarde o status ser
-              retornado pelo gateway ou gere novamente.
+              O código PIX ainda não foi gerado para esta fatura. Clique no
+              botão abaixo para gerá-lo agora.
             </p>
+            <Button
+              onClick={handleGeneratePix}
+              variant="primary"
+              size="small"
+              disabled={isGeneratingPix}
+              className="w-full max-w-xs"
+            >
+              {isGeneratingPix ? "Gerando..." : "Gerar PIX"}
+            </Button>
           </div>
         )}
 

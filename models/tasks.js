@@ -92,6 +92,7 @@ async function generateNextPayments() {
           const baseUrl =
             process.env.NEXT_PUBLIC_WEB_URL || "https://rakusaitaiko.com.br";
           const link = `${baseUrl}/financeiro`;
+          const pixLink = `${baseUrl}/financeiro/pix/${newPayment.id}`;
 
           // 5. Dispara o E-mail
           await emailService.sendPaymentGeneratedEmail({
@@ -103,6 +104,7 @@ async function generateNextPayments() {
             finalValue: newPayment.amount_due || 0,
             dueDate: formattedDate,
             paymentLink: link,
+            pixLink: pixLink,
           });
         } catch (emailError) {
           console.error(
