@@ -114,11 +114,21 @@ export default function PixPaymentPage() {
 
   const gatewayData =
     payment?.payment_gateway_data || payment?.gateway_data || {};
+
+  const mpTransactionData =
+    gatewayData.point_of_interaction?.transaction_data || {};
+
+  const qrCodeBase64 =
+    mpTransactionData.qr_code_base64 || gatewayData.qr_code_base64;
+  const qrCode = mpTransactionData.qr_code || gatewayData.qr_code;
+  const ticketUrl = mpTransactionData.ticket_url || gatewayData.ticket_url;
+
   const pixInfo =
-    gatewayData.qr_code_base64 || gatewayData.qr_code || gatewayData.ticket_url
-      ? gatewayData
+    qrCodeBase64 || qrCode || ticketUrl
+      ? { qr_code_base64: qrCodeBase64, qr_code: qrCode, ticket_url: ticketUrl }
       : null;
-  const pixCode = pixInfo?.qr_code || pixInfo?.qr_code_base64;
+
+  const pixCode = qrCode || qrCodeBase64;
 
   useEffect(() => {
     if (!payment) return;
