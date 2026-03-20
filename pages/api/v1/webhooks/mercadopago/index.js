@@ -14,6 +14,16 @@ router.post(webhookHandler);
 export default router.handler(controller.errorsHandlers);
 
 async function webhookHandler(req, res) {
+  console.info("[webhook/mercadopago] incoming request", {
+    method: req.method,
+    query: req.query,
+    body: req.body,
+    headers: {
+      "user-agent": req.headers["user-agent"],
+      "x-mp-signature": req.headers["x-mp-signature"],
+    },
+  });
+
   // O Mercado Pago envia o ID do pagamento na query (?id=...) ou no body ({ data: { id: ... } })
   // Depende da versão da API, vamos cobrir ambos.
   const queryId = req.query.id || req.query["data.id"];

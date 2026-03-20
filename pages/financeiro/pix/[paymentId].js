@@ -37,6 +37,12 @@ export default function PixPaymentPage() {
         setError("Pagamento não encontrado.");
         return;
       }
+
+      console.info("[pix-page] pagamento buscado", {
+        paymentId,
+        found,
+      });
+
       setPayment(found);
       setLastUpdatedAt(Date.now());
     } catch (err) {
@@ -128,6 +134,18 @@ export default function PixPaymentPage() {
       ? gatewayData
       : null;
   const pixCode = pixInfo?.qr_code || pixInfo?.qr_code_base64;
+
+  useEffect(() => {
+    if (!payment) return;
+    console.info("[pix-page] gatewayData eval", {
+      paymentId: payment.id,
+      status: payment.status,
+      gatewayData,
+      pixInfoAvailable: Boolean(pixInfo),
+      pixCodeAvailable: Boolean(pixCode),
+      ticketUrl: gatewayData.ticket_url,
+    });
+  }, [payment, gatewayData, pixInfo, pixCode]);
 
   const copyPixCode = async () => {
     if (!pixCode) return;
