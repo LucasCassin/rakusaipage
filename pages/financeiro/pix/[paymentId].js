@@ -128,6 +128,52 @@ export default function PixPaymentPage() {
 
   const pixCode = qrCode || qrCodeBase64;
 
+  const copyPixCode = async () => {
+    if (!pixCode) return;
+    try {
+      await navigator.clipboard.writeText(pixCode);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    } catch (copyErr) {
+      console.error("Erro ao copiar código PIX:", copyErr);
+    }
+  };
+
+  const handleGeneratePix = async () => {
+    setIsGeneratingPix(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}/pix`,
+        { method: "POST" },
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "Erro ao gerar PIX");
+      }
+      await fetchCurrentPayment();
+    } catch (err) {
+      setError(err.message || "Erro de conexão ao gerar o PIX.");
+    } finally {
+      setIsGeneratingPix(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      payment &&
+      payment.status === "PENDING" &&
+      !pixInfo &&
+      !isGeneratingPix &&
+      !hasAttemptedAutoGenerate.current
+    ) {
+      hasAttemptedAutoGenerate.current = true;
+      handleGeneratePix();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payment, pixInfo, isGeneratingPix]);
+
   if (isLoadingAuth || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -213,52 +259,6 @@ export default function PixPaymentPage() {
       </PageLayout>
     );
   }
-
-  const copyPixCode = async () => {
-    if (!pixCode) return;
-    try {
-      await navigator.clipboard.writeText(pixCode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 3000);
-    } catch (copyErr) {
-      console.error("Erro ao copiar código PIX:", copyErr);
-    }
-  };
-
-  const handleGeneratePix = async () => {
-    setIsGeneratingPix(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${settings.global.API.ENDPOINTS.PAYMENTS}/${paymentId}/pix`,
-        { method: "POST" },
-      );
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || "Erro ao gerar PIX");
-      }
-      await fetchCurrentPayment();
-    } catch (err) {
-      setError(err.message || "Erro de conexão ao gerar o PIX.");
-    } finally {
-      setIsGeneratingPix(false);
-    }
-  };
-
-  useEffect(() => {
-    if (
-      payment &&
-      payment.status === "PENDING" &&
-      !pixInfo &&
-      !isGeneratingPix &&
-      !hasAttemptedAutoGenerate.current
-    ) {
-      hasAttemptedAutoGenerate.current = true;
-      handleGeneratePix();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payment, pixInfo, isGeneratingPix]);
 
   return (
     <PageLayout
