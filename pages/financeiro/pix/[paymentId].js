@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import PageLayout from "components/layouts/PageLayout";
 import Loading from "components/Loading";
@@ -20,6 +20,7 @@ export default function PixPaymentPage() {
   const [timer, setTimer] = useState(30);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
+  const hasAttemptedAutoGenerate = useRef(false);
 
   const fetchCurrentPayment = async () => {
     if (!user?.username || !paymentId) return;
@@ -183,7 +184,7 @@ export default function PixPaymentPage() {
             Seu pagamento foi recebido e processado com sucesso. Agradecemos!
           </p>
           <p className="text-xs text-green-600 mb-6 animate-pulse">
-            Redirecionando para o suas finanças em instantes...
+            Redirecionando para suas finanças em instantes...
           </p>
           <div className="flex justify-center">
             <Button
@@ -244,6 +245,20 @@ export default function PixPaymentPage() {
       setIsGeneratingPix(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      payment &&
+      payment.status === "PENDING" &&
+      !pixInfo &&
+      !isGeneratingPix &&
+      !hasAttemptedAutoGenerate.current
+    ) {
+      hasAttemptedAutoGenerate.current = true;
+      handleGeneratePix();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payment, pixInfo, isGeneratingPix]);
 
   return (
     <PageLayout
@@ -358,17 +373,17 @@ export default function PixPaymentPage() {
             {pixInfo.ticket_url && (
               <div className="mt-3 flex justify-center">
                 {copySuccess ? (
-                  <p className="text-xs text-green-600">
+                  <p className="text-xs text-green-600 text-center">
                     Código copiado para área de transferência.
                   </p>
                 ) : (
                   <a
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline text-center"
                     href={pixInfo.ticket_url}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Abrir comprovante no Mercado Pago
+                    Abrir pagamento no Mercado Pago
                   </a>
                 )}
               </div>
@@ -377,8 +392,9 @@ export default function PixPaymentPage() {
         ) : (
           <div className="rounded-lg border border-yellow-200 p-6 bg-yellow-50 flex flex-col items-center text-center space-y-4 shadow-sm">
             <p className="text-sm text-yellow-800">
-              O código PIX ainda não foi gerado para esta fatura. Clique no
-              botão abaixo para gerá-lo agora.
+              {isGeneratingPix
+                ? "Gerando seu código PIX automaticamente, aguarde..."
+                : "O código PIX ainda não foi gerado para esta fatura. Clique no botão abaixo para gerá-lo agora."}
             </p>
             <Button
               onClick={handleGeneratePix}

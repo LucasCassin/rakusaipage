@@ -67,6 +67,7 @@ async function postHandler(req, res) {
     const baseUrl =
       process.env.NEXT_PUBLIC_WEBSERVER_URL || "https://rakusaitaiko.com.br";
     const link = `${baseUrl}/financeiro`;
+    const pixLink = `${baseUrl}/financeiro/pix/${targetPayment.id}`;
 
     // 3. Chamada ao Serviço de Email
     await emailService.sendPaymentWarning({
@@ -76,6 +77,7 @@ async function postHandler(req, res) {
       amount: targetPayment.amount_due,
       dueDate: formattedDate,
       paymentLink: link,
+      pixLink: pixLink,
       isOverdue: isOverdue,
     });
 

@@ -204,6 +204,7 @@ async function sendPaymentWarning({
   amount,
   dueDate,
   paymentLink,
+  pixLink,
   isOverdue,
 }) {
   if (!resend) {
@@ -231,7 +232,7 @@ async function sendPaymentWarning({
 
   const messageBody = isOverdue
     ? `
-      <p>Consta em nosso sistema uma pendência referente à sua assinatura.</p>
+      <p>Consta em nosso sistema uma pendência referente à sua mensalidade.</p>
       <p style="color: #c53030; font-weight: bold;">O prazo para indicação de pagamento pelo site expirou.</p>
       <p>Por favor, entre em contato com os professores via <strong>WhatsApp</strong> para regularizar sua situação o mais breve possível.</p>
     `
@@ -244,6 +245,12 @@ async function sendPaymentWarning({
   const actionButton = isOverdue
     ? ""
     : `
+      <div style="margin: 20px 0; border: 1px solid #dbeafe; background: #eff6ff; padding: 16px; border-radius: 8px;">
+        <h3 style="margin: 0 0 8px 0; color: #1e40af;">Pague por PIX direto pelo site</h3>
+        <p style="margin: 0 0 12px 0; color: #1f2937;">Agora você pode gerar o QR Code e pagar instantaneamente usando PIX no nosso site.</p>
+        <div style="text-align: center;"><a href="${pixLink || paymentLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Pagar com PIX</a></div>
+      </div>
+
       <div style="text-align: center; margin-top: 30px;">
         <a href="${paymentLink}" style="background-color: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
           Indicar Pagamento
