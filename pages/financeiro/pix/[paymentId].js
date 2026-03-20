@@ -58,6 +58,12 @@ export default function PixPaymentPage() {
   }, [user, paymentId]);
 
   useEffect(() => {
+    if (!isLoadingAuth && !user) {
+      router.push("/login");
+    }
+  }, [isLoadingAuth, user, router]);
+
+  useEffect(() => {
     if (!payment || payment.status === "PENDING") return;
     const timerId = setTimeout(() => {
       router.push("/financeiro");
@@ -123,13 +129,19 @@ export default function PixPaymentPage() {
       pixInfoAvailable: Boolean(pixInfo),
       pixCodeAvailable: Boolean(pixCode),
       ticketUrl: gatewayData.ticket_url,
+      pixInfo,
+      pixCode,
     });
   }, [payment, gatewayData, pixInfo, pixCode]);
 
   if (isLoadingAuth || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loading message="Verificando usuário..." />
+        <Loading
+          message={
+            isLoadingAuth ? "Verificando usuário..." : "Redirecionando..."
+          }
+        />
       </div>
     );
   }
