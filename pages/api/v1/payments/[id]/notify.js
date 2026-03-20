@@ -65,7 +65,7 @@ async function postHandler(req, res) {
     );
 
     const baseUrl =
-      process.env.NEXT_PUBLIC_WEBSERVER_URL || "https://rakusaitaiko.com.br";
+      process.env.NEXT_PUBLIC_WEB_URL || "https://rakusaitaiko.com.br";
     const link = `${baseUrl}/financeiro`;
     const pixLink = `${baseUrl}/financeiro/pix/${targetPayment.id}`;
 
