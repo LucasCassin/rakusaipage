@@ -42,6 +42,7 @@ export default function PixPaymentPage() {
       console.info("[pix-page] pagamento buscado", {
         paymentId,
         found,
+        fullPayload: JSON.stringify(found, null, 2),
       });
 
       setPayment(found);
@@ -141,6 +142,13 @@ export default function PixPaymentPage() {
       ticketUrl: gatewayData.ticket_url,
       pixInfo,
       pixCode,
+      rawPaymentGatewayData: payment?.payment_gateway_data,
+      rawGatewayData: payment?.gateway_data,
+      fullEval: JSON.stringify(
+        { gatewayData, mpTransactionData, pixInfo },
+        null,
+        2,
+      ),
     });
   }, [payment, gatewayData, pixInfo, pixCode]);
 
