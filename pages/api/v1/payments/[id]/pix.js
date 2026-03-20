@@ -72,6 +72,14 @@ async function postHandler(req, res) {
       },
     );
 
+    console.info("[pix] Gerando PIX para pagamento", targetPayment.id, {
+      userId: targetPayment.user_id,
+      amount_due: targetPayment.amount_due,
+      status: targetPayment.status,
+      gateway_id: pixPayload.gateway_id,
+      gateway_status: pixPayload.status,
+    });
+
     const updatedPayment = await payment.updateGatewayInfo(targetPayment.id, {
       gatewayId: pixPayload.gateway_id,
       gatewayStatus: pixPayload.status,

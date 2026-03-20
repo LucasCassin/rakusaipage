@@ -124,7 +124,7 @@ const StudentPaymentListItem = ({
         </div>
       </div>
 
-      <div className="flex flex-col-reverse sm:flex-row items-center gap-3 sm:gap-6">
+      <div className="flex flex-col-reverse sm:flex-row items-center gap-3 sm:gap-6 w-full sm:w-auto">
         {actionButton && <div className="w-full sm:w-auto">{actionButton}</div>}
         <p className="hidden sm:block font-semibold text-lg text-gray-700 min-w-[100px] text-right">
           {formattedAmount}

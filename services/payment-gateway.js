@@ -33,14 +33,28 @@ async function createPixPayment(order, user) {
 
     const result = await payment.create(paymentData);
 
+    // LOG para depuração (consegue ver as keys que o MP devolveu)
+    console.info("[payment-gateway] MP create result", {
+      id: result.id,
+      status: result.status,
+      point_of_interaction: result.point_of_interaction,
+      external_reference: result.external_reference,
+    });
+
+    const pixData = result.point_of_interaction?.transaction_data || {};
+
+    // Se não veio qr no sandbox/prod, registra warn para análise
+    if (!pixData.qr_code_base64 && !pixData.qr_code && !pixData.ticket_url) {
+      console.warn("[payment-gateway] MP PIX não retornou QR data", pixData);
+    }
+
     // Retorna apenas o que interessa para o nosso sistema
     return {
       gateway_id: result.id.toString(),
       status: result.status,
-      qr_code: result.point_of_interaction.transaction_data.qr_code,
-      qr_code_base64:
-        result.point_of_interaction.transaction_data.qr_code_base64,
-      ticket_url: result.point_of_interaction.transaction_data.ticket_url,
+      qr_code: pixData.qr_code,
+      qr_code_base64: pixData.qr_code_base64,
+      ticket_url: pixData.ticket_url,
     };
   } catch (error) {
     console.error("Erro ao criar pagamento no Mercado Pago:", error);

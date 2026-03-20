@@ -329,6 +329,9 @@ const profiles = {
       "user_notified_at",
       "confirmed_at",
       "plan_name",
+      "payment_gateway_id",
+      "payment_gateway_status",
+      "payment_gateway_data",
     ],
   },
   "read:payment:other": {
@@ -346,6 +349,9 @@ const profiles = {
       "plan_name",
       "username",
       "user_id",
+      "payment_gateway_id",
+      "payment_gateway_status",
+      "payment_gateway_data",
     ],
   },
   "update:payment:indicate_paid": {
