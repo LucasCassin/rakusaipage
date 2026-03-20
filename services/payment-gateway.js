@@ -67,6 +67,7 @@ async function getPaymentStatus(paymentId) {
     return {
       id: result.id,
       status: result.status, // approved, pending, rejected
+      date_of_expiration: result.date_of_expiration,
       external_reference: result.external_reference,
       point_of_interaction: result.point_of_interaction,
     };

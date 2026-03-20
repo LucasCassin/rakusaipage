@@ -122,7 +122,21 @@ export default function PixPaymentPage() {
   const ticketUrl = mpTransactionData.ticket_url || gatewayData.ticket_url;
 
   // Extrai a expiração e verifica se já passou do tempo
-  const dateOfExpiration = gatewayData.date_of_expiration;
+  let dateOfExpiration =
+    gatewayData.date_of_expiration || gatewayData.expiration_date;
+
+  // Fallback: se o MP não retornar ou o backend não salvar a data de expiração,
+  // o padrão do PIX no Mercado Pago é expirar em 24h. Usamos o "updated_at" do pagamento para o cálculo.
+  if (
+    !dateOfExpiration &&
+    (qrCodeBase64 || qrCode || ticketUrl) &&
+    payment?.updated_at
+  ) {
+    const generatedAt = new Date(payment.updated_at);
+    dateOfExpiration = new Date(
+      generatedAt.getTime() + 24 * 60 * 60 * 1000,
+    ).toISOString();
+  }
   const isPixExpired = dateOfExpiration
     ? new Date(dateOfExpiration) <= new Date()
     : false;
