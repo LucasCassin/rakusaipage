@@ -55,6 +55,7 @@ async function createPixPayment(order, user) {
       qr_code: pixData.qr_code,
       qr_code_base64: pixData.qr_code_base64,
       ticket_url: pixData.ticket_url,
+      point_of_interaction: result.point_of_interaction,
     };
   } catch (error) {
     console.error("Erro ao criar pagamento no Mercado Pago:", error);
@@ -75,6 +76,7 @@ async function getPaymentStatus(paymentId) {
       id: result.id,
       status: result.status, // approved, pending, rejected
       external_reference: result.external_reference,
+      point_of_interaction: result.point_of_interaction,
     };
   } catch (error) {
     console.error("Erro ao buscar pagamento:", error);
