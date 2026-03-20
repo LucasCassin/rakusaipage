@@ -17,7 +17,7 @@ export default function PixPaymentPage() {
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(30);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
 
@@ -60,16 +60,18 @@ export default function PixPaymentPage() {
 
   useEffect(() => {
     if (!payment || payment.status === "PENDING") return;
+
+    const delay = payment.status === "CONFIRMED" ? 10000 : 800;
     const timerId = setTimeout(() => {
       router.push("/financeiro");
-    }, 800);
+    }, delay);
     return () => clearTimeout(timerId);
   }, [payment, router]);
 
   useEffect(() => {
-    if (!payment) return;
+    if (!payment || payment.status !== "PENDING") return;
 
-    let localTimer = 60;
+    let localTimer = 30;
     setTimer(localTimer);
 
     const interval = setInterval(() => {
@@ -78,7 +80,7 @@ export default function PixPaymentPage() {
 
       if (localTimer === 0) {
         fetchCurrentPayment();
-        localTimer = 60;
+        localTimer = 30;
         setTimer(localTimer);
       }
     }, 1000);
@@ -146,6 +148,52 @@ export default function PixPaymentPage() {
           ) : (
             <Loading message="Carregando pagamento..." />
           )}
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (payment.status === "CONFIRMED") {
+    return (
+      <PageLayout
+        title="Pagamento Confirmado"
+        description="Pagamento recebido com sucesso"
+      >
+        <div className="max-w-2xl mx-auto p-8 bg-green-50 border border-green-200 rounded-lg text-center shadow-sm mt-6">
+          <div className="flex justify-center mb-4">
+            <svg
+              className="w-16 h-16 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-green-800 mb-2">
+            Pagamento Confirmado! 🎉
+          </h2>
+          <p className="text-sm text-green-700 mb-6">
+            Seu pagamento foi recebido e processado com sucesso. Agradecemos!
+          </p>
+          <p className="text-xs text-green-600 mb-6 animate-pulse">
+            Redirecionando para o suas finanças em instantes...
+          </p>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => router.push("/financeiro")}
+              variant="primary"
+              size="small"
+            >
+              Ir para minhas finanças agora
+            </Button>
+          </div>
         </div>
       </PageLayout>
     );
