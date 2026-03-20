@@ -43,6 +43,7 @@ async function createPixPayment(order, user) {
     return {
       gateway_id: result.id.toString(),
       status: result.status,
+      date_of_expiration: result.date_of_expiration,
       qr_code: pixData.qr_code,
       qr_code_base64: pixData.qr_code_base64,
       ticket_url: pixData.ticket_url,

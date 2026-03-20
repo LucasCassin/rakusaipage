@@ -121,9 +121,20 @@ export default function PixPaymentPage() {
   const qrCode = mpTransactionData.qr_code || gatewayData.qr_code;
   const ticketUrl = mpTransactionData.ticket_url || gatewayData.ticket_url;
 
+  // Extrai a expiração e verifica se já passou do tempo
+  const dateOfExpiration = gatewayData.date_of_expiration;
+  const isPixExpired = dateOfExpiration
+    ? new Date(dateOfExpiration) <= new Date()
+    : false;
+
   const pixInfo =
-    qrCodeBase64 || qrCode || ticketUrl
-      ? { qr_code_base64: qrCodeBase64, qr_code: qrCode, ticket_url: ticketUrl }
+    (qrCodeBase64 || qrCode || ticketUrl) && !isPixExpired
+      ? {
+          qr_code_base64: qrCodeBase64,
+          qr_code: qrCode,
+          ticket_url: ticketUrl,
+          date_of_expiration: dateOfExpiration,
+        }
       : null;
 
   const pixCode = qrCode || qrCodeBase64;
@@ -331,6 +342,24 @@ export default function PixPaymentPage() {
                 código e cole na área de pagamento por PIX.
               </span>
             </div>
+
+            {pixInfo.date_of_expiration && (
+              <div className="flex justify-center mb-4">
+                <span className="text-xs text-rose-700 font-semibold text-center bg-rose-50 px-3 py-1.5 rounded border border-rose-200">
+                  Válido até:{" "}
+                  {new Date(pixInfo.date_of_expiration).toLocaleString(
+                    "pt-BR",
+                    {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
+                </span>
+              </div>
+            )}
             <div className="flex justify-center">
               {pixInfo.qr_code_base64 || pixInfo.qr_code ? (
                 <img
@@ -394,7 +423,9 @@ export default function PixPaymentPage() {
             <p className="text-sm text-yellow-800">
               {isGeneratingPix
                 ? "Gerando seu código PIX automaticamente, aguarde..."
-                : "O código PIX ainda não foi gerado para esta fatura. Clique no botão abaixo para gerá-lo agora."}
+                : isPixExpired
+                  ? "Seu código PIX anterior expirou. Clique no botão abaixo para gerar um novo."
+                  : "O código PIX ainda não foi gerado para esta fatura. Clique no botão abaixo para gerá-lo agora."}
             </p>
             <Button
               onClick={handleGeneratePix}
