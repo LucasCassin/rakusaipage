@@ -33,16 +33,7 @@ async function createPixPayment(order, user) {
 
     const result = await payment.create(paymentData);
 
-    // LOG para depuração (consegue ver as keys que o MP devolveu)
-    console.info("[payment-gateway] MP create result", {
-      id: result.id,
-      status: result.status,
-      external_reference: result.external_reference,
-      point_of_interaction: result.point_of_interaction,
-    });
-
     const pixData = result.point_of_interaction?.transaction_data || {};
-    console.info("[payment-gateway] MP PIX transaction_data", pixData);
     // Se não veio qr no sandbox/prod, registra warn para análise
     if (!pixData.qr_code_base64 && !pixData.qr_code && !pixData.ticket_url) {
       console.warn("[payment-gateway] MP PIX não retornou QR data", pixData);

@@ -39,12 +39,6 @@ export default function PixPaymentPage() {
         return;
       }
 
-      console.info("[pix-page] pagamento buscado", {
-        paymentId,
-        found,
-        fullPayload: JSON.stringify(found, null, 2),
-      });
-
       setPayment(found);
       setLastUpdatedAt(Date.now());
     } catch (err) {
@@ -130,27 +124,6 @@ export default function PixPaymentPage() {
       : null;
 
   const pixCode = qrCode || qrCodeBase64;
-
-  useEffect(() => {
-    if (!payment) return;
-    console.info("[pix-page] gatewayData eval", {
-      paymentId: payment.id,
-      status: payment.status,
-      gatewayData,
-      pixInfoAvailable: Boolean(pixInfo),
-      pixCodeAvailable: Boolean(pixCode),
-      ticketUrl: gatewayData.ticket_url,
-      pixInfo,
-      pixCode,
-      rawPaymentGatewayData: payment?.payment_gateway_data,
-      rawGatewayData: payment?.gateway_data,
-      fullEval: JSON.stringify(
-        { gatewayData, mpTransactionData, pixInfo },
-        null,
-        2,
-      ),
-    });
-  }, [payment, gatewayData, pixInfo, pixCode]);
 
   if (isLoadingAuth || !user) {
     return (
