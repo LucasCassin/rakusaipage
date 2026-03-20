@@ -20,7 +20,8 @@ export function calculateNextDueDate(
   periodUnit,
   periodValue,
 ) {
-  const nextDate = new Date(startDate);
+  const validStartDate = startDate || new Date();
+  const nextDate = new Date(validStartDate);
   nextDate.setUTCHours(0, 0, 0, 0);
 
   if (periodUnit === "month") {
@@ -39,7 +40,8 @@ export function calculateNextDueDate(
 }
 
 function calculateLastDueDate(startDate, paymentDay, periodUnit, periodValue) {
-  const lastDate = new Date(startDate);
+  const validStartDate = startDate || new Date();
+  const lastDate = new Date(validStartDate);
   lastDate.setUTCHours(0, 0, 0, 0);
 
   if (periodUnit === "month") {

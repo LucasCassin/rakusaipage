@@ -19,6 +19,7 @@ async function generateNextPayments() {
       sub.id as subscription_id, 
       sub.payment_day, 
       sub.discount_value,
+      sub.start_date,
       sub.user_id,
       sub.plan_id,
       plan.full_value,
@@ -46,7 +47,7 @@ async function generateNextPayments() {
   for (const sub of eligibleSubscriptions) {
     // 3. Calcula qual é a data de vencimento do *próximo* pagamento
     const nextDueDate = calculateNextDueDate(
-      sub.last_due_date,
+      sub.last_due_date || sub.start_date || new Date(),
       sub.payment_day,
       sub.period_unit,
       sub.period_value,
@@ -108,7 +109,7 @@ async function generateNextPayments() {
           });
         } catch (emailError) {
           console.error(
-            `[Erro Email] Falha ao notificar usuário ${subscription.user_id}:`,
+            `[Erro Email] Falha ao notificar usuário ${sub.user_id}:`,
             emailError.message,
           );
         }
