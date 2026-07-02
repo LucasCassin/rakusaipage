@@ -12,8 +12,16 @@ export function usePdvCashier() {
   const router = useRouter();
   const { error, setError, clearError } = useMessage();
 
+  // A mensagem de erro do topo da tela some sozinha após alguns segundos.
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => clearError(), 3000);
+    return () => clearTimeout(timer);
+  }, [error, clearError]);
+
   const [products, setProducts] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [pdvSettings, setPdvSettings] = useState(null);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
 
   const [cartItems, setCartItems] = useState([]);
@@ -25,9 +33,10 @@ export function usePdvCashier() {
   const fetchCatalog = useCallback(async () => {
     setIsLoadingCatalog(true);
     try {
-      const [productsRes, paymentMethodsRes] = await Promise.all([
+      const [productsRes, paymentMethodsRes, settingsRes] = await Promise.all([
         fetch(`${settings.global.API.ENDPOINTS.PDV_PRODUCTS}?limit=200`),
         fetch(settings.global.API.ENDPOINTS.PDV_PAYMENT_METHODS),
+        fetch(settings.global.API.ENDPOINTS.PDV_SETTINGS),
       ]);
 
       const productsData = await handleApiResponse({
@@ -40,9 +49,15 @@ export function usePdvCashier() {
         router,
         setError,
       });
+      const settingsData = await handleApiResponse({
+        response: settingsRes,
+        router,
+        setError,
+      });
 
       if (productsData) setProducts(productsData.products || []);
       if (paymentMethodsData) setPaymentMethods(paymentMethodsData || []);
+      if (settingsData) setPdvSettings(settingsData);
     } finally {
       setIsLoadingCatalog(false);
     }
@@ -68,6 +83,7 @@ export function usePdvCashier() {
           product_id: product.id,
           name: product.name,
           unit_price_in_cents: product.price_in_cents,
+          min_unit_price_in_cents: product.min_unit_price_in_cents || 0,
           quantity: 1,
         },
       ];
@@ -111,6 +127,15 @@ export function usePdvCashier() {
     () =>
       cartItems.reduce(
         (acc, item) => acc + item.unit_price_in_cents * item.quantity,
+        0,
+      ),
+    [cartItems],
+  );
+
+  const totalMinimumFloorInCents = useMemo(
+    () =>
+      cartItems.reduce(
+        (acc, item) => acc + item.min_unit_price_in_cents * item.quantity,
         0,
       ),
     [cartItems],
@@ -186,9 +211,11 @@ export function usePdvCashier() {
   return {
     products,
     paymentMethods,
+    pdvSettings,
     isLoadingCatalog,
     cartItems,
     subtotalInCents,
+    totalMinimumFloorInCents,
     discount,
     isSubmitting,
     lastSale,

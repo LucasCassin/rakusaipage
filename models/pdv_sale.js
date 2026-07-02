@@ -9,56 +9,8 @@ import validator from "models/validator.js";
 import pdvProduct from "models/pdv_product.js";
 import pdvPaymentMethod from "models/pdv_payment_method.js";
 import pdvSettings from "models/pdv_settings.js";
+import { calculatePdvDiscount } from "src/utils/calculatePdvDiscount.js";
 import { ValidationError, NotFoundError } from "errors/index.js";
-
-/**
- * Calcula o desconto final do carrinho, aplicando teto e piso configurados.
- * Não lança erro para desconto que ultrapassa teto/piso — apenas clampa,
- * seguindo o mesmo comportamento do motor de cupons de `models/order.js`.
- */
-function calculateDiscount({
-  subtotalInCents,
-  totalMinimumFloorInCents,
-  discountType,
-  discountValue,
-  settings,
-}) {
-  if (discountType === null || discountValue === null) {
-    return 0;
-  }
-
-  if (discountType === "percentage" && discountValue > 100) {
-    throw new ValidationError({
-      message: "O desconto percentual não pode ser maior que 100%.",
-    });
-  }
-
-  const grossDiscount =
-    discountType === "percentage"
-      ? Math.round(subtotalInCents * (discountValue / 100))
-      : discountValue;
-
-  // O teto pode ser configurado por valor bruto e/ou por percentual do
-  // subtotal ao mesmo tempo — prevalece o que resultar no MENOR desconto.
-  const caps = [grossDiscount];
-  if (settings.max_discount_in_cents != null) {
-    caps.push(settings.max_discount_in_cents);
-  }
-  if (settings.max_discount_percentage != null) {
-    caps.push(
-      Math.round(subtotalInCents * (settings.max_discount_percentage / 100)),
-    );
-  }
-  const cappedDiscount = Math.min(...caps);
-
-  const floor = Math.max(
-    totalMinimumFloorInCents,
-    settings.min_cart_value_in_cents,
-  );
-  const maxAllowedDiscount = Math.max(0, subtotalInCents - floor);
-
-  return Math.min(cappedDiscount, maxAllowedDiscount);
-}
 
 /**
  * Resolve e valida cada forma de pagamento informada (existe, está ativa,
@@ -189,6 +141,12 @@ async function create({
     });
   }
 
+  if (cleanDiscountType === "percentage" && cleanDiscountValue > 100) {
+    throw new ValidationError({
+      message: "O desconto percentual não pode ser maior que 100%.",
+    });
+  }
+
   const resolvedPayments = await resolvePaymentMethods(
     cleanValues.pdv_sale_payments,
   );
@@ -243,13 +201,14 @@ async function create({
       });
     }
 
-    const discountInCents = calculateDiscount({
-      subtotalInCents: subtotal,
-      totalMinimumFloorInCents: totalMinimumFloor,
-      discountType: cleanDiscountType,
-      discountValue: cleanDiscountValue,
-      settings,
-    });
+    const { discountInCents, cappedBy: discountCappedBy } =
+      calculatePdvDiscount({
+        subtotalInCents: subtotal,
+        totalMinimumFloorInCents: totalMinimumFloor,
+        discountType: cleanDiscountType,
+        discountValue: cleanDiscountValue,
+        settings,
+      });
 
     const totalInCents = subtotal - discountInCents;
 
@@ -332,6 +291,7 @@ async function create({
     await client.query("COMMIT");
     return {
       ...createdSale,
+      discount_capped_by: discountCappedBy,
       items: itemsToInsert,
       payments: paymentsToInsert,
     };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "src/contexts/AuthContext.js";
 import PageLayout from "components/layouts/PageLayout";
 import Loading from "components/Loading.js";
@@ -9,6 +9,10 @@ import DiscountModal from "components/pdv/DiscountModal";
 import PaymentModal from "components/pdv/PaymentModal";
 import { usePdvCashier } from "src/hooks/usePdvCashier";
 import { formatCurrencyInCents } from "src/utils/formatCurrencyInCents";
+import {
+  calculatePdvDiscount,
+  PDV_DISCOUNT_CAP_LABELS,
+} from "src/utils/calculatePdvDiscount";
 
 export default function PdvCashierPage() {
   const { user, isLoading: isLoadingAuth } = useAuth();
@@ -16,6 +20,13 @@ export default function PdvCashierPage() {
 
   const [checkoutStep, setCheckoutStep] = useState(null); // null | "discount" | "payment"
   const [lastSaleMessage, setLastSaleMessage] = useState(null);
+
+  // A mensagem de venda concluída some sozinha após alguns segundos.
+  useEffect(() => {
+    if (!lastSaleMessage) return;
+    const timer = setTimeout(() => setLastSaleMessage(null), 3000);
+    return () => clearTimeout(timer);
+  }, [lastSaleMessage]);
 
   const canSell = user?.features?.includes("pdv:sell");
 
@@ -37,21 +48,27 @@ export default function PdvCashierPage() {
     );
   }
 
-  // Estimativa client-side apenas para exibição — o valor final (com piso e
-  // teto de desconto aplicados) sempre vem da resposta do backend.
-  const estimatedDiscountInCents = (() => {
-    if (!cashier.discount.type || !cashier.discount.value) return 0;
-    if (cashier.discount.type === "percentage") {
-      return Math.round(
-        cashier.subtotalInCents * (cashier.discount.value / 100),
-      );
-    }
-    return cashier.discount.value;
-  })();
+  // Estimativa client-side apenas para exibição — usa a mesma fórmula do
+  // backend (`calculatePdvDiscount`) para que o total mostrado ao vendedor já
+  // saia com piso e teto de desconto aplicados; o valor que de fato fecha a
+  // venda ainda vem, na prática, da resposta do backend.
+  const { discountInCents: estimatedDiscountInCents, cappedBy } =
+    cashier.pdvSettings
+      ? calculatePdvDiscount({
+          subtotalInCents: cashier.subtotalInCents,
+          totalMinimumFloorInCents: cashier.totalMinimumFloorInCents,
+          discountType: cashier.discount.type,
+          discountValue: cashier.discount.value,
+          settings: cashier.pdvSettings,
+        })
+      : { discountInCents: 0, cappedBy: null };
   const estimatedTotalInCents = Math.max(
     0,
     cashier.subtotalInCents - estimatedDiscountInCents,
   );
+  const discountCapMessage = cappedBy
+    ? `Desconto limitado ${PDV_DISCOUNT_CAP_LABELS[cappedBy]}.`
+    : null;
 
   const handleCheckout = () => {
     setLastSaleMessage(null);
@@ -68,15 +85,8 @@ export default function PdvCashierPage() {
 
     if (data) {
       setCheckoutStep(null);
-      const totalChangeInCents = (data.payments || []).reduce(
-        (acc, payment) => acc + (payment.change_in_cents || 0),
-        0,
-      );
       setLastSaleMessage(
-        `Venda #${data.sale_number} concluída — Total ${formatCurrencyInCents(data.total_in_cents)}` +
-          (totalChangeInCents > 0
-            ? ` — Troco ${formatCurrencyInCents(totalChangeInCents)}`
-            : ""),
+        `Venda #${data.sale_number} concluída — Total ${formatCurrencyInCents(data.total_in_cents)}`,
       );
     }
   };
@@ -129,6 +139,8 @@ export default function PdvCashierPage() {
       {checkoutStep === "discount" && (
         <DiscountModal
           subtotalInCents={cashier.subtotalInCents}
+          totalMinimumFloorInCents={cashier.totalMinimumFloorInCents}
+          pdvSettings={cashier.pdvSettings}
           onClose={() => setCheckoutStep(null)}
           onConfirm={handleDiscountConfirm}
         />
@@ -137,6 +149,7 @@ export default function PdvCashierPage() {
       {checkoutStep === "payment" && (
         <PaymentModal
           totalInCents={estimatedTotalInCents}
+          discountCapMessage={discountCapMessage}
           paymentMethods={cashier.paymentMethods}
           isSubmitting={cashier.isSubmitting}
           error={cashier.error}

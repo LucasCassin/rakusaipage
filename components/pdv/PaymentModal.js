@@ -49,6 +49,7 @@ function computeAmounts(selectedIds, manualAmountsInCents, totalInCents) {
 
 export default function PaymentModal({
   totalInCents,
+  discountCapMessage,
   paymentMethods,
   isSubmitting,
   error,
@@ -181,9 +182,14 @@ export default function PaymentModal({
           </button>
         </div>
 
-        <p className="text-center text-2xl font-bold text-rakusai-purple mb-4">
+        <p className="text-center text-2xl font-bold text-rakusai-purple mb-1">
           {formatCurrencyInCents(totalInCents)}
         </p>
+        {discountCapMessage && (
+          <p className="text-center text-xs text-amber-700 mb-3">
+            {discountCapMessage}
+          </p>
+        )}
 
         <p className="text-sm text-gray-600 mb-2">
           Selecione uma ou mais formas de pagamento para dividir a venda.
