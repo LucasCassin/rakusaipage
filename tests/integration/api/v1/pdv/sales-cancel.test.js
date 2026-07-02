@@ -74,7 +74,7 @@ describe("API /api/v1/pdv/sales/[id]/cancel", () => {
     const sale = await pdvSale.create({
       sellerId: sellerUser.id,
       items: [{ product_id: product.id, quantity: 4 }],
-      paymentMethodId: cash.id,
+      payments: [{ payment_method_id: cash.id, amount_in_cents: 4000 }],
     });
     return { product, sale };
   };

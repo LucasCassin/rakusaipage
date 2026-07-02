@@ -34,18 +34,14 @@ function validateCreateBody(req, res, next) {
         pdv_sale_items: body.items,
         discount_type: body.discount_type,
         pdv_discount_value: body.discount_value,
-        pdv_payment_method_id: body.payment_method_id,
-        pdv_payment_method_variant_id: body.payment_method_variant_id,
-        cash_given_in_cents: body.cash_given_in_cents,
+        pdv_sale_payments: body.payments,
         notes: body.notes,
       },
       {
         pdv_sale_items: "required",
         discount_type: "optional",
         pdv_discount_value: "optional",
-        pdv_payment_method_id: "required",
-        pdv_payment_method_variant_id: "optional",
-        cash_given_in_cents: "optional",
+        pdv_sale_payments: "required",
         notes: "optional",
       },
     );
@@ -66,9 +62,7 @@ async function postHandler(req, res) {
       items: body.pdv_sale_items,
       discountType: body.discount_type,
       discountValue: body.pdv_discount_value,
-      paymentMethodId: body.pdv_payment_method_id,
-      paymentMethodVariantId: body.pdv_payment_method_variant_id,
-      cashGivenInCents: body.cash_given_in_cents,
+      payments: body.pdv_sale_payments,
       notes: body.notes,
     });
 

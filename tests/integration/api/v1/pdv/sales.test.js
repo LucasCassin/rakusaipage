@@ -148,8 +148,13 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 2 }],
-          payment_method_id: cash.id,
-          cash_given_in_cents: 3000,
+          payments: [
+            {
+              payment_method_id: cash.id,
+              amount_in_cents: 2000,
+              cash_given_in_cents: 3000,
+            },
+          ],
         }),
       });
 
@@ -157,7 +162,8 @@ describe("API /api/v1/pdv/sales", () => {
       const body = await res.json();
       expect(body.subtotal_in_cents).toBe(2000);
       expect(body.total_in_cents).toBe(2000);
-      expect(body.change_in_cents).toBe(1000);
+      expect(body.payments).toHaveLength(1);
+      expect(body.payments[0].change_in_cents).toBe(1000);
       expect(body.seller_id).toBe(sellerAUser.id);
     });
 
@@ -172,7 +178,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
           notes: "Maria Silva - (11) 99999-0000 - sorteio",
         }),
       });
@@ -193,7 +199,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: card.id,
+          payments: [{ payment_method_id: card.id, amount_in_cents: 1000 }],
         }),
       });
 
@@ -213,7 +219,7 @@ describe("API /api/v1/pdv/sales", () => {
           items: [{ product_id: product.id, quantity: 10 }],
           discount_type: "percentage",
           discount_value: 10,
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 9000 }],
         }),
       });
 
@@ -236,7 +242,7 @@ describe("API /api/v1/pdv/sales", () => {
           items: [{ product_id: product.id, quantity: 1 }],
           discount_type: "percentage",
           discount_value: 200,
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
         }),
       });
       expect(res.status).toBe(400);
@@ -253,8 +259,13 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: cash.id,
-          cash_given_in_cents: 500,
+          payments: [
+            {
+              payment_method_id: cash.id,
+              amount_in_cents: 1000,
+              cash_given_in_cents: 500,
+            },
+          ],
         }),
       });
       expect(res.status).toBe(400);
@@ -272,7 +283,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: fakeUUID,
+          payments: [{ payment_method_id: fakeUUID, amount_in_cents: 1000 }],
         }),
       });
       expect(res.status).toBe(404);
@@ -289,8 +300,14 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: cash.id, // "Dinheiro", não é dono da variante do cartão
-          payment_method_variant_id: cardVariant.id,
+          payments: [
+            {
+              // "Dinheiro", não é dono da variante do cartão
+              payment_method_id: cash.id,
+              payment_method_variant_id: cardVariant.id,
+              amount_in_cents: 1000,
+            },
+          ],
         }),
       });
       expect(res.status).toBe(400);
@@ -307,13 +324,75 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: card.id,
-          payment_method_variant_id: cardVariant.id,
+          payments: [
+            {
+              payment_method_id: card.id,
+              payment_method_variant_id: cardVariant.id,
+              amount_in_cents: 1000,
+            },
+          ],
         }),
       });
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.payment_method_variant_id).toBe(cardVariant.id);
+      expect(body.payments[0].payment_method_variant_id).toBe(cardVariant.id);
+    });
+
+    test("Should create a sale split across two payment methods", async () => {
+      const product = await createProduct("post-split", {
+        price_in_cents: 10000,
+      });
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/pdv/sales`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${sellerASession.token}`,
+        },
+        body: JSON.stringify({
+          items: [{ product_id: product.id, quantity: 1 }],
+          payments: [
+            { payment_method_id: cash.id, amount_in_cents: 4000 },
+            {
+              payment_method_id: card.id,
+              payment_method_variant_id: cardVariant.id,
+              amount_in_cents: 6000,
+            },
+          ],
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.payments).toHaveLength(2);
+      const sum = body.payments.reduce((acc, p) => acc + p.amount_in_cents, 0);
+      expect(sum).toBe(10000);
+    });
+
+    test("Should return 400 when split payments do not add up to the total", async () => {
+      const product = await createProduct("post-split-bad-sum", {
+        price_in_cents: 10000,
+      });
+
+      const res = await fetch(`${orchestrator.webserverUrl}/api/v1/pdv/sales`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `session_id=${sellerASession.token}`,
+        },
+        body: JSON.stringify({
+          items: [{ product_id: product.id, quantity: 1 }],
+          payments: [
+            { payment_method_id: cash.id, amount_in_cents: 4000 },
+            {
+              payment_method_id: card.id,
+              payment_method_variant_id: cardVariant.id,
+              amount_in_cents: 5000,
+            },
+          ],
+        }),
+      });
+      expect(res.status).toBe(400);
     });
 
     test("Should return 404 for a non-existent product", async () => {
@@ -327,7 +406,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: fakeUUID, quantity: 1 }],
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
         }),
       });
       expect(res.status).toBe(404);
@@ -345,7 +424,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 1 }],
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
         }),
       });
       expect(res.status).toBe(400);
@@ -364,7 +443,7 @@ describe("API /api/v1/pdv/sales", () => {
         },
         body: JSON.stringify({
           items: [{ product_id: product.id, quantity: 5 }],
-          payment_method_id: cash.id,
+          payments: [{ payment_method_id: cash.id, amount_in_cents: 5000 }],
         }),
       });
       expect(res.status).toBe(409);
@@ -387,7 +466,7 @@ describe("API /api/v1/pdv/sales", () => {
           },
           body: JSON.stringify({
             items: [{ product_id: product.id, quantity: 1 }],
-            payment_method_id: cash.id,
+            payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
           }),
         }),
       );
@@ -422,7 +501,7 @@ describe("API /api/v1/pdv/sales", () => {
       const sale = await pdvSale.create({
         sellerId: sellerAUser.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: cash.id,
+        payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
       });
 
       const res = await fetch(
@@ -437,7 +516,7 @@ describe("API /api/v1/pdv/sales", () => {
       const sale = await pdvSale.create({
         sellerId: sellerAUser.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: cash.id,
+        payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
       });
 
       const res = await fetch(
@@ -452,7 +531,7 @@ describe("API /api/v1/pdv/sales", () => {
       const sale = await pdvSale.create({
         sellerId: sellerBUser.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: cash.id,
+        payments: [{ payment_method_id: cash.id, amount_in_cents: 1000 }],
       });
 
       const res = await fetch(

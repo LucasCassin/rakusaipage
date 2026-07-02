@@ -89,14 +89,19 @@ describe("API /api/v1/pdv/sales_report", () => {
     await pdvSale.create({
       sellerId: sellerA.id,
       items: [{ product_id: productX.id, quantity: 2 }],
-      paymentMethodId: cash.id,
+      payments: [{ payment_method_id: cash.id, amount_in_cents: 2000 }],
     });
 
     await pdvSale.create({
       sellerId: sellerB.id,
       items: [{ product_id: productY.id, quantity: 1 }],
-      paymentMethodId: card.id,
-      paymentMethodVariantId: cardVariant.id,
+      payments: [
+        {
+          payment_method_id: card.id,
+          payment_method_variant_id: cardVariant.id,
+          amount_in_cents: 2000,
+        },
+      ],
     });
   });
 
