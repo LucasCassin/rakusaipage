@@ -32,6 +32,13 @@ export const settings = {
         ELEMENT_TYPES: "/api/v1/element-types",
         ELEMENT_GROUPS: "/api/v1/element_groups",
         USERS_SUB_STATUS: "/api/v1/subscriptions/users-status",
+        PDV_PRODUCTS: "/api/v1/pdv/products",
+        PDV_PRODUCTS_ADMIN: "/api/v1/pdv/products/admin",
+        PDV_PAYMENT_METHODS: "/api/v1/pdv/payment-methods",
+        PDV_PAYMENT_METHODS_ADMIN: "/api/v1/pdv/payment-methods/admin",
+        PDV_SETTINGS: "/api/v1/pdv/settings",
+        PDV_SALES: "/api/v1/pdv/sales",
+        PDV_SALES_REPORT: "/api/v1/pdv/sales_report",
       },
     },
     REDIRECTS: {
@@ -424,6 +431,24 @@ export const settings = {
             ],
           ],
           icon: "CurrencyDollarIcon", // Exemplo de ícone
+        },
+        {
+          name: "PDV",
+          href: "/pdv",
+          FEATURES: [["pdv:sell"]],
+          icon: "ShoppingCartIcon",
+        },
+        {
+          name: "PDV - Administração",
+          href: "/pdv/admin",
+          FEATURES: [
+            ["pdv:products:manage"],
+            ["pdv:payment_methods:manage"],
+            ["pdv:config:manage"],
+            ["pdv:sales:cancel"],
+            ["pdv:reports:read"],
+          ],
+          icon: "Cog6ToothIcon",
         },
       ],
       [
