@@ -2,6 +2,8 @@ import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import session from "models/session.js";
 import pdvPaymentMethod from "models/pdv_payment_method.js";
+import pdvProduct from "models/pdv_product.js";
+import pdvSale from "models/pdv_sale.js";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -10,7 +12,11 @@ beforeAll(async () => {
 });
 
 describe("API /api/v1/pdv/payment-methods", () => {
-  let adminSession, sellerSession, unauthorizedSession, expiredSession;
+  let adminSession,
+    sellerSession,
+    sellerUser,
+    unauthorizedSession,
+    expiredSession;
 
   beforeAll(async () => {
     const adminUser = await user.findOneUser({ username: "mainUser" });
@@ -21,7 +27,7 @@ describe("API /api/v1/pdv/payment-methods", () => {
     await user.addFeatures(updatedAdmin, ["pdv:payment_methods:manage"]);
     adminSession = await session.create(updatedAdmin);
 
-    let sellerUser = await user.create({
+    sellerUser = await user.create({
       username: "pdvPmSeller",
       email: "pdv-pm-seller@test.com",
       password: "StrongPassword123@",
@@ -263,6 +269,80 @@ describe("API /api/v1/pdv/payment-methods", () => {
       await expect(
         pdvPaymentMethod.findVariantById(variant.id),
       ).rejects.toThrow();
+    });
+  });
+
+  describe("GET .../admin/[id]/usage and .../admin/variants/[variantId]/usage", () => {
+    test("Should report in_use: false for a method/variant never sold", async () => {
+      const method = await pdvPaymentMethod.create({
+        name: "Forma Nunca Vendida Rota",
+      });
+      const variant = await pdvPaymentMethod.createVariant(method.id, {
+        name: "Variante Nunca Vendida Rota",
+      });
+
+      const methodRes = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/payment-methods/admin/${method.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect(methodRes.status).toBe(200);
+      expect((await methodRes.json()).in_use).toBe(false);
+
+      const variantRes = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/payment-methods/admin/variants/${variant.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect(variantRes.status).toBe(200);
+      expect((await variantRes.json()).in_use).toBe(false);
+    });
+
+    test("Should report in_use: true for a method/variant referenced by a sale", async () => {
+      const method = await pdvPaymentMethod.create({
+        name: "Forma Vendida Rota",
+      });
+      const variant = await pdvPaymentMethod.createVariant(method.id, {
+        name: "Variante Vendida Rota",
+      });
+      const product = await pdvProduct.create({
+        name: "Produto Forma Usage Rota",
+        price_in_cents: 1000,
+        stock_quantity: 10,
+      });
+      await pdvSale.create({
+        sellerId: sellerUser.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          {
+            payment_method_id: method.id,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 1000,
+          },
+        ],
+      });
+
+      const methodRes = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/payment-methods/admin/${method.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect((await methodRes.json()).in_use).toBe(true);
+
+      const variantRes = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/payment-methods/admin/variants/${variant.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect((await variantRes.json()).in_use).toBe(true);
+    });
+
+    test("Seller (pdv:sell only) should get 403 on both", async () => {
+      const method = await pdvPaymentMethod.create({
+        name: "Forma Usage Sem Permissao",
+      });
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/payment-methods/admin/${method.id}/usage`,
+        { headers: { cookie: `session_id=${sellerSession.token}` } },
+      );
+      expect(res.status).toBe(403);
     });
   });
 });

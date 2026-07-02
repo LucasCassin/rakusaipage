@@ -218,6 +218,21 @@ async function remove(id) {
 }
 
 /**
+ * Verifica se o produto já foi vendido (referenciado por `pdv_sale_items`),
+ * usado pela tela de exclusão para avisar se o `hardDelete` vai falhar.
+ */
+async function isInUse(id) {
+  const cleanId = validator({ id }, { id: "required" }).id;
+
+  const result = await database.query({
+    text: "SELECT EXISTS (SELECT 1 FROM pdv_sale_items WHERE product_id = $1) AS in_use;",
+    values: [cleanId],
+  });
+
+  return result.rows[0].in_use;
+}
+
+/**
  * Exclui definitivamente um produto do PDV. Se o produto já foi vendido
  * (referenciado por `pdv_sale_items`), o banco bloqueia via FK e o erro é
  * convertido em um `ServiceError` 409 — nesse caso, use `remove` (inativar).
@@ -317,6 +332,7 @@ export default {
   update,
   remove,
   hardDelete,
+  isInUse,
   adjustStock,
   decrementForSale,
   restockForCancel,

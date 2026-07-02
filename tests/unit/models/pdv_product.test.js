@@ -1,11 +1,24 @@
 import pdvProduct from "models/pdv_product.js";
+import pdvPaymentMethod from "models/pdv_payment_method.js";
+import pdvSale from "models/pdv_sale.js";
+import user from "models/user.js";
 import { ValidationError, NotFoundError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
+
+let seller;
+let paymentMethod;
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
+
+  seller = await user.create({
+    username: "pdvProductInUseSeller",
+    email: "pdv-product-in-use-seller@test.com",
+    password: "StrongPassword123@",
+  });
+  paymentMethod = await pdvPaymentMethod.create({ name: "Dinheiro In Use" });
 });
 
 describe("Model: PdvProduct", () => {
@@ -190,6 +203,26 @@ describe("Model: PdvProduct", () => {
       await expect(pdvProduct.hardDelete(fakeUUID)).rejects.toThrow(
         NotFoundError,
       );
+    });
+  });
+
+  describe("isInUse", () => {
+    test("should return false for a product never sold", async () => {
+      const product = await createBaseProduct("never-sold");
+      await expect(pdvProduct.isInUse(product.id)).resolves.toBe(false);
+    });
+
+    test("should return true for a product referenced by a sale", async () => {
+      const product = await createBaseProduct("sold-once");
+      await pdvSale.create({
+        sellerId: seller.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          { payment_method_id: paymentMethod.id, amount_in_cents: 1000 },
+        ],
+      });
+
+      await expect(pdvProduct.isInUse(product.id)).resolves.toBe(true);
     });
   });
 

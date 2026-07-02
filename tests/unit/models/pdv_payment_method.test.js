@@ -1,11 +1,22 @@
 import pdvPaymentMethod from "models/pdv_payment_method.js";
+import pdvProduct from "models/pdv_product.js";
+import pdvSale from "models/pdv_sale.js";
+import user from "models/user.js";
 import { ValidationError, NotFoundError } from "errors/index.js";
 import orchestrator from "tests/orchestrator.js";
+
+let seller;
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
+
+  seller = await user.create({
+    username: "pdvPaymentMethodInUseSeller",
+    email: "pdv-payment-method-in-use-seller@test.com",
+    password: "StrongPassword123@",
+  });
 });
 
 describe("Model: PdvPaymentMethod", () => {
@@ -124,6 +135,53 @@ describe("Model: PdvPaymentMethod", () => {
       await expect(
         pdvPaymentMethod.findVariantById(variant.id),
       ).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe("isMethodInUse / isVariantInUse", () => {
+    test("should return false for a method and variant never used in a sale", async () => {
+      const method = await pdvPaymentMethod.create({ name: "Nunca Usada" });
+      const variant = await pdvPaymentMethod.createVariant(method.id, {
+        name: "Nunca Usada Variante",
+      });
+
+      await expect(pdvPaymentMethod.isMethodInUse(method.id)).resolves.toBe(
+        false,
+      );
+      await expect(pdvPaymentMethod.isVariantInUse(variant.id)).resolves.toBe(
+        false,
+      );
+    });
+
+    test("should return true for a method and variant referenced by a sale", async () => {
+      const method = await pdvPaymentMethod.create({ name: "Usada Em Venda" });
+      const variant = await pdvPaymentMethod.createVariant(method.id, {
+        name: "Usada Em Venda Variante",
+      });
+      const product = await pdvProduct.create({
+        name: "Produto Forma Em Uso",
+        price_in_cents: 1000,
+        stock_quantity: 10,
+      });
+
+      await pdvSale.create({
+        sellerId: seller.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          {
+            payment_method_id: method.id,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 1000,
+          },
+        ],
+      });
+
+      await expect(pdvPaymentMethod.isMethodInUse(method.id)).resolves.toBe(
+        true,
+      );
+      await expect(pdvPaymentMethod.isVariantInUse(variant.id)).resolves.toBe(
+        true,
+      );
     });
   });
 

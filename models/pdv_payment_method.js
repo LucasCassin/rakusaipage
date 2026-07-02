@@ -160,6 +160,22 @@ async function update(id, paymentMethodData) {
 }
 
 /**
+ * Verifica se a forma de pagamento já foi usada em alguma venda (referenciada
+ * por `pdv_sale_payments`), usado pela tela de exclusão para avisar se o
+ * `hardDelete` vai falhar.
+ */
+async function isMethodInUse(id) {
+  const cleanId = validator({ id }, { id: "required" }).id;
+
+  const result = await database.query({
+    text: "SELECT EXISTS (SELECT 1 FROM pdv_sale_payments WHERE payment_method_id = $1) AS in_use;",
+    values: [cleanId],
+  });
+
+  return result.rows[0].in_use;
+}
+
+/**
  * Remove (soft-delete) uma forma de pagamento, desativando também suas
  * variantes ativas em cascata lógica — evita variantes "órfãs" ativas de
  * uma forma de pagamento inativa.
@@ -369,6 +385,22 @@ async function updateVariant(variantId, variantData) {
 }
 
 /**
+ * Verifica se a variante já foi usada em alguma venda (referenciada por
+ * `pdv_sale_payments`), usado pela tela de exclusão para avisar se o
+ * `removeVariant` vai falhar.
+ */
+async function isVariantInUse(variantId) {
+  const cleanId = validator({ id: variantId }, { id: "required" }).id;
+
+  const result = await database.query({
+    text: "SELECT EXISTS (SELECT 1 FROM pdv_sale_payments WHERE payment_method_variant_id = $1) AS in_use;",
+    values: [cleanId],
+  });
+
+  return result.rows[0].in_use;
+}
+
+/**
  * Exclui definitivamente uma variante. Se já foi usada em alguma venda, o
  * banco bloqueia via FK e o erro é convertido em um `ServiceError` 409.
  */
@@ -396,8 +428,10 @@ export default {
   update,
   remove,
   hardDelete,
+  isMethodInUse,
   createVariant,
   findVariantById,
   updateVariant,
   removeVariant,
+  isVariantInUse,
 };

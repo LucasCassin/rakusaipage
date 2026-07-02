@@ -2,6 +2,8 @@ import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import session from "models/session.js";
 import pdvProduct from "models/pdv_product.js";
+import pdvPaymentMethod from "models/pdv_payment_method.js";
+import pdvSale from "models/pdv_sale.js";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -10,7 +12,11 @@ beforeAll(async () => {
 });
 
 describe("API /api/v1/pdv/products", () => {
-  let adminSession, sellerSession, unauthorizedSession, expiredSession;
+  let adminSession,
+    sellerSession,
+    sellerUser,
+    unauthorizedSession,
+    expiredSession;
 
   beforeAll(async () => {
     const adminUser = await user.findOneUser({ username: "mainUser" });
@@ -21,7 +27,7 @@ describe("API /api/v1/pdv/products", () => {
     await user.addFeatures(updatedAdmin, ["pdv:products:manage"]);
     adminSession = await session.create(updatedAdmin);
 
-    let sellerUser = await user.create({
+    sellerUser = await user.create({
       username: "pdvProductsSeller",
       email: "pdv-products-seller@test.com",
       password: "StrongPassword123@",
@@ -302,6 +308,61 @@ describe("API /api/v1/pdv/products", () => {
       expect(res.status).toBe(200);
 
       await expect(pdvProduct.findById(product.id)).rejects.toThrow();
+    });
+  });
+
+  describe("GET /api/v1/pdv/products/admin/[id]/usage", () => {
+    test("Should report in_use: false for a product never sold", async () => {
+      const product = await pdvProduct.create({
+        name: "Produto Nunca Vendido",
+        price_in_cents: 1000,
+      });
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/products/admin/${product.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.in_use).toBe(false);
+    });
+
+    test("Should report in_use: true for a product referenced by a sale", async () => {
+      const product = await pdvProduct.create({
+        name: "Produto Vendido Uma Vez",
+        price_in_cents: 1000,
+        stock_quantity: 10,
+      });
+      const paymentMethod = await pdvPaymentMethod.create({
+        name: "Dinheiro Usage Test",
+      });
+      await pdvSale.create({
+        sellerId: sellerUser.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          { payment_method_id: paymentMethod.id, amount_in_cents: 1000 },
+        ],
+      });
+
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/products/admin/${product.id}/usage`,
+        { headers: { cookie: `session_id=${adminSession.token}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.in_use).toBe(true);
+    });
+
+    test("Seller (pdv:sell only) should get 403", async () => {
+      const product = await pdvProduct.create({
+        name: "Produto Usage Sem Permissao",
+        price_in_cents: 1000,
+      });
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/products/admin/${product.id}/usage`,
+        { headers: { cookie: `session_id=${sellerSession.token}` } },
+      );
+      expect(res.status).toBe(403);
     });
   });
 
