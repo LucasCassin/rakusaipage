@@ -123,6 +123,14 @@ const availableFeatures = new Set([
   "shop:orders:read_all",
   "shop:coupons:manage",
 
+  // PDV (Ponto de Venda)
+  "pdv:sell",
+  "pdv:products:manage",
+  "pdv:payment_methods:manage",
+  "pdv:config:manage",
+  "pdv:sales:cancel",
+  "pdv:reports:read",
+
   //Feature para teste
   "test:feature",
   "test:feature:2",
