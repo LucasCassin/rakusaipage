@@ -71,11 +71,8 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
         Configurações do PDV
       </h3>
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end w-full"
-      >
-        <div>
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-4">
+        <div className="flex-1 min-w-[160px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Piso do carrinho (R$)
           </label>
@@ -89,9 +86,11 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[180px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teto de desconto em R$ (vazio = sem limite)
+            Limite de desconto em R$
+            <br />
+            (vazio = sem limite)
           </label>
           <FormInput
             id="pdv-settings-max-discount"
@@ -103,9 +102,11 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[180px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teto de desconto em % (vazio = sem limite)
+            Limite de desconto em %
+            <br />
+            (vazio = sem limite)
           </label>
           <FormInput
             id="pdv-settings-max-discount-percentage"
@@ -118,9 +119,9 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
-        <div>
+        <div className="flex flex-shrink-0 justify-end">
           {justSaved ? (
-            <div className="w-full flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
+            <div className="w-40 flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
               <FiCheckCircle /> Salvo!
             </div>
           ) : (
@@ -128,15 +129,15 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
               type="submit"
               variant="primary"
               size="small"
-              className="w-full"
+              className="w-40"
             >
               Salvar
             </Button>
           )}
         </div>
-        <p className="sm:col-span-2 lg:col-span-4 text-xs text-gray-500 -mt-2">
-          Se os dois tetos de desconto forem preenchidos, vale o que resultar no
-          menor desconto para o carrinho.
+        <p className="w-full text-xs text-gray-500 -mt-2">
+          Se os dois limites de desconto forem preenchidos, vale o que resultar
+          no menor desconto para o carrinho.
         </p>
       </form>
     </div>

@@ -22,7 +22,6 @@ export default function SalesReport({
   onCancelSale,
 }) {
   const [filters, setFilters] = useState(emptyFilters);
-  const [cancelReasonBySale, setCancelReasonBySale] = useState({});
   const [pendingCancelSaleId, setPendingCancelSaleId] = useState(null);
   const [cancellingSaleId, setCancellingSaleId] = useState(null);
 
@@ -72,8 +71,7 @@ export default function SalesReport({
     }
     setPendingCancelSaleId(null);
     setCancellingSaleId(saleId);
-    const result = await onCancelSale(saleId, cancelReasonBySale[saleId] || "");
-    setCancelReasonBySale((prev) => ({ ...prev, [saleId]: "" }));
+    const result = await onCancelSale(saleId);
     setCancellingSaleId(null);
     // Atualiza a tabela com os mesmos filtros para refletir o cancelamento.
     if (result) onFetch(buildReportQuery());
@@ -99,9 +97,9 @@ export default function SalesReport({
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6 items-end"
+        className="flex flex-wrap items-end gap-3 mb-6"
       >
-        <div>
+        <div className="flex-1 min-w-[160px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Início
           </label>
@@ -113,7 +111,7 @@ export default function SalesReport({
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[160px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Fim
           </label>
@@ -125,7 +123,7 @@ export default function SalesReport({
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Forma(s) de pagamento
           </label>
@@ -140,7 +138,7 @@ export default function SalesReport({
             emptyLabel="Nenhuma forma de pagamento cadastrada."
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Produto(s)
           </label>
@@ -155,7 +153,7 @@ export default function SalesReport({
             emptyLabel="Nenhum produto cadastrado."
           />
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-shrink-0 flex-col items-end gap-2">
           <label className="inline-flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -165,7 +163,7 @@ export default function SalesReport({
             />
             Incluir canceladas
           </label>
-          <Button type="submit" variant="primary" size="small">
+          <Button type="submit" variant="primary" size="small" className="w-40">
             Filtrar
           </Button>
         </div>
@@ -256,20 +254,22 @@ export default function SalesReport({
               </h5>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500">
-                    <th className="py-2 pr-4">Produto</th>
+                  <tr className="text-gray-500">
+                    <th className="py-2 pr-4 text-left">Produto</th>
                     <th className="py-2 pr-4 text-center">Quantidade</th>
-                    <th className="py-2 pr-4 text-right">Faturamento</th>
+                    <th className="py-2 pr-4 text-center">Faturamento</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {report.by_product.map((row) => (
                     <tr key={row.product_id}>
-                      <td className="py-2 pr-4">{row.product_name}</td>
+                      <td className="py-2 pr-4 text-left">
+                        {row.product_name}
+                      </td>
                       <td className="py-2 pr-4 text-center">
                         {row.quantity_sold}
                       </td>
-                      <td className="py-2 pr-4 text-right">
+                      <td className="py-2 pr-4 text-center">
                         {formatCurrencyInCents(row.revenue_in_cents)}
                       </td>
                     </tr>
@@ -289,12 +289,12 @@ export default function SalesReport({
               </h5>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500">
-                    <th className="py-2 pr-4">Nº</th>
-                    <th className="py-2 pr-4">Data</th>
-                    <th className="py-2 pr-4">Forma</th>
-                    <th className="py-2 pr-4">Total</th>
-                    <th className="py-2 pr-4">Status</th>
+                  <tr className="text-gray-500">
+                    <th className="py-2 pr-4 text-center">Nº</th>
+                    <th className="py-2 pr-4 text-center">Data</th>
+                    <th className="py-2 pr-4 text-left">Forma</th>
+                    <th className="py-2 pr-4 text-center">Total</th>
+                    <th className="py-2 pr-4 text-center">Status</th>
                     {canCancel && (
                       <th className="py-2 pr-4 text-center">Ações</th>
                     )}
@@ -303,11 +303,13 @@ export default function SalesReport({
                 <tbody className="divide-y divide-gray-100">
                   {report.sales.map((sale) => (
                     <tr key={sale.id}>
-                      <td className="py-2 pr-4">#{sale.sale_number}</td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 text-center">
+                        #{sale.sale_number}
+                      </td>
+                      <td className="py-2 pr-4 text-center">
                         {new Date(sale.created_at).toLocaleString("pt-BR")}
                       </td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 text-left">
                         {sale.payments
                           .map(
                             (payment) =>
@@ -321,10 +323,10 @@ export default function SalesReport({
                           )
                           .join(" + ")}
                       </td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 text-center">
                         {formatCurrencyInCents(sale.total_in_cents)}
                       </td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 text-center">
                         {sale.status === "completed"
                           ? "Concluída"
                           : "Cancelada"}
@@ -333,18 +335,6 @@ export default function SalesReport({
                         <td className="py-2 pr-4">
                           {sale.status === "completed" && (
                             <div className="flex items-center justify-center gap-2">
-                              <input
-                                type="text"
-                                placeholder="Motivo"
-                                value={cancelReasonBySale[sale.id] || ""}
-                                onChange={(e) =>
-                                  setCancelReasonBySale((prev) => ({
-                                    ...prev,
-                                    [sale.id]: e.target.value,
-                                  }))
-                                }
-                                className="w-28 px-2 py-1 border border-gray-300 rounded-md text-xs"
-                              />
                               <Button
                                 variant={
                                   pendingCancelSaleId === sale.id

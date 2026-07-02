@@ -109,9 +109,9 @@ export default function ProductManagement({
 
       <form
         onSubmit={handleSubmit}
-        className={`grid grid-cols-1 sm:grid-cols-3 ${editingId ? "lg:grid-cols-5" : "lg:grid-cols-6"} gap-3 mb-6 items-end w-full`}
+        className="flex flex-wrap items-end gap-3 mb-6"
       >
-        <div className="sm:col-span-2">
+        <div className="flex-[2] min-w-[220px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Nome
           </label>
@@ -123,7 +123,7 @@ export default function ProductManagement({
             required
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Preço (R$)
           </label>
@@ -138,7 +138,7 @@ export default function ProductManagement({
             required
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Piso unitário (R$)
           </label>
@@ -153,7 +153,7 @@ export default function ProductManagement({
           />
         </div>
         {!editingId && (
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Estoque inicial
             </label>
@@ -168,13 +168,8 @@ export default function ProductManagement({
             />
           </div>
         )}
-        <div className="flex gap-2">
-          <Button
-            type="submit"
-            variant="primary"
-            size="small"
-            className="flex-1"
-          >
+        <div className="flex flex-shrink-0 justify-end gap-2">
+          <Button type="submit" variant="primary" size="small" className="w-40">
             {editingId ? "Salvar" : "+ Criar"}
           </Button>
           {editingId && (
@@ -182,7 +177,6 @@ export default function ProductManagement({
               type="button"
               variant="secondary"
               size="small"
-              className="flex-1"
               onClick={resetForm}
             >
               Cancelar

@@ -74,7 +74,12 @@ export default function PaymentMethodManagement({
             required
           />
         </div>
-        <Button type="submit" variant="primary" size="small">
+        <Button
+          type="submit"
+          variant="primary"
+          size="small"
+          className="w-full sm:w-40"
+        >
           + Adicionar
         </Button>
       </form>
