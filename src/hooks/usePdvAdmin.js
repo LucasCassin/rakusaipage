@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
@@ -11,6 +11,14 @@ import { handleApiResponse } from "src/utils/handleApiResponse";
 export function usePdvAdmin() {
   const router = useRouter();
   const { error, setError, success, setSuccess, clearAll } = useMessage();
+
+  // As mensagens de topo (erro/sucesso) somem sozinhas após alguns segundos,
+  // em vez de ficarem na tela até a próxima ação.
+  useEffect(() => {
+    if (!error && !success) return;
+    const timer = setTimeout(() => clearAll(), 3000);
+    return () => clearTimeout(timer);
+  }, [error, success, clearAll]);
 
   const [products, setProducts] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -122,6 +130,22 @@ export function usePdvAdmin() {
     [withHandling, router, setError, fetchProducts],
   );
 
+  // Checagem silenciosa usada pelo modal de exclusão — se a chamada falhar,
+  // assume que está em uso para não liberar uma exclusão que não pôde ser
+  // verificada.
+  const checkProductInUse = useCallback(async (id) => {
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PDV_PRODUCTS_ADMIN}/${id}/usage`,
+      );
+      if (!response.ok) return true;
+      const data = await response.json();
+      return Boolean(data.in_use);
+    } catch {
+      return true;
+    }
+  }, []);
+
   const adjustProductStock = useCallback(
     (id, deltaQuantity) =>
       withHandling(async () => {
@@ -215,6 +239,32 @@ export function usePdvAdmin() {
       }, "Forma de pagamento excluída com sucesso."),
     [withHandling, router, setError, fetchPaymentMethods],
   );
+
+  const checkPaymentMethodInUse = useCallback(async (id) => {
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PDV_PAYMENT_METHODS_ADMIN}/${id}/usage`,
+      );
+      if (!response.ok) return true;
+      const data = await response.json();
+      return Boolean(data.in_use);
+    } catch {
+      return true;
+    }
+  }, []);
+
+  const checkVariantInUse = useCallback(async (variantId) => {
+    try {
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PDV_PAYMENT_METHODS_ADMIN}/variants/${variantId}/usage`,
+      );
+      if (!response.ok) return true;
+      const data = await response.json();
+      return Boolean(data.in_use);
+    } catch {
+      return true;
+    }
+  }, []);
 
   const createVariant = useCallback(
     (paymentMethodId, name) =>
@@ -329,6 +379,7 @@ export function usePdvAdmin() {
     updateProduct,
     removeProduct,
     hardDeleteProduct,
+    checkProductInUse,
     adjustProductStock,
 
     paymentMethods,
@@ -338,8 +389,10 @@ export function usePdvAdmin() {
     updatePaymentMethod,
     removePaymentMethod,
     hardDeletePaymentMethod,
+    checkPaymentMethodInUse,
     createVariant,
     removeVariant,
+    checkVariantInUse,
 
     pdvSettings,
     isLoadingSettings,

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { FiEdit2, FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Switch from "components/ui/Switch";
+import DeleteConfirmModal from "components/pdv/admin/DeleteConfirmModal";
 import { formatCurrencyInCents } from "src/utils/formatCurrencyInCents";
 
 const emptyForm = {
@@ -20,11 +22,13 @@ export default function ProductManagement({
   onUpdate,
   onRemove,
   onHardDelete,
+  onCheckInUse,
   onAdjustStock,
 }) {
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [stockDeltaByProduct, setStockDeltaByProduct] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -92,14 +96,9 @@ export default function ProductManagement({
     }
   };
 
-  const handleHardDelete = (product) => {
-    if (
-      window.confirm(
-        `Excluir definitivamente o produto "${product.name}"? Esta ação não pode ser desfeita e só é possível se ele nunca foi vendido.`,
-      )
-    ) {
-      onHardDelete(product.id);
-    }
+  const handleConfirmDelete = async () => {
+    await onHardDelete(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   return (
@@ -110,7 +109,7 @@ export default function ProductManagement({
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 items-end"
+        className={`grid grid-cols-1 sm:grid-cols-3 ${editingId ? "lg:grid-cols-5" : "lg:grid-cols-6"} gap-3 mb-6 items-end w-full`}
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -170,7 +169,12 @@ export default function ProductManagement({
           </div>
         )}
         <div className="flex gap-2">
-          <Button type="submit" variant="primary" size="small">
+          <Button
+            type="submit"
+            variant="primary"
+            size="small"
+            className="flex-1"
+          >
             {editingId ? "Salvar" : "+ Criar"}
           </Button>
           {editingId && (
@@ -178,6 +182,7 @@ export default function ProductManagement({
               type="button"
               variant="secondary"
               size="small"
+              className="flex-1"
               onClick={resetForm}
             >
               Cancelar
@@ -192,44 +197,48 @@ export default function ProductManagement({
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead>
-              <tr className="text-left text-gray-500">
-                <th className="py-2 pr-4">Nome</th>
-                <th className="py-2 pr-4">Preço</th>
-                <th className="py-2 pr-4">Estoque</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Ajustar estoque</th>
-                <th className="py-2 pr-4">Ações</th>
+              <tr className="text-gray-500">
+                <th className="py-2 pr-4 text-left">Nome</th>
+                <th className="py-2 pr-4 text-center">Preço</th>
+                <th className="py-2 pr-4 text-center">Piso Unitário</th>
+                <th className="py-2 pr-4 text-center">Estoque</th>
+                <th className="py-2 pr-4 text-center">Status</th>
+                <th className="py-2 pr-4 text-center">Ajustar estoque</th>
+                <th className="py-2 pr-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {products.map((product) => (
                 <tr key={product.id}>
-                  <td className="py-2 pr-4 font-medium">{product.name}</td>
-                  <td className="py-2 pr-4">
+                  <td className="py-2 pr-4 font-medium text-left">
+                    {product.name}
+                  </td>
+                  <td className="py-2 pr-4 text-center">
                     {formatCurrencyInCents(product.price_in_cents)}
                   </td>
-                  <td className="py-2 pr-4">{product.stock_quantity}</td>
+                  <td className="py-2 pr-4 text-center">
+                    {formatCurrencyInCents(product.min_unit_price_in_cents)}
+                  </td>
+                  <td className="py-2 pr-4 text-center">
+                    {product.stock_quantity}
+                  </td>
                   <td className="py-2 pr-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <Switch
                         checked={product.is_active}
                         onChange={() => handleToggleActive(product)}
                       />
-                      <span
-                        className={
-                          product.is_active ? "text-green-700" : "text-gray-400"
-                        }
-                      >
+                      <span className="text-gray-700">
                         {product.is_active ? "Ativo" : "Inativo"}
                       </span>
                     </div>
                   </td>
                   <td className="py-2 pr-4">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-center gap-1.5">
                       <input
                         type="number"
                         min="0"
-                        className="w-16 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                        className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
                         value={stockDeltaByProduct[product.id] || ""}
                         onChange={(e) =>
                           setStockDeltaByProduct((prev) => ({
@@ -238,38 +247,43 @@ export default function ProductManagement({
                           }))
                         }
                       />
-                      <Button
-                        variant="secondary"
-                        size="small"
+                      <button
+                        type="button"
                         onClick={() => handleStockAdjust(product.id, 1)}
+                        className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        aria-label="Adicionar ao estoque"
                       >
-                        +
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="small"
+                        <FiPlus size={14} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleStockAdjust(product.id, -1)}
+                        className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        aria-label="Remover do estoque"
                       >
-                        -
-                      </Button>
+                        <FiMinus size={14} />
+                      </button>
                     </div>
                   </td>
                   <td className="py-2 pr-4">
-                    <div className="flex gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <Button
-                        variant="link"
+                        variant="secondary"
                         size="small"
+                        aria-label="Editar"
                         onClick={() => startEdit(product)}
                       >
-                        Editar
+                        <FiEdit2 />
+                        <span className="ml-2 sm:hidden">Editar</span>
                       </Button>
                       <Button
-                        variant="link"
+                        variant="danger"
                         size="small"
-                        className="text-red-600"
-                        onClick={() => handleHardDelete(product)}
+                        aria-label="Excluir"
+                        onClick={() => setDeleteTarget(product)}
                       >
-                        Excluir
+                        <FiTrash2 />
+                        <span className="ml-2 sm:hidden">Excluir</span>
                       </Button>
                     </div>
                   </td>
@@ -283,6 +297,18 @@ export default function ProductManagement({
             </p>
           )}
         </div>
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Excluir Produto"
+          itemLabel={deleteTarget.name}
+          blockedMessage="Este produto já foi vendido e não pode ser excluído. Use o botão de ativar/inativar em vez de excluir."
+          safeMessage="Este produto nunca foi vendido e pode ser excluído com segurança."
+          onClose={() => setDeleteTarget(null)}
+          onDelete={handleConfirmDelete}
+          checkUsage={() => onCheckInUse(deleteTarget.id)}
+        />
       )}
     </div>
   );

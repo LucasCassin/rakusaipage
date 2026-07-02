@@ -107,6 +107,7 @@ export default function PdvAdminPage() {
           onUpdate={admin.updateProduct}
           onRemove={admin.removeProduct}
           onHardDelete={admin.hardDeleteProduct}
+          onCheckInUse={admin.checkProductInUse}
           onAdjustStock={admin.adjustProductStock}
         />
       )}
@@ -119,8 +120,10 @@ export default function PdvAdminPage() {
           onUpdate={admin.updatePaymentMethod}
           onRemove={admin.removePaymentMethod}
           onHardDelete={admin.hardDeletePaymentMethod}
+          onCheckMethodInUse={admin.checkPaymentMethodInUse}
           onCreateVariant={admin.createVariant}
           onRemoveVariant={admin.removeVariant}
+          onCheckVariantInUse={admin.checkVariantInUse}
         />
       )}
 

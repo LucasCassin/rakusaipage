@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FiCheckCircle } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 
@@ -8,6 +9,13 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
     max_discount_in_cents: "",
     max_discount_percentage: "",
   });
+  const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
   useEffect(() => {
     if (pdvSettings) {
@@ -32,9 +40,10 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onUpdate({
+    setJustSaved(false);
+    const result = await onUpdate({
       min_cart_value_in_cents: Math.round(
         Number(formData.min_cart_value_in_cents || 0) * 100,
       ),
@@ -45,6 +54,7 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
         ? Math.round(Number(formData.max_discount_percentage))
         : null,
     });
+    if (result) setJustSaved(true);
   };
 
   if (isLoading || !pdvSettings) {
@@ -108,9 +118,22 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
-        <Button type="submit" variant="primary" size="small">
-          Salvar
-        </Button>
+        <div>
+          {justSaved ? (
+            <div className="w-full flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
+              <FiCheckCircle /> Salvo!
+            </div>
+          ) : (
+            <Button
+              type="submit"
+              variant="primary"
+              size="small"
+              className="w-full"
+            >
+              Salvar
+            </Button>
+          )}
+        </div>
         <p className="sm:col-span-2 lg:col-span-4 text-xs text-gray-500 -mt-2">
           Se os dois tetos de desconto forem preenchidos, vale o que resultar no
           menor desconto para o carrinho.

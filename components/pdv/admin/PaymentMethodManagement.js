@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Switch from "components/ui/Switch";
+import DeleteConfirmModal from "components/pdv/admin/DeleteConfirmModal";
 
 export default function PaymentMethodManagement({
   paymentMethods,
@@ -10,11 +12,14 @@ export default function PaymentMethodManagement({
   onUpdate,
   onRemove,
   onHardDelete,
+  onCheckMethodInUse,
   onCreateVariant,
   onRemoveVariant,
+  onCheckVariantInUse,
 }) {
   const [newMethodName, setNewMethodName] = useState("");
   const [newVariantNameByMethod, setNewVariantNameByMethod] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const handleCreateMethod = async (e) => {
     e.preventDefault();
@@ -40,24 +45,13 @@ export default function PaymentMethodManagement({
     }
   };
 
-  const handleHardDelete = (method) => {
-    if (
-      window.confirm(
-        `Excluir definitivamente a forma de pagamento "${method.name}" e suas variantes? Esta ação não pode ser desfeita e só é possível se ela nunca foi usada em uma venda.`,
-      )
-    ) {
-      onHardDelete(method.id);
+  const handleConfirmDelete = async () => {
+    if (deleteTarget.type === "method") {
+      await onHardDelete(deleteTarget.method.id);
+    } else {
+      await onRemoveVariant(deleteTarget.variant.id);
     }
-  };
-
-  const handleRemoveVariant = (variant) => {
-    if (
-      window.confirm(
-        `Excluir definitivamente a variante "${variant.name}"? Esta ação não pode ser desfeita e só é possível se ela nunca foi usada em uma venda.`,
-      )
-    ) {
-      onRemoveVariant(variant.id);
-    }
+    setDeleteTarget(null);
   };
 
   return (
@@ -107,21 +101,18 @@ export default function PaymentMethodManagement({
                       checked={method.is_active}
                       onChange={() => handleToggleActive(method)}
                     />
-                    <span
-                      className={
-                        method.is_active ? "text-green-700" : "text-gray-400"
-                      }
-                    >
+                    <span className="text-gray-700">
                       {method.is_active ? "Ativa" : "Inativa"}
                     </span>
                   </div>
                   <Button
-                    variant="link"
+                    variant="danger"
                     size="small"
-                    className="text-red-600"
-                    onClick={() => handleHardDelete(method)}
+                    aria-label="Excluir"
+                    onClick={() => setDeleteTarget({ type: "method", method })}
                   >
-                    Excluir
+                    <FiTrash2 />
+                    <span className="ml-2 sm:hidden">Excluir</span>
                   </Button>
                 </div>
               </div>
@@ -139,8 +130,14 @@ export default function PaymentMethodManagement({
                     {variant.name}
                     <button
                       type="button"
-                      onClick={() => handleRemoveVariant(variant)}
-                      className="flex items-center justify-center h-4 w-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 leading-none"
+                      onClick={() =>
+                        setDeleteTarget({ type: "variant", method, variant })
+                      }
+                      className={`flex items-center justify-center h-4 w-4 rounded-full leading-none ${
+                        variant.is_active
+                          ? "text-rakusai-purple/70 hover:bg-rakusai-purple/20 hover:text-rakusai-purple"
+                          : "text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                      }`}
                       aria-label="Excluir variante"
                     >
                       ×
@@ -180,6 +177,30 @@ export default function PaymentMethodManagement({
             </p>
           )}
         </div>
+      )}
+
+      {deleteTarget?.type === "method" && (
+        <DeleteConfirmModal
+          title="Excluir Forma de Pagamento"
+          itemLabel={deleteTarget.method.name}
+          blockedMessage="Esta forma de pagamento já foi usada em uma venda e não pode ser excluída. Use o botão de ativar/inativar em vez de excluir."
+          safeMessage="Esta forma de pagamento nunca foi usada em uma venda e pode ser excluída com segurança."
+          onClose={() => setDeleteTarget(null)}
+          onDelete={handleConfirmDelete}
+          checkUsage={() => onCheckMethodInUse(deleteTarget.method.id)}
+        />
+      )}
+
+      {deleteTarget?.type === "variant" && (
+        <DeleteConfirmModal
+          title="Excluir Variante"
+          itemLabel={deleteTarget.variant.name}
+          blockedMessage="Esta variante já foi usada em uma venda e não pode ser excluída."
+          safeMessage="Esta variante nunca foi usada em uma venda e pode ser excluída com segurança."
+          onClose={() => setDeleteTarget(null)}
+          onDelete={handleConfirmDelete}
+          checkUsage={() => onCheckVariantInUse(deleteTarget.variant.id)}
+        />
       )}
     </div>
   );
