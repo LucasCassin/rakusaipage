@@ -207,9 +207,18 @@ export default function SalesReport({
                       {new Date(sale.created_at).toLocaleString("pt-BR")}
                     </td>
                     <td className="py-2 pr-4">
-                      {sale.payment_method_name_snapshot}
-                      {sale.payment_method_variant_name_snapshot &&
-                        ` (${sale.payment_method_variant_name_snapshot})`}
+                      {sale.payments
+                        .map(
+                          (payment) =>
+                            `${payment.payment_method_name_snapshot}` +
+                            (payment.payment_method_variant_name_snapshot
+                              ? ` (${payment.payment_method_variant_name_snapshot})`
+                              : "") +
+                            (sale.payments.length > 1
+                              ? ` — ${formatCurrencyInCents(payment.amount_in_cents)}`
+                              : ""),
+                        )
+                        .join(" + ")}
                     </td>
                     <td className="py-2 pr-4">
                       {formatCurrencyInCents(sale.total_in_cents)}
