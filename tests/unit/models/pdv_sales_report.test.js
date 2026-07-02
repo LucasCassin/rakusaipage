@@ -153,9 +153,7 @@ describe("Model: PdvSalesReport", () => {
     });
     expect(report.summary.sales_count).toBe(2);
     expect(report.by_variant).toHaveLength(1);
-    expect(report.by_variant[0].payment_method_variant_id).toBe(
-      cardVariant.id,
-    );
+    expect(report.by_variant[0].payment_method_variant_id).toBe(cardVariant.id);
     expect(report.by_variant[0].total_in_cents).toBe(4000);
   });
 
