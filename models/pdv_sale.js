@@ -45,7 +45,9 @@ function calculateDiscount({
     caps.push(settings.max_discount_in_cents);
   }
   if (settings.max_discount_percentage != null) {
-    caps.push(Math.round(subtotalInCents * (settings.max_discount_percentage / 100)));
+    caps.push(
+      Math.round(subtotalInCents * (settings.max_discount_percentage / 100)),
+    );
   }
   const cappedDiscount = Math.min(...caps);
 
