@@ -67,14 +67,26 @@ async function getReport({
     idx++;
   }
 
+  // Uma venda pode ser paga em mais de uma forma de pagamento, então o
+  // filtro por forma/variante verifica se ALGUMA das parcelas da venda bate.
   if (cleanFilters.pdv_payment_method_id) {
-    conditions.push(`s.payment_method_id = $${idx}`);
+    conditions.push(`
+      EXISTS (
+        SELECT 1 FROM pdv_sale_payments sp
+        WHERE sp.sale_id = s.id AND sp.payment_method_id = $${idx}
+      )
+    `);
     values.push(cleanFilters.pdv_payment_method_id);
     idx++;
   }
 
   if (cleanFilters.pdv_payment_method_variant_id) {
-    conditions.push(`s.payment_method_variant_id = $${idx}`);
+    conditions.push(`
+      EXISTS (
+        SELECT 1 FROM pdv_sale_payments sp
+        WHERE sp.sale_id = s.id AND sp.payment_method_variant_id = $${idx}
+      )
+    `);
     values.push(cleanFilters.pdv_payment_method_variant_id);
     idx++;
   }
@@ -99,8 +111,8 @@ async function getReport({
   const where =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
   const whereWithVariant = where
-    ? `${where} AND s.payment_method_variant_id IS NOT NULL`
-    : "WHERE s.payment_method_variant_id IS NOT NULL";
+    ? `${where} AND sp.payment_method_variant_id IS NOT NULL`
+    : "WHERE sp.payment_method_variant_id IS NOT NULL";
 
   const generalQuery = {
     text: `
@@ -117,13 +129,14 @@ async function getReport({
   const byPaymentMethodQuery = {
     text: `
       SELECT
-        s.payment_method_id,
-        s.payment_method_name_snapshot AS payment_method_name,
-        COUNT(*)::int AS count,
-        COALESCE(SUM(s.total_in_cents), 0)::int AS total_in_cents
-      FROM pdv_sales s
+        sp.payment_method_id,
+        sp.payment_method_name_snapshot AS payment_method_name,
+        COUNT(DISTINCT sp.sale_id)::int AS count,
+        COALESCE(SUM(sp.amount_in_cents), 0)::int AS total_in_cents
+      FROM pdv_sale_payments sp
+      JOIN pdv_sales s ON s.id = sp.sale_id
       ${where}
-      GROUP BY s.payment_method_id, s.payment_method_name_snapshot
+      GROUP BY sp.payment_method_id, sp.payment_method_name_snapshot
       ORDER BY total_in_cents DESC;
     `,
     values,
@@ -132,13 +145,14 @@ async function getReport({
   const byVariantQuery = {
     text: `
       SELECT
-        s.payment_method_variant_id,
-        s.payment_method_variant_name_snapshot AS variant_name,
-        COUNT(*)::int AS count,
-        COALESCE(SUM(s.total_in_cents), 0)::int AS total_in_cents
-      FROM pdv_sales s
+        sp.payment_method_variant_id,
+        sp.payment_method_variant_name_snapshot AS variant_name,
+        COUNT(DISTINCT sp.sale_id)::int AS count,
+        COALESCE(SUM(sp.amount_in_cents), 0)::int AS total_in_cents
+      FROM pdv_sale_payments sp
+      JOIN pdv_sales s ON s.id = sp.sale_id
       ${whereWithVariant}
-      GROUP BY s.payment_method_variant_id, s.payment_method_variant_name_snapshot
+      GROUP BY sp.payment_method_variant_id, sp.payment_method_variant_name_snapshot
       ORDER BY total_in_cents DESC;
     `,
     values,
@@ -179,9 +193,28 @@ async function getReport({
   const salesQueryValues = [...values, cleanFilters.limit, cleanFilters.offset];
   const salesQuery = {
     text: `
-      SELECT s.*, count(*) OVER() as total_count
+      SELECT
+        s.*,
+        count(*) OVER() as total_count,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', sp.id,
+              'payment_method_id', sp.payment_method_id,
+              'payment_method_name_snapshot', sp.payment_method_name_snapshot,
+              'payment_method_variant_id', sp.payment_method_variant_id,
+              'payment_method_variant_name_snapshot', sp.payment_method_variant_name_snapshot,
+              'amount_in_cents', sp.amount_in_cents,
+              'cash_given_in_cents', sp.cash_given_in_cents,
+              'change_in_cents', sp.change_in_cents
+            )
+          ) FILTER (WHERE sp.id IS NOT NULL),
+          '[]'
+        ) AS payments
       FROM pdv_sales s
+      LEFT JOIN pdv_sale_payments sp ON sp.sale_id = s.id
       ${where}
+      GROUP BY s.id
       ORDER BY s.created_at DESC
       LIMIT $${values.length + 1} OFFSET $${values.length + 2};
     `,

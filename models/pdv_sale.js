@@ -61,17 +61,103 @@ function calculateDiscount({
 }
 
 /**
+ * Resolve e valida cada forma de pagamento informada (existe, está ativa,
+ * variante pertence à forma e está ativa / é exigida quando há variantes
+ * ativas). Não valida os valores ainda — o total da venda só é conhecido
+ * depois da baixa de estoque, dentro da transação.
+ */
+async function resolvePaymentMethods(payments) {
+  const resolved = [];
+
+  for (const payment of payments) {
+    const paymentMethod = await pdvPaymentMethod.findById(
+      payment.payment_method_id,
+    );
+    if (!paymentMethod.is_active) {
+      throw new ValidationError({
+        message: `A forma de pagamento "${paymentMethod.name}" está inativa.`,
+      });
+    }
+
+    const hasActiveVariants = paymentMethod.variants.some((v) => v.is_active);
+
+    let variant = null;
+    if (payment.payment_method_variant_id) {
+      variant = await pdvPaymentMethod.findVariantById(
+        payment.payment_method_variant_id,
+      );
+      if (
+        variant.payment_method_id !== paymentMethod.id ||
+        !variant.is_active
+      ) {
+        throw new ValidationError({
+          message:
+            "Esta variante não pertence à forma de pagamento selecionada, ou está inativa.",
+        });
+      }
+    } else if (hasActiveVariants) {
+      throw new ValidationError({
+        message: `A forma de pagamento "${paymentMethod.name}" exige a escolha de uma variante (ex: qual máquina foi usada).`,
+      });
+    }
+
+    resolved.push({
+      payment_method_id: paymentMethod.id,
+      payment_method_name_snapshot: paymentMethod.name,
+      payment_method_variant_id: variant?.id || null,
+      payment_method_variant_name_snapshot: variant?.name || null,
+      amount_in_cents: payment.amount_in_cents,
+      cash_given_in_cents: payment.cash_given_in_cents ?? null,
+    });
+  }
+
+  return resolved;
+}
+
+/**
+ * Confere se a soma das formas de pagamento bate com o total da venda e
+ * calcula o troco de cada forma que informou valor recebido em dinheiro.
+ * Uma venda pode ser dividida em mais de uma forma de pagamento (ex: metade
+ * no Pix, metade em dinheiro) — cada uma cobre uma fração do total.
+ */
+function finalizePayments(resolvedPayments, totalInCents) {
+  const sumInCents = resolvedPayments.reduce(
+    (acc, payment) => acc + payment.amount_in_cents,
+    0,
+  );
+
+  if (sumInCents !== totalInCents) {
+    throw new ValidationError({
+      message:
+        "A soma dos valores das formas de pagamento não corresponde ao total da venda.",
+    });
+  }
+
+  return resolvedPayments.map((payment) => {
+    let changeInCents = null;
+    if (payment.cash_given_in_cents !== null) {
+      if (payment.cash_given_in_cents < payment.amount_in_cents) {
+        throw new ValidationError({
+          message: `O valor recebido em dinheiro para "${payment.payment_method_name_snapshot}" é insuficiente para cobrir o valor alocado a essa forma de pagamento.`,
+        });
+      }
+      changeInCents = payment.cash_given_in_cents - payment.amount_in_cents;
+    }
+    return { ...payment, change_in_cents: changeInCents };
+  });
+}
+
+/**
  * Cria uma venda: valida itens/estoque, calcula desconto, dá baixa atômica
- * no estoque e persiste a venda + itens numa única transação.
+ * no estoque e persiste a venda + itens + formas de pagamento numa única
+ * transação.
  */
 async function create({
   sellerId,
   items,
   discountType,
   discountValue,
-  paymentMethodId,
-  paymentMethodVariantId,
-  cashGivenInCents,
+  payments,
   notes,
 }) {
   const cleanValues = validator(
@@ -80,9 +166,7 @@ async function create({
       pdv_sale_items: items,
       discount_type: discountType,
       pdv_discount_value: discountValue,
-      pdv_payment_method_id: paymentMethodId,
-      pdv_payment_method_variant_id: paymentMethodVariantId,
-      cash_given_in_cents: cashGivenInCents,
+      pdv_sale_payments: payments,
       notes,
     },
     {
@@ -90,9 +174,7 @@ async function create({
       pdv_sale_items: "required",
       discount_type: "optional",
       pdv_discount_value: "optional",
-      pdv_payment_method_id: "required",
-      pdv_payment_method_variant_id: "optional",
-      cash_given_in_cents: "optional",
+      pdv_sale_payments: "required",
       notes: "optional",
     },
   );
@@ -107,33 +189,9 @@ async function create({
     });
   }
 
-  const paymentMethod = await pdvPaymentMethod.findById(
-    cleanValues.pdv_payment_method_id,
+  const resolvedPayments = await resolvePaymentMethods(
+    cleanValues.pdv_sale_payments,
   );
-  if (!paymentMethod.is_active) {
-    throw new ValidationError({
-      message: "Esta forma de pagamento está inativa.",
-    });
-  }
-
-  const hasActiveVariants = paymentMethod.variants.some((v) => v.is_active);
-
-  let variant = null;
-  if (cleanValues.pdv_payment_method_variant_id) {
-    variant = await pdvPaymentMethod.findVariantById(
-      cleanValues.pdv_payment_method_variant_id,
-    );
-    if (variant.payment_method_id !== paymentMethod.id || !variant.is_active) {
-      throw new ValidationError({
-        message:
-          "Esta variante não pertence à forma de pagamento selecionada, ou está inativa.",
-      });
-    }
-  } else if (hasActiveVariants) {
-    throw new ValidationError({
-      message: `A forma de pagamento "${paymentMethod.name}" exige a escolha de uma variante (ex: qual máquina foi usada).`,
-    });
-  }
 
   const settings = await pdvSettings.get();
   const productIds = cleanValues.pdv_sale_items.map((item) => item.product_id);
@@ -195,17 +253,7 @@ async function create({
 
     const totalInCents = subtotal - discountInCents;
 
-    let changeInCents = null;
-    const cashGiven = cleanValues.cash_given_in_cents ?? null;
-    if (cashGiven !== null) {
-      if (cashGiven < totalInCents) {
-        throw new ValidationError({
-          message:
-            "O valor recebido em dinheiro é insuficiente para cobrir o total da venda.",
-        });
-      }
-      changeInCents = cashGiven - totalInCents;
-    }
+    const finalizedPayments = finalizePayments(resolvedPayments, totalInCents);
 
     // Baixa atômica de estoque, dentro da mesma transação. Se qualquer item
     // falhar, o erro propaga e o ROLLBACK desfaz tudo (nenhuma baixa parcial).
@@ -221,11 +269,8 @@ async function create({
       text: `
         INSERT INTO pdv_sales (
           seller_id, subtotal_in_cents, discount_type, discount_value,
-          discount_in_cents, total_in_cents,
-          payment_method_id, payment_method_name_snapshot,
-          payment_method_variant_id, payment_method_variant_name_snapshot,
-          cash_given_in_cents, change_in_cents, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          discount_in_cents, total_in_cents, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *;
       `,
       values: [
@@ -235,12 +280,6 @@ async function create({
         cleanDiscountValue,
         discountInCents,
         totalInCents,
-        paymentMethod.id,
-        paymentMethod.name,
-        variant?.id || null,
-        variant?.name || null,
-        cashGiven,
-        changeInCents,
         cleanValues.notes || null,
       ],
     });
@@ -265,8 +304,37 @@ async function create({
       });
     }
 
+    const paymentsToInsert = [];
+    for (const payment of finalizedPayments) {
+      const paymentResult = await client.query({
+        text: `
+          INSERT INTO pdv_sale_payments (
+            sale_id, payment_method_id, payment_method_name_snapshot,
+            payment_method_variant_id, payment_method_variant_name_snapshot,
+            amount_in_cents, cash_given_in_cents, change_in_cents
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *;
+        `,
+        values: [
+          createdSale.id,
+          payment.payment_method_id,
+          payment.payment_method_name_snapshot,
+          payment.payment_method_variant_id,
+          payment.payment_method_variant_name_snapshot,
+          payment.amount_in_cents,
+          payment.cash_given_in_cents,
+          payment.change_in_cents,
+        ],
+      });
+      paymentsToInsert.push(paymentResult.rows[0]);
+    }
+
     await client.query("COMMIT");
-    return { ...createdSale, items: itemsToInsert };
+    return {
+      ...createdSale,
+      items: itemsToInsert,
+      payments: paymentsToInsert,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     if (!error.code) {
@@ -300,7 +368,16 @@ async function findById(id) {
     values: [cleanId],
   });
 
-  return { ...saleResult.rows[0], items: itemsResult.rows };
+  const paymentsResult = await database.query({
+    text: "SELECT * FROM pdv_sale_payments WHERE sale_id = $1 ORDER BY created_at ASC;",
+    values: [cleanId],
+  });
+
+  return {
+    ...saleResult.rows[0],
+    items: itemsResult.rows,
+    payments: paymentsResult.rows,
+  };
 }
 
 /**
@@ -317,17 +394,36 @@ async function findAll({ limit = 20, offset = 0, sellerId } = {}) {
   let paramIndex = 3;
 
   if (validated.user_id) {
-    whereClause += ` AND seller_id = $${paramIndex}`;
+    whereClause += ` AND s.seller_id = $${paramIndex}`;
     values.push(validated.user_id);
     paramIndex++;
   }
 
   const result = await database.query({
     text: `
-      SELECT *, count(*) OVER() as total_count
-      FROM pdv_sales
+      SELECT
+        s.*,
+        count(*) OVER() as total_count,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', sp.id,
+              'payment_method_id', sp.payment_method_id,
+              'payment_method_name_snapshot', sp.payment_method_name_snapshot,
+              'payment_method_variant_id', sp.payment_method_variant_id,
+              'payment_method_variant_name_snapshot', sp.payment_method_variant_name_snapshot,
+              'amount_in_cents', sp.amount_in_cents,
+              'cash_given_in_cents', sp.cash_given_in_cents,
+              'change_in_cents', sp.change_in_cents
+            )
+          ) FILTER (WHERE sp.id IS NOT NULL),
+          '[]'
+        ) AS payments
+      FROM pdv_sales s
+      LEFT JOIN pdv_sale_payments sp ON sp.sale_id = s.id
       ${whereClause}
-      ORDER BY created_at DESC
+      GROUP BY s.id
+      ORDER BY s.created_at DESC
       LIMIT $1 OFFSET $2;
     `,
     values,

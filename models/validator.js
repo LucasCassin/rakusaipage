@@ -1797,6 +1797,34 @@ const schemas = {
         }),
     }),
 
+  pdv_sale_payments: () =>
+    Joi.object({
+      pdv_sale_payments: Joi.array()
+        .items(
+          Joi.object({
+            payment_method_id: Joi.string()
+              .guid({ version: "uuidv4" })
+              .required(),
+            payment_method_variant_id: Joi.string()
+              .guid({ version: "uuidv4" })
+              .allow(null)
+              .optional(),
+            amount_in_cents: Joi.number().integer().min(0).required(),
+            cash_given_in_cents: Joi.number()
+              .integer()
+              .min(0)
+              .allow(null)
+              .optional(),
+          }),
+        )
+        .min(1)
+        .when("$required.pdv_sale_payments", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   cancel_reason: () =>
     Joi.object({
       cancel_reason: Joi.string()

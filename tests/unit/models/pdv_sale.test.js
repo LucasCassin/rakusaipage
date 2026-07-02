@@ -37,6 +37,14 @@ describe("Model: PdvSale", () => {
       ...overrides,
     });
 
+  const singlePayment = (amountInCents, overrides = {}) => [
+    {
+      payment_method_id: paymentMethod.id,
+      amount_in_cents: amountInCents,
+      ...overrides,
+    },
+  ];
+
   describe("create", () => {
     test("should create a sale without discount and decrement stock", async () => {
       const product = await createProduct("sem-desconto");
@@ -44,13 +52,15 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 3 }],
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(3000),
       });
 
       expect(sale.subtotal_in_cents).toBe(3000);
       expect(sale.discount_in_cents).toBe(0);
       expect(sale.total_in_cents).toBe(3000);
       expect(sale.items).toHaveLength(1);
+      expect(sale.payments).toHaveLength(1);
+      expect(sale.payments[0].amount_in_cents).toBe(3000);
 
       const updatedProduct = await pdvProduct.findById(product.id);
       expect(updatedProduct.stock_quantity).toBe(17);
@@ -64,7 +74,7 @@ describe("Model: PdvSale", () => {
         items: [{ product_id: product.id, quantity: 10 }],
         discountType: "percentage",
         discountValue: 10,
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(9000),
       });
 
       expect(sale.subtotal_in_cents).toBe(10000);
@@ -80,7 +90,7 @@ describe("Model: PdvSale", () => {
         items: [{ product_id: product.id, quantity: 10 }],
         discountType: "fixed",
         discountValue: 500,
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(9500),
       });
 
       expect(sale.discount_in_cents).toBe(500);
@@ -96,7 +106,7 @@ describe("Model: PdvSale", () => {
           items: [{ product_id: product.id, quantity: 1 }],
           discountType: "percentage",
           discountValue: 150,
-          paymentMethodId: paymentMethod.id,
+          payments: singlePayment(1000),
         }),
       ).rejects.toThrow(ValidationError);
     });
@@ -110,7 +120,7 @@ describe("Model: PdvSale", () => {
         items: [{ product_id: product.id, quantity: 10 }],
         discountType: "fixed",
         discountValue: 2000,
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(9700),
       });
 
       expect(sale.discount_in_cents).toBe(300);
@@ -132,7 +142,7 @@ describe("Model: PdvSale", () => {
         items: [{ product_id: product.id, quantity: 10 }],
         discountType: "fixed",
         discountValue: 9000,
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(9500),
       });
 
       expect(sale.discount_in_cents).toBe(500);
@@ -153,7 +163,7 @@ describe("Model: PdvSale", () => {
         items: [{ product_id: product.id, quantity: 1 }],
         discountType: "fixed",
         discountValue: 500,
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(900),
       });
 
       // Subtotal 1000, piso 900 -> desconto máximo permitido é 100
@@ -167,12 +177,11 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: paymentMethod.id,
-        cashGivenInCents: 1500,
+        payments: singlePayment(1000, { cash_given_in_cents: 1500 }),
       });
 
-      expect(sale.cash_given_in_cents).toBe(1500);
-      expect(sale.change_in_cents).toBe(500);
+      expect(sale.payments[0].cash_given_in_cents).toBe(1500);
+      expect(sale.payments[0].change_in_cents).toBe(500);
     });
 
     test("should throw ValidationError when cash given is insufficient", async () => {
@@ -182,8 +191,7 @@ describe("Model: PdvSale", () => {
         pdvSale.create({
           sellerId: seller.id,
           items: [{ product_id: product.id, quantity: 1 }],
-          paymentMethodId: paymentMethod.id,
-          cashGivenInCents: 500,
+          payments: singlePayment(1000, { cash_given_in_cents: 500 }),
         }),
       ).rejects.toThrow(ValidationError);
     });
@@ -195,12 +203,19 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: cardMethodId,
-        paymentMethodVariantId: variant.id,
+        payments: [
+          {
+            payment_method_id: cardMethodId,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 1000,
+          },
+        ],
       });
 
-      expect(sale.payment_method_variant_id).toBe(variant.id);
-      expect(sale.payment_method_variant_name_snapshot).toBe(variant.name);
+      expect(sale.payments[0].payment_method_variant_id).toBe(variant.id);
+      expect(sale.payments[0].payment_method_variant_name_snapshot).toBe(
+        variant.name,
+      );
     });
 
     test("should throw ValidationError when variant does not belong to the payment method", async () => {
@@ -210,8 +225,13 @@ describe("Model: PdvSale", () => {
         pdvSale.create({
           sellerId: seller.id,
           items: [{ product_id: product.id, quantity: 1 }],
-          paymentMethodId: paymentMethod.id, // "Dinheiro", não é dono da variante
-          paymentMethodVariantId: variant.id,
+          payments: [
+            {
+              payment_method_id: paymentMethod.id, // "Dinheiro", não é dono da variante
+              payment_method_variant_id: variant.id,
+              amount_in_cents: 1000,
+            },
+          ],
         }),
       ).rejects.toThrow(ValidationError);
     });
@@ -224,8 +244,13 @@ describe("Model: PdvSale", () => {
         pdvSale.create({
           sellerId: seller.id,
           items: [{ product_id: product.id, quantity: 1 }],
-          paymentMethodId: cardMethodId,
-          // paymentMethodVariantId omitido de propósito
+          payments: [
+            {
+              payment_method_id: cardMethodId,
+              // payment_method_variant_id omitido de propósito
+              amount_in_cents: 1000,
+            },
+          ],
         }),
       ).rejects.toThrow(ValidationError);
     });
@@ -236,7 +261,7 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(1000),
         notes: "Maria Silva - (11) 99999-0000 - sorteio",
       });
 
@@ -254,7 +279,7 @@ describe("Model: PdvSale", () => {
         pdvSale.create({
           sellerId: seller.id,
           items: [{ product_id: product.id, quantity: 1 }],
-          paymentMethodId: paymentMethod.id,
+          payments: singlePayment(1000),
         }),
       ).rejects.toThrow(ValidationError);
     });
@@ -274,7 +299,7 @@ describe("Model: PdvSale", () => {
             { product_id: plentifulProduct.id, quantity: 5 },
             { product_id: scarceProduct.id, quantity: 5 },
           ],
-          paymentMethodId: paymentMethod.id,
+          payments: singlePayment(10000),
         }),
       ).rejects.toMatchObject({ statusCode: 409 });
 
@@ -285,13 +310,125 @@ describe("Model: PdvSale", () => {
     });
   });
 
+  describe("create with split payments", () => {
+    test("should create a sale split across two payment methods", async () => {
+      const product = await createProduct("split-dois", {
+        price_in_cents: 10000,
+      });
+      const cardMethodId = variant.payment_method_id;
+
+      const sale = await pdvSale.create({
+        sellerId: seller.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          { payment_method_id: paymentMethod.id, amount_in_cents: 4000 },
+          {
+            payment_method_id: cardMethodId,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 6000,
+          },
+        ],
+      });
+
+      expect(sale.total_in_cents).toBe(10000);
+      expect(sale.payments).toHaveLength(2);
+      const total = sale.payments.reduce(
+        (acc, p) => acc + p.amount_in_cents,
+        0,
+      );
+      expect(total).toBe(10000);
+    });
+
+    test("should compute change independently for the cash leg of a split payment", async () => {
+      const product = await createProduct("split-troco", {
+        price_in_cents: 10000,
+      });
+      const cardMethodId = variant.payment_method_id;
+
+      const sale = await pdvSale.create({
+        sellerId: seller.id,
+        items: [{ product_id: product.id, quantity: 1 }],
+        payments: [
+          {
+            payment_method_id: cardMethodId,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 6000,
+          },
+          {
+            payment_method_id: paymentMethod.id,
+            amount_in_cents: 4000,
+            cash_given_in_cents: 5000,
+          },
+        ],
+      });
+
+      const cashLeg = sale.payments.find(
+        (p) => p.payment_method_id === paymentMethod.id,
+      );
+      const cardLeg = sale.payments.find(
+        (p) => p.payment_method_id === cardMethodId,
+      );
+      expect(cashLeg.change_in_cents).toBe(1000);
+      expect(cardLeg.cash_given_in_cents).toBeNull();
+      expect(cardLeg.change_in_cents).toBeNull();
+    });
+
+    test("should throw ValidationError when the sum of payments does not match the total", async () => {
+      const product = await createProduct("split-soma-errada", {
+        price_in_cents: 10000,
+      });
+      const cardMethodId = variant.payment_method_id;
+
+      await expect(
+        pdvSale.create({
+          sellerId: seller.id,
+          items: [{ product_id: product.id, quantity: 1 }],
+          payments: [
+            { payment_method_id: paymentMethod.id, amount_in_cents: 4000 },
+            {
+              payment_method_id: cardMethodId,
+              payment_method_variant_id: variant.id,
+              amount_in_cents: 5000,
+            },
+          ],
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    test("should throw ValidationError when cash given is insufficient for its own leg, even if another leg covers the rest", async () => {
+      const product = await createProduct("split-dinheiro-insuficiente", {
+        price_in_cents: 10000,
+      });
+      const cardMethodId = variant.payment_method_id;
+
+      await expect(
+        pdvSale.create({
+          sellerId: seller.id,
+          items: [{ product_id: product.id, quantity: 1 }],
+          payments: [
+            {
+              payment_method_id: paymentMethod.id,
+              amount_in_cents: 4000,
+              cash_given_in_cents: 2000,
+            },
+            {
+              payment_method_id: cardMethodId,
+              payment_method_variant_id: variant.id,
+              amount_in_cents: 6000,
+            },
+          ],
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+  });
+
   describe("referential integrity with hard delete", () => {
     test("should block hardDelete of a product referenced by a sale", async () => {
       const product = await createProduct("protegido-por-venda");
       await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(1000),
       });
 
       await expect(pdvProduct.hardDelete(product.id)).rejects.toMatchObject({
@@ -307,7 +444,7 @@ describe("Model: PdvSale", () => {
       await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: method.id,
+        payments: [{ payment_method_id: method.id, amount_in_cents: 1000 }],
       });
 
       await expect(
@@ -320,8 +457,13 @@ describe("Model: PdvSale", () => {
       await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: variant.payment_method_id,
-        paymentMethodVariantId: variant.id,
+        payments: [
+          {
+            payment_method_id: variant.payment_method_id,
+            payment_method_variant_id: variant.id,
+            amount_in_cents: 1000,
+          },
+        ],
       });
 
       await expect(
@@ -337,7 +479,7 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 4 }],
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(4000),
       });
 
       const afterSale = await pdvProduct.findById(product.id);
@@ -360,7 +502,7 @@ describe("Model: PdvSale", () => {
       const sale = await pdvSale.create({
         sellerId: seller.id,
         items: [{ product_id: product.id, quantity: 1 }],
-        paymentMethodId: paymentMethod.id,
+        payments: singlePayment(1000),
       });
 
       await pdvSale.cancel(sale.id, seller.id, null);

@@ -50,15 +50,20 @@ beforeAll(async () => {
   await pdvSale.create({
     sellerId: sellerA.id,
     items: [{ product_id: productX.id, quantity: 2 }],
-    paymentMethodId: cash.id,
+    payments: [{ payment_method_id: cash.id, amount_in_cents: 2000 }],
   });
 
   // Venda B: sellerB, cartão + variante, produto Y
   await pdvSale.create({
     sellerId: sellerB.id,
     items: [{ product_id: productY.id, quantity: 1 }],
-    paymentMethodId: card.id,
-    paymentMethodVariantId: cardVariant.id,
+    payments: [
+      {
+        payment_method_id: card.id,
+        payment_method_variant_id: cardVariant.id,
+        amount_in_cents: 2000,
+      },
+    ],
   });
 
   // Venda C: sellerA, dinheiro, produtos X e Y — será cancelada
@@ -68,9 +73,23 @@ beforeAll(async () => {
       { product_id: productX.id, quantity: 1 },
       { product_id: productY.id, quantity: 1 },
     ],
-    paymentMethodId: cash.id,
+    payments: [{ payment_method_id: cash.id, amount_in_cents: 3000 }],
   });
   await pdvSale.cancel(saleToCancel.id, sellerA.id, "Teste de relatório");
+
+  // Venda D: sellerA, dividida entre dinheiro e cartão+variante, produto X
+  await pdvSale.create({
+    sellerId: sellerA.id,
+    items: [{ product_id: productX.id, quantity: 3 }],
+    payments: [
+      { payment_method_id: cash.id, amount_in_cents: 1000 },
+      {
+        payment_method_id: card.id,
+        payment_method_variant_id: cardVariant.id,
+        amount_in_cents: 2000,
+      },
+    ],
+  });
 });
 
 describe("Model: PdvSalesReport", () => {
@@ -78,16 +97,16 @@ describe("Model: PdvSalesReport", () => {
     const report = await pdvSalesReport.getReport({
       productIds: [productX.id],
     });
-    // Apenas a Venda A contém X e não está cancelada
-    expect(report.summary.sales_count).toBe(1);
+    // Venda A e Venda D contêm X e não estão canceladas
+    expect(report.summary.sales_count).toBe(2);
   });
 
   test("should filter by multiple products", async () => {
     const report = await pdvSalesReport.getReport({
       productIds: [productX.id, productY.id],
     });
-    // Venda A (X) e Venda B (Y), Venda C está cancelada e fora por padrão
-    expect(report.summary.sales_count).toBe(2);
+    // Venda A (X), Venda B (Y) e Venda D (X); Venda C está cancelada e fora por padrão
+    expect(report.summary.sales_count).toBe(3);
   });
 
   test("should filter by date range", async () => {
@@ -101,25 +120,59 @@ describe("Model: PdvSalesReport", () => {
     const reportPast = await pdvSalesReport.getReport({
       startDate: past,
     });
-    expect(reportPast.summary.sales_count).toBeGreaterThanOrEqual(2);
+    expect(reportPast.summary.sales_count).toBeGreaterThanOrEqual(3);
   });
 
-  test("should filter by payment method", async () => {
+  test("should filter by payment method, matching any sale that used it in a split payment", async () => {
     const report = await pdvSalesReport.getReport({
       paymentMethodId: card.id,
     });
-    expect(report.summary.sales_count).toBe(1);
-    expect(report.by_payment_method).toHaveLength(1);
-    expect(report.by_payment_method[0].payment_method_id).toBe(card.id);
+    // Venda B (só cartão) e Venda D (dividida, cartão é uma das pernas)
+    expect(report.summary.sales_count).toBe(2);
+
+    // O breakdown reflete TODAS as pernas das vendas que casaram com o
+    // filtro — como a Venda D também tem uma perna em dinheiro, ela aparece
+    // aqui também, mesmo o filtro sendo por cartão.
+    const cardRow = report.by_payment_method.find(
+      (row) => row.payment_method_id === card.id,
+    );
+    const cashRow = report.by_payment_method.find(
+      (row) => row.payment_method_id === cash.id,
+    );
+    // 2000 (Venda B) + 2000 (perna do cartão na Venda D)
+    expect(cardRow.total_in_cents).toBe(4000);
+    expect(cardRow.count).toBe(2);
+    // Apenas a perna de dinheiro da Venda D
+    expect(cashRow.total_in_cents).toBe(1000);
+    expect(cashRow.count).toBe(1);
   });
 
   test("should filter by payment method variant", async () => {
     const report = await pdvSalesReport.getReport({
       paymentMethodVariantId: cardVariant.id,
     });
-    expect(report.summary.sales_count).toBe(1);
+    expect(report.summary.sales_count).toBe(2);
     expect(report.by_variant).toHaveLength(1);
-    expect(report.by_variant[0].payment_method_variant_id).toBe(cardVariant.id);
+    expect(report.by_variant[0].payment_method_variant_id).toBe(
+      cardVariant.id,
+    );
+    expect(report.by_variant[0].total_in_cents).toBe(4000);
+  });
+
+  test("should aggregate by_payment_method across split payments without filters", async () => {
+    const report = await pdvSalesReport.getReport({ sellerId: sellerA.id });
+
+    const cashRow = report.by_payment_method.find(
+      (row) => row.payment_method_id === cash.id,
+    );
+    const cardRow = report.by_payment_method.find(
+      (row) => row.payment_method_id === card.id,
+    );
+
+    // Venda A (2000 em dinheiro) + perna de dinheiro da Venda D (1000)
+    expect(cashRow.total_in_cents).toBe(3000);
+    // Apenas a perna de cartão da Venda D (2000) — Venda B é do sellerB
+    expect(cardRow.total_in_cents).toBe(2000);
   });
 
   test("should filter by seller", async () => {
@@ -133,13 +186,24 @@ describe("Model: PdvSalesReport", () => {
     const withoutCancelled = await pdvSalesReport.getReport({
       sellerId: sellerA.id,
     });
-    // Venda A concluída; Venda C cancelada não deve contar
-    expect(withoutCancelled.summary.sales_count).toBe(1);
+    // Venda A e Venda D concluídas; Venda C cancelada não deve contar
+    expect(withoutCancelled.summary.sales_count).toBe(2);
 
     const withCancelled = await pdvSalesReport.getReport({
       sellerId: sellerA.id,
       includeCancelled: true,
     });
-    expect(withCancelled.summary.sales_count).toBe(2);
+    expect(withCancelled.summary.sales_count).toBe(3);
+  });
+
+  test("should list each sale's payments in the sales listing", async () => {
+    const report = await pdvSalesReport.getReport({ sellerId: sellerA.id });
+    const splitSale = report.sales.find((sale) => sale.payments.length === 2);
+    expect(splitSale).toBeDefined();
+    const total = splitSale.payments.reduce(
+      (acc, p) => acc + p.amount_in_cents,
+      0,
+    );
+    expect(total).toBe(splitSale.total_in_cents);
   });
 });
