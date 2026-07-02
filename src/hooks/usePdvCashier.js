@@ -124,18 +124,13 @@ export function usePdvCashier() {
   // separado) para não depender do timing assíncrono de setState entre o
   // modal de pagamento e o envio da venda.
   const submitSale = useCallback(
-    async ({
-      paymentMethodId,
-      paymentMethodVariantId,
-      cashGivenInCents,
-      notes,
-    }) => {
+    async ({ payments, notes }) => {
       if (cartItems.length === 0) {
         setError("Adicione ao menos um item ao carrinho.");
         return null;
       }
-      if (!paymentMethodId) {
-        setError("Selecione uma forma de pagamento.");
+      if (!payments || payments.length === 0) {
+        setError("Selecione ao menos uma forma de pagamento.");
         return null;
       }
 
@@ -153,9 +148,13 @@ export function usePdvCashier() {
             })),
             discount_type: discount.type || undefined,
             discount_value: discount.value ?? undefined,
-            payment_method_id: paymentMethodId,
-            payment_method_variant_id: paymentMethodVariantId || undefined,
-            cash_given_in_cents: cashGivenInCents ?? undefined,
+            payments: payments.map((payment) => ({
+              payment_method_id: payment.paymentMethodId,
+              payment_method_variant_id:
+                payment.paymentMethodVariantId || undefined,
+              amount_in_cents: payment.amountInCents,
+              cash_given_in_cents: payment.cashGivenInCents ?? undefined,
+            })),
             notes: notes || undefined,
           }),
         });

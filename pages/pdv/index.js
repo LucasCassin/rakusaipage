@@ -63,25 +63,19 @@ export default function PdvCashierPage() {
     setCheckoutStep("payment");
   };
 
-  const handlePaymentConfirm = async ({
-    paymentMethodId,
-    paymentMethodVariantId,
-    cashGivenInCents,
-    notes,
-  }) => {
-    const data = await cashier.submitSale({
-      paymentMethodId,
-      paymentMethodVariantId,
-      cashGivenInCents,
-      notes,
-    });
+  const handlePaymentConfirm = async ({ payments, notes }) => {
+    const data = await cashier.submitSale({ payments, notes });
 
     if (data) {
       setCheckoutStep(null);
+      const totalChangeInCents = (data.payments || []).reduce(
+        (acc, payment) => acc + (payment.change_in_cents || 0),
+        0,
+      );
       setLastSaleMessage(
         `Venda #${data.sale_number} concluída — Total ${formatCurrencyInCents(data.total_in_cents)}` +
-          (data.change_in_cents
-            ? ` — Troco ${formatCurrencyInCents(data.change_in_cents)}`
+          (totalChangeInCents > 0
+            ? ` — Troco ${formatCurrencyInCents(totalChangeInCents)}`
             : ""),
       );
     }
