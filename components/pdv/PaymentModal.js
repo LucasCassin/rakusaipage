@@ -173,7 +173,10 @@ export default function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 p-3"
+      style={{ margin: 0 }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">Forma de Pagamento</h3>
