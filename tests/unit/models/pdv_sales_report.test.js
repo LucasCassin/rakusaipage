@@ -125,7 +125,7 @@ describe("Model: PdvSalesReport", () => {
 
   test("should filter by payment method, matching any sale that used it in a split payment", async () => {
     const report = await pdvSalesReport.getReport({
-      paymentMethodId: card.id,
+      paymentMethodIds: [card.id],
     });
     // Venda B (só cartão) e Venda D (dividida, cartão é uma das pernas)
     expect(report.summary.sales_count).toBe(2);
@@ -145,6 +145,14 @@ describe("Model: PdvSalesReport", () => {
     // Apenas a perna de dinheiro da Venda D
     expect(cashRow.total_in_cents).toBe(1000);
     expect(cashRow.count).toBe(1);
+  });
+
+  test("should filter by multiple payment methods at once", async () => {
+    const report = await pdvSalesReport.getReport({
+      paymentMethodIds: [cash.id, card.id],
+    });
+    // Todas as vendas não canceladas usam dinheiro e/ou cartão: A, B e D
+    expect(report.summary.sales_count).toBe(3);
   });
 
   test("should filter by payment method variant", async () => {

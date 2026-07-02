@@ -1747,6 +1747,17 @@ const schemas = {
         }),
     }),
 
+  pdv_payment_method_ids: () =>
+    Joi.object({
+      pdv_payment_method_ids: Joi.array()
+        .items(Joi.string().trim().guid({ version: "uuidv4" }))
+        .when("$required.pdv_payment_method_ids", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
   pdv_payment_method_variant_id: () =>
     Joi.object({
       pdv_payment_method_variant_id: Joi.string()

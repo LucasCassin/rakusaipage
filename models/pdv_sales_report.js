@@ -10,7 +10,7 @@ async function getReport({
   productIds,
   startDate,
   endDate,
-  paymentMethodId,
+  paymentMethodIds,
   paymentMethodVariantId,
   sellerId,
   includeCancelled = false,
@@ -28,7 +28,7 @@ async function getReport({
   const cleanFilters = validator(
     {
       product_ids: productIds,
-      pdv_payment_method_id: paymentMethodId,
+      pdv_payment_method_ids: paymentMethodIds,
       pdv_payment_method_variant_id: paymentMethodVariantId,
       user_id: sellerId,
       limit,
@@ -36,7 +36,7 @@ async function getReport({
     },
     {
       product_ids: "optional",
-      pdv_payment_method_id: "optional",
+      pdv_payment_method_ids: "optional",
       pdv_payment_method_variant_id: "optional",
       user_id: "optional",
       limit: "required",
@@ -69,14 +69,17 @@ async function getReport({
 
   // Uma venda pode ser paga em mais de uma forma de pagamento, então o
   // filtro por forma/variante verifica se ALGUMA das parcelas da venda bate.
-  if (cleanFilters.pdv_payment_method_id) {
+  if (
+    cleanFilters.pdv_payment_method_ids &&
+    cleanFilters.pdv_payment_method_ids.length > 0
+  ) {
     conditions.push(`
       EXISTS (
         SELECT 1 FROM pdv_sale_payments sp
-        WHERE sp.sale_id = s.id AND sp.payment_method_id = $${idx}
+        WHERE sp.sale_id = s.id AND sp.payment_method_id = ANY($${idx}::uuid[])
       )
     `);
-    values.push(cleanFilters.pdv_payment_method_id);
+    values.push(cleanFilters.pdv_payment_method_ids);
     idx++;
   }
 
@@ -147,12 +150,18 @@ async function getReport({
       SELECT
         sp.payment_method_variant_id,
         sp.payment_method_variant_name_snapshot AS variant_name,
+        sp.payment_method_id,
+        sp.payment_method_name_snapshot AS payment_method_name,
         COUNT(DISTINCT sp.sale_id)::int AS count,
         COALESCE(SUM(sp.amount_in_cents), 0)::int AS total_in_cents
       FROM pdv_sale_payments sp
       JOIN pdv_sales s ON s.id = sp.sale_id
       ${whereWithVariant}
-      GROUP BY sp.payment_method_variant_id, sp.payment_method_variant_name_snapshot
+      GROUP BY
+        sp.payment_method_variant_id,
+        sp.payment_method_variant_name_snapshot,
+        sp.payment_method_id,
+        sp.payment_method_name_snapshot
       ORDER BY total_in_cents DESC;
     `,
     values,

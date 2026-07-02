@@ -22,11 +22,17 @@ async function getHandler(req, res) {
         ? query.product_ids.split(",").filter(Boolean)
         : undefined;
 
+    const paymentMethodIds = Array.isArray(query.payment_method_ids)
+      ? query.payment_method_ids
+      : typeof query.payment_method_ids === "string"
+        ? query.payment_method_ids.split(",").filter(Boolean)
+        : undefined;
+
     const report = await pdvSalesReport.getReport({
       productIds,
       startDate: query.start_date,
       endDate: query.end_date,
-      paymentMethodId: query.payment_method_id,
+      paymentMethodIds,
       paymentMethodVariantId: query.payment_method_variant_id,
       sellerId: query.seller_id,
       includeCancelled: query.include_cancelled === "true",

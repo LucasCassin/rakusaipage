@@ -166,12 +166,22 @@ describe("API /api/v1/pdv/sales_report", () => {
 
     test("Should filter by payment method", async () => {
       const res = await fetch(
-        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?payment_method_id=${card.id}`,
+        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?payment_method_ids=${card.id}`,
         { headers: { cookie: `session_id=${reportsSession.token}` } },
       );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.summary.sales_count).toBe(1);
+    });
+
+    test("Should filter by multiple payment methods (comma-separated)", async () => {
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?payment_method_ids=${cash.id},${card.id}`,
+        { headers: { cookie: `session_id=${reportsSession.token}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.summary.sales_count).toBe(2);
     });
 
     test("Should filter by payment method variant", async () => {

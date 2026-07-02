@@ -2,14 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
 
 /**
- * Combobox de seleção múltipla de produtos, com a mesma altura dos demais
- * campos do formulário de filtros (o `<select multiple>` nativo ficava mais
- * alto que os outros inputs). Nenhum produto selecionado == "todos".
+ * Combobox de seleção múltipla genérico, com a mesma altura dos demais campos
+ * do formulário de filtros (um `<select multiple>` nativo ficaria mais alto
+ * que os outros inputs). Nenhum item selecionado == "todos".
  */
-export default function ProductMultiSelectFilter({
-  products,
+export default function MultiSelectFilter({
+  items,
   selectedIds,
   onChange,
+  allLabel,
+  selectedLabel,
+  emptyLabel,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -27,18 +30,16 @@ export default function ProductMultiSelectFilter({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleProduct = (productId) => {
-    if (selectedIds.includes(productId)) {
-      onChange(selectedIds.filter((id) => id !== productId));
+  const toggleItem = (itemId) => {
+    if (selectedIds.includes(itemId)) {
+      onChange(selectedIds.filter((id) => id !== itemId));
     } else {
-      onChange([...selectedIds, productId]);
+      onChange([...selectedIds, itemId]);
     }
   };
 
   const label =
-    selectedIds.length === 0
-      ? "Todos os produtos"
-      : `${selectedIds.length} produto${selectedIds.length > 1 ? "s" : ""} selecionado${selectedIds.length > 1 ? "s" : ""}`;
+    selectedIds.length === 0 ? allLabel : selectedLabel(selectedIds.length);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -61,26 +62,24 @@ export default function ProductMultiSelectFilter({
             onClick={() => onChange([])}
             className="w-full text-left px-3 py-1.5 text-sm font-medium text-rakusai-purple hover:bg-gray-50"
           >
-            Todos os produtos
+            {allLabel}
           </button>
           <div className="border-t border-gray-100 my-1" />
-          {products.map((product) => (
+          {items.map((item) => (
             <label
-              key={product.id}
+              key={item.id}
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
             >
               <input
                 type="checkbox"
-                checked={selectedIds.includes(product.id)}
-                onChange={() => toggleProduct(product.id)}
+                checked={selectedIds.includes(item.id)}
+                onChange={() => toggleItem(item.id)}
               />
-              {product.name}
+              {item.name}
             </label>
           ))}
-          {products.length === 0 && (
-            <p className="px-3 py-1.5 text-sm text-gray-400">
-              Nenhum produto cadastrado.
-            </p>
+          {items.length === 0 && (
+            <p className="px-3 py-1.5 text-sm text-gray-400">{emptyLabel}</p>
           )}
         </div>
       )}
