@@ -1,4 +1,5 @@
 import React from "react";
+import Spinner from "components/ui/Spinner";
 
 const Button = React.memo(
   ({
@@ -9,6 +10,8 @@ const Button = React.memo(
     children,
     variant = "primary",
     size = "large",
+    isLoading = false,
+    ...rest
   }) => {
     // MUDANÇA: Estilos base que se aplicam a TODOS os botões, incluindo 'link'.
     const commonBaseStyles =
@@ -41,10 +44,16 @@ const Button = React.memo(
       <button
         type={type}
         onClick={onClick}
-        disabled={disabled}
+        disabled={disabled || isLoading}
         // MUDANÇA: A construção da className agora é mais inteligente.
         className={`${commonBaseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${variant !== "link" ? boxedButtonStyles : ""} ${className}`}
+        {...rest}
       >
+        {isLoading && (
+          <span className="mr-2">
+            <Spinner size="4" color="currentColor" />
+          </span>
+        )}
         {children}
       </button>
     );

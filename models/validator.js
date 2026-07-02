@@ -1596,6 +1596,297 @@ const schemas = {
     Joi.object({
       search_term: Joi.string().trim().min(1).max(100).allow("").optional(),
     }),
+
+  // PDV (Ponto de Venda)
+  discount_type: () =>
+    Joi.object({
+      discount_type: Joi.string()
+        .valid("percentage", "fixed")
+        .allow(null)
+        .when("$required.discount_type", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  default_discount_type: () =>
+    Joi.object({
+      default_discount_type: Joi.string()
+        .valid("percentage", "fixed")
+        .allow(null)
+        .when("$required.default_discount_type", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  default_discount_value: () =>
+    Joi.object({
+      default_discount_value: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.default_discount_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  default_cart_discount_type: () =>
+    Joi.object({
+      default_cart_discount_type: Joi.string()
+        .valid("percentage", "fixed")
+        .allow(null)
+        .when("$required.default_cart_discount_type", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  default_cart_discount_value: () =>
+    Joi.object({
+      default_cart_discount_value: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.default_cart_discount_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pdv_discount_value: () =>
+    Joi.object({
+      pdv_discount_value: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.pdv_discount_value", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  cash_given_in_cents: () =>
+    Joi.object({
+      cash_given_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.cash_given_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  allow_negative_stock: () =>
+    Joi.object({
+      allow_negative_stock: Joi.boolean().when(
+        "$required.allow_negative_stock",
+        {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        },
+      ),
+    }),
+
+  max_negative_stock: () =>
+    Joi.object({
+      max_negative_stock: Joi.number()
+        .integer()
+        .min(0)
+        .allow(null)
+        .when("$required.max_negative_stock", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  min_unit_price_in_cents: () =>
+    Joi.object({
+      min_unit_price_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.min_unit_price_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  min_cart_value_in_cents: () =>
+    Joi.object({
+      min_cart_value_in_cents: Joi.number()
+        .integer()
+        .min(0)
+        .when("$required.min_cart_value_in_cents", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pdv_payment_method_id: () =>
+    Joi.object({
+      pdv_payment_method_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .when("$required.pdv_payment_method_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pdv_payment_method_ids: () =>
+    Joi.object({
+      pdv_payment_method_ids: Joi.array()
+        .items(Joi.string().trim().guid({ version: "uuidv4" }))
+        .when("$required.pdv_payment_method_ids", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pdv_payment_method_variant_id: () =>
+    Joi.object({
+      pdv_payment_method_variant_id: Joi.string()
+        .trim()
+        .guid({ version: "uuidv4" })
+        .allow(null)
+        .when("$required.pdv_payment_method_variant_id", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  product_ids: () =>
+    Joi.object({
+      product_ids: Joi.array()
+        .items(Joi.string().trim().guid({ version: "uuidv4" }))
+        .when("$required.product_ids", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  quantity: () =>
+    Joi.object({
+      quantity: Joi.number().integer().min(1).when("$required.quantity", {
+        is: "required",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
+    }),
+
+  pdv_sale_items: () =>
+    Joi.object({
+      pdv_sale_items: Joi.array()
+        .items(
+          Joi.object({
+            product_id: Joi.string().guid({ version: "uuidv4" }).required(),
+            quantity: Joi.number().integer().min(1).required(),
+          }),
+        )
+        .min(1)
+        .when("$required.pdv_sale_items", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  pdv_sale_payments: () =>
+    Joi.object({
+      pdv_sale_payments: Joi.array()
+        .items(
+          Joi.object({
+            payment_method_id: Joi.string()
+              .guid({ version: "uuidv4" })
+              .required(),
+            payment_method_variant_id: Joi.string()
+              .guid({ version: "uuidv4" })
+              .allow(null)
+              .optional(),
+            amount_in_cents: Joi.number().integer().min(0).required(),
+            cash_given_in_cents: Joi.number()
+              .integer()
+              .min(0)
+              .allow(null)
+              .optional(),
+          }),
+        )
+        .min(1)
+        .when("$required.pdv_sale_payments", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  cancel_reason: () =>
+    Joi.object({
+      cancel_reason: Joi.string()
+        .trim()
+        .max(500)
+        .allow("", null)
+        .when("$required.cancel_reason", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  stock_delta_quantity: () =>
+    Joi.object({
+      stock_delta_quantity: Joi.number()
+        .integer()
+        .invalid(0)
+        .when("$required.stock_delta_quantity", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  notes: () =>
+    Joi.object({
+      notes: Joi.string()
+        .trim()
+        .max(1000)
+        .allow("", null)
+        .when("$required.notes", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
+
+  max_discount_percentage: () =>
+    Joi.object({
+      max_discount_percentage: Joi.number()
+        .integer()
+        .min(0)
+        .max(100)
+        .allow(null)
+        .when("$required.max_discount_percentage", {
+          is: "required",
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+    }),
 };
 
 // Helper function to check if the username is reserved.

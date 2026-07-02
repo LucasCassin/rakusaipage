@@ -703,6 +703,145 @@ const profiles = {
       "items",
     ],
   },
+
+  // --- PDV: OPERAR O CAIXA ---
+  // Feature: "pdv:sell"
+  // Vender no caixa (ver catálogo/formas de pagamento ativas, criar vendas, ver as próprias vendas).
+  "pdv:sell": {
+    allowedInputFields: [
+      "pdv_sale_items",
+      "discount_type",
+      "pdv_discount_value",
+      "pdv_sale_payments",
+      "notes",
+      "search_term",
+      "is_active",
+    ],
+    allowedOutputFields: [
+      "id",
+      "sale_number",
+      "seller_id",
+      "subtotal_in_cents",
+      "discount_type",
+      "discount_value",
+      "discount_in_cents",
+      "total_in_cents",
+      "payments",
+      "notes",
+      "status",
+      "created_at",
+      "items",
+      "name",
+      "price_in_cents",
+      "stock_quantity",
+      "default_discount_type",
+      "default_discount_value",
+      "variants",
+    ],
+  },
+
+  // --- PDV: PRODUTOS ---
+  // Feature: "pdv:products:manage"
+  "pdv:products:manage": {
+    allowedInputFields: [
+      "name",
+      "price_in_cents",
+      "stock_quantity",
+      "min_unit_price_in_cents",
+      "default_discount_type",
+      "default_discount_value",
+      "allow_negative_stock",
+      "max_negative_stock",
+      "is_active",
+      "stock_delta_quantity",
+      "search_term",
+    ],
+    allowedOutputFields: [
+      "id",
+      "name",
+      "price_in_cents",
+      "stock_quantity",
+      "min_unit_price_in_cents",
+      "default_discount_type",
+      "default_discount_value",
+      "allow_negative_stock",
+      "max_negative_stock",
+      "is_active",
+      "created_at",
+      "updated_at",
+    ],
+  },
+
+  // --- PDV: FORMAS DE PAGAMENTO ---
+  // Feature: "pdv:payment_methods:manage"
+  "pdv:payment_methods:manage": {
+    allowedInputFields: ["name", "is_active"],
+    allowedOutputFields: [
+      "id",
+      "payment_method_id",
+      "name",
+      "is_active",
+      "variants",
+      "created_at",
+      "updated_at",
+    ],
+  },
+
+  // --- PDV: CONFIGURAÇÕES ---
+  // Feature: "pdv:config:manage"
+  "pdv:config:manage": {
+    allowedInputFields: [
+      "default_cart_discount_type",
+      "default_cart_discount_value",
+      "min_cart_value_in_cents",
+      "max_discount_in_cents",
+      "max_discount_percentage",
+    ],
+    allowedOutputFields: [
+      "singleton",
+      "default_cart_discount_type",
+      "default_cart_discount_value",
+      "min_cart_value_in_cents",
+      "max_discount_in_cents",
+      "max_discount_percentage",
+      "updated_at",
+    ],
+  },
+
+  // --- PDV: CANCELAMENTO DE VENDAS ---
+  // Feature: "pdv:sales:cancel"
+  "pdv:sales:cancel": {
+    allowedInputFields: ["cancel_reason"],
+    allowedOutputFields: [
+      "id",
+      "status",
+      "cancelled_at",
+      "cancelled_by",
+      "cancel_reason",
+    ],
+  },
+
+  // --- PDV: RELATÓRIOS ---
+  // Feature: "pdv:reports:read"
+  "pdv:reports:read": {
+    allowedInputFields: [
+      "product_ids",
+      "date",
+      "pdv_payment_method_id",
+      "pdv_payment_method_variant_id",
+      "user_id",
+    ],
+    allowedOutputFields: [
+      "period",
+      "summary",
+      "by_payment_method",
+      "by_variant",
+      "by_seller",
+      "by_product",
+      "sales",
+      "count",
+    ],
+  },
 };
 
 function can(user, feature, resource) {
@@ -729,6 +868,13 @@ function can(user, feature, resource) {
       return resource?.user_id && user.id === resource.user_id;
 
     // A VERIFICAÇÃO DE "DONO" DA APRESENTAÇÃO FOI REMOVIDA DAQUI
+
+    // PDV: usado apenas para checar se o vendedor é o dono de UMA venda
+    // específica (ex: GET /pdv/sales/[id]). Em todo o resto (criar venda,
+    // ver catálogo, etc.) o acesso é validado via `canRequest`, que não
+    // passa por este switch.
+    case "pdv:sell":
+      return Boolean(resource?.seller_id && user.id === resource.seller_id);
   }
 
   return true;
@@ -819,6 +965,26 @@ function canRequest(feature) {
   };
 }
 
+/**
+ * Middleware factory: libera a rota se o usuário possuir QUALQUER UMA das
+ * features informadas (OR), ao contrário de `canRequest`, que exige uma
+ * única feature obrigatória.
+ */
+function canRequestAny(features) {
+  return function (request, response, next) {
+    const userTryingToRequest = request.context.user;
+    const hasAny = features.some((feature) =>
+      userTryingToRequest.features.includes(feature),
+    );
+    if (!hasAny) {
+      throw new ForbiddenError(
+        ERROR_MESSAGES.CAN_REQUEST_FORBIDDEN(features.join(" ou ")),
+      );
+    }
+    return next();
+  };
+}
+
 function validateUser(user) {
   if (!user) {
     throw new ValidationError(ERROR_MESSAGES.INVALID_USER);
@@ -861,6 +1027,7 @@ function cleanObject(obj) {
 const authorization = {
   can,
   canRequest,
+  canRequestAny,
   filterInput,
   filterOutput,
 };

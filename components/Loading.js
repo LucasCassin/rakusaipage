@@ -24,8 +24,14 @@ export default function Loading({ message = "Carregando..." }) {
   }, []);
 
   return (
-    // O overlay de fundo, cobrindo a tela inteira
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+    // O overlay de fundo, cobrindo a tela inteira. `margin: 0` cancela o
+    // `margin-top` que containers com `space-y-*` (ex: PageLayout) aplicam a
+    // qualquer filho que não seja o primeiro — sem isso, este overlay `fixed`
+    // fica alguns pixels abaixo do topo real da viewport.
+    <div
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+      style={{ margin: 0 }}
+    >
       <div className="relative w-24 h-24">
         <Image
           src="/images/loader-icon.svg"
