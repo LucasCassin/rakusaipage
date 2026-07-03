@@ -304,7 +304,7 @@ export const texts = {
   layout: {
     message: {
       loading: "Carregando...",
-      copyright: "© Lucas Cassin - 2025 - Todos os direitos reservados",
+      copyright: "© Lucas Cassin - {year} - Todos os direitos reservados",
     },
   },
   header: {

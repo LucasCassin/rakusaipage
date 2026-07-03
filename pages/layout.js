@@ -4,6 +4,8 @@ import { useView } from "src/contexts/ViewContext.js";
 import PublicHeader from "components/PublicHeader";
 import StudentHeader from "components/StudentHeader.js";
 
+const FOUNDING_YEAR = 2025;
+
 /**
  * Layout principal da aplicação
  * Inclui header, main content e footer
@@ -12,6 +14,16 @@ export default function RootLayout({ children }) {
   // Hook de autenticação para obter o estado de carregamento
   const { user, isLoading } = useAuth();
   const { isPublicView } = useView();
+
+  const currentYear = new Date().getFullYear();
+  const yearLabel =
+    currentYear > FOUNDING_YEAR
+      ? `${FOUNDING_YEAR}-${currentYear}`
+      : `${FOUNDING_YEAR}`;
+  const copyrightText = texts.layout.message.copyright.replace(
+    "{year}",
+    yearLabel,
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -32,9 +44,7 @@ export default function RootLayout({ children }) {
       {/* Footer */}
       <footer className="bg-gray-800 text-white">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-400 text-sm">
-            {texts.layout.message.copyright}
-          </p>
+          <p className="text-center text-gray-400 text-sm">{copyrightText}</p>
         </div>
       </footer>
     </div>
