@@ -152,6 +152,7 @@ export const texts = {
     loginLink: "Já tem uma conta? Faça login",
   },
   logout: {
+    title: "Sair",
     message: {
       loading: "Saindo...",
       success: "Sessão finalizada.",
@@ -304,7 +305,7 @@ export const texts = {
   layout: {
     message: {
       loading: "Carregando...",
-      copyright: "© Lucas Cassin - 2025 - Todos os direitos reservados",
+      copyright: "© Lucas Cassin - {year} - Todos os direitos reservados",
     },
   },
   header: {
