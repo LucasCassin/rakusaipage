@@ -9,7 +9,7 @@ import validator from "models/validator.js";
 import { NotFoundError, ValidationError } from "errors/index.js";
 import ERROR_MESSAGES from "models/error-messages.js";
 
-const DEFAULT_PASSWORD_EXPIRATION_IN_SECONDS = 60 * 60 * 24 * 90; // 90 day
+const DEFAULT_PASSWORD_EXPIRATION_IN_SECONDS = 60 * 60 * 24 * 9999; // 9999 day
 const DEFAULT_FEATURES = [
   "create:session",
   "read:session:self",
