@@ -7,7 +7,7 @@ import { settings } from "config/settings.js";
 import { handleApiResponse } from "src/utils/handleApiResponse.js";
 import { texts } from "src/utils/texts.js";
 import PageLayout from "components/layouts/PageLayout";
-import LoadingSpinner from "components/ui/LoadingSpinner";
+import Spinner from "components/ui/Spinner";
 import Alert from "components/ui/Alert";
 import { useMessage } from "src/hooks/useMessage.js";
 
@@ -89,25 +89,24 @@ export default function Logout() {
 
   return (
     <PageLayout title={texts.logout.title} description="Saindo da sua conta">
-      {state.showContent && (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-            {!error && (
-              <LoadingSpinner message={texts.logout.message.loading} />
-            )}
-            <Alert type="error" show={!!error}>
-              {error}
-            </Alert>
+      <div>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          {texts.logout.title}
+        </h2>
+      </div>
 
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-gray-900">
-                {texts.logout.title}
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                {texts.logout.message.success}
+      {state.showContent && (
+        <div className="flex flex-col items-center space-y-4">
+          <Alert type="error">{error}</Alert>
+
+          {!error && (
+            <>
+              <Spinner size="10" />
+              <p className="text-sm text-gray-600">
+                {texts.logout.message.loading}
               </p>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       )}
     </PageLayout>

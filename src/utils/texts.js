@@ -152,6 +152,7 @@ export const texts = {
     loginLink: "Já tem uma conta? Faça login",
   },
   logout: {
+    title: "Sair",
     message: {
       loading: "Saindo...",
       success: "Sessão finalizada.",
