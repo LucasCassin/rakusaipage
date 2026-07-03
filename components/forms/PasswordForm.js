@@ -70,8 +70,9 @@ const PasswordForm = React.memo(
                 error={fieldErrors.password}
                 disabled={disabled}
                 inputRef={inputRef}
-                // className={showGeneratePasswordButton ? "" : "rounded-r-md"}
-                className="h-11 rounded-r-none"
+                className={`h-[38px] ${
+                  showGeneratePasswordButton ? "rounded-r-none" : "rounded-r-md"
+                }`}
                 aria-required="true"
                 aria-describedby="password-error password-criteria"
                 rightElement={

@@ -9,7 +9,7 @@ const PasswordGeneratorButton = React.memo(
       <button
         type="button"
         onClick={onClick}
-        className="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 h-11"
+        className="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 h-[38px]"
         aria-label={texts}
         disabled={disabled}
       >

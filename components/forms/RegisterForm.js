@@ -52,6 +52,7 @@ const RegisterForm = React.memo(
           error={fieldErrors.email}
           disabled={isLoading || !user}
           inputRef={emailInputRef}
+          className="h-[38px]"
           aria-required="true"
           aria-describedby="email-error"
         />

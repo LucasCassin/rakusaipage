@@ -146,6 +146,7 @@ export default function LoginForm() {
         onChange={handleChange}
         disabled={state.isLoading}
         error={fieldErrors.email}
+        className="h-[38px]"
       />
     );
   }, [
