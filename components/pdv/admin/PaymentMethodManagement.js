@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiPlus } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Switch from "components/ui/Switch";
@@ -117,7 +117,6 @@ export default function PaymentMethodManagement({
                     onClick={() => setDeleteTarget({ type: "method", method })}
                   >
                     <FiTrash2 />
-                    <span className="ml-2 sm:hidden">Excluir</span>
                   </Button>
                 </div>
               </div>
@@ -152,11 +151,11 @@ export default function PaymentMethodManagement({
               </div>
 
               {method.is_active && (
-                <div className="flex gap-2">
+                <div className="relative">
                   <input
                     type="text"
                     placeholder="Nova variante (ex: Máquina Amarela)"
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                    className="w-full px-3 py-1.5 pr-9 border border-gray-300 rounded-md text-sm"
                     value={newVariantNameByMethod[method.id] || ""}
                     onChange={(e) =>
                       setNewVariantNameByMethod((prev) => ({
@@ -164,14 +163,23 @@ export default function PaymentMethodManagement({
                         [method.id]: e.target.value,
                       }))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreateVariant(method.id);
+                      }
+                    }}
                   />
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => handleCreateVariant(method.id)}
-                  >
-                    + Variante
-                  </Button>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateVariant(method.id)}
+                      className="p-1 rounded-full text-gray-500 hover:text-rakusai-purple hover:bg-gray-100"
+                      aria-label="Adicionar variante"
+                    >
+                      <FiPlus size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
