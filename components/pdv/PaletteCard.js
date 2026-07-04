@@ -10,13 +10,15 @@ const PaletteCard = React.memo(({ product, onClick }) => {
       type="button"
       onClick={() => onClick(product)}
       disabled={outOfStock}
-      className="flex flex-col items-start p-4 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-rakusai-purple transition-all text-left disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex flex-col items-start p-2 sm:p-4 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-rakusai-purple transition-all text-left disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      <span className="font-semibold text-gray-900">{product.name}</span>
-      <span className="mt-1 text-lg font-bold text-rakusai-purple">
+      <span className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2">
+        {product.name}
+      </span>
+      <span className="mt-1 text-base sm:text-lg font-bold text-rakusai-purple">
         {formatCurrencyInCents(product.price_in_cents)}
       </span>
-      <span className="mt-1 text-xs text-gray-500">
+      <span className="mt-1 text-[11px] sm:text-xs text-gray-500">
         {outOfStock ? "Sem estoque" : `Estoque: ${product.stock_quantity}`}
       </span>
     </button>
