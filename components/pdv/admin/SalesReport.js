@@ -77,6 +77,20 @@ export default function SalesReport({
     if (result) onFetch(buildReportQuery());
   };
 
+  const formatSalePayments = (sale) =>
+    sale.payments
+      .map(
+        (payment) =>
+          `${payment.payment_method_name_snapshot}` +
+          (payment.payment_method_variant_name_snapshot
+            ? ` (${payment.payment_method_variant_name_snapshot})`
+            : "") +
+          (sale.payments.length > 1
+            ? ` — ${formatCurrencyInCents(payment.amount_in_cents)}`
+            : ""),
+      )
+      .join(" + ");
+
   // As variantes já pertencem a uma única forma de pagamento, mas o mesmo
   // nome de variante pode se repetir em formas diferentes (ex: duas formas
   // com uma variante "Balcão") — este gráfico soma essas ocorrências.
@@ -153,7 +167,7 @@ export default function SalesReport({
             emptyLabel="Nenhum produto cadastrado."
           />
         </div>
-        <div className="flex flex-shrink-0 flex-col items-end gap-2">
+        <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
           <label className="inline-flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -163,7 +177,12 @@ export default function SalesReport({
             />
             Incluir canceladas
           </label>
-          <Button type="submit" variant="primary" size="small" className="w-40">
+          <Button
+            type="submit"
+            variant="primary"
+            size="small"
+            className="w-full sm:w-40"
+          >
             Filtrar
           </Button>
         </div>
@@ -248,34 +267,57 @@ export default function SalesReport({
               Analítico
             </h4>
 
-            <div className="overflow-x-auto mb-8">
+            <div className="mb-8">
               <h5 className="text-sm font-semibold text-gray-700 mb-2">
                 Produtos vendidos
               </h5>
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead>
-                  <tr className="text-gray-500">
-                    <th className="py-2 pr-4 text-left">Produto</th>
-                    <th className="py-2 pr-4 text-center">Quantidade</th>
-                    <th className="py-2 pr-4 text-center">Faturamento</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {report.by_product.map((row) => (
-                    <tr key={row.product_id}>
-                      <td className="py-2 pr-4 text-left">
-                        {row.product_name}
-                      </td>
-                      <td className="py-2 pr-4 text-center">
-                        {row.quantity_sold}
-                      </td>
-                      <td className="py-2 pr-4 text-center">
-                        {formatCurrencyInCents(row.revenue_in_cents)}
-                      </td>
+
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead>
+                    <tr className="text-gray-500">
+                      <th className="py-2 pr-4 text-left">Produto</th>
+                      <th className="py-2 pr-4 text-center">Quantidade</th>
+                      <th className="py-2 pr-4 text-center">Faturamento</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {report.by_product.map((row) => (
+                      <tr key={row.product_id}>
+                        <td className="py-2 pr-4 text-left">
+                          {row.product_name}
+                        </td>
+                        <td className="py-2 pr-4 text-center">
+                          {row.quantity_sold}
+                        </td>
+                        <td className="py-2 pr-4 text-center">
+                          {formatCurrencyInCents(row.revenue_in_cents)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="md:hidden divide-y divide-gray-100">
+                {report.by_product.map((row) => (
+                  <div
+                    key={row.product_id}
+                    className="py-2 flex items-center justify-between gap-2 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {row.product_name}
+                      </p>
+                      <p className="text-gray-500">Qtd: {row.quantity_sold}</p>
+                    </div>
+                    <p className="font-semibold text-gray-900">
+                      {formatCurrencyInCents(row.revenue_in_cents)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
               {report.by_product.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
                   Nenhum produto vendido para os filtros selecionados.
@@ -283,86 +325,135 @@ export default function SalesReport({
               )}
             </div>
 
-            <div className="overflow-x-auto">
+            <div>
               <h5 className="text-sm font-semibold text-gray-700 mb-2">
                 Vendas
               </h5>
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead>
-                  <tr className="text-gray-500">
-                    <th className="py-2 pr-4 text-center">Nº</th>
-                    <th className="py-2 pr-4 text-center">Data</th>
-                    <th className="py-2 pr-4 text-left">Forma</th>
-                    <th className="py-2 pr-4 text-center">Total</th>
-                    <th className="py-2 pr-4 text-center">Status</th>
-                    {canCancel && (
-                      <th className="py-2 pr-4 text-center">Ações</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {report.sales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td className="py-2 pr-4 text-center">
+
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead>
+                    <tr className="text-gray-500">
+                      <th className="py-2 pr-4 text-center">Nº</th>
+                      <th className="py-2 pr-4 text-center">Data</th>
+                      <th className="py-2 pr-4 text-left">Forma</th>
+                      <th className="py-2 pr-4 text-center">Total</th>
+                      <th className="py-2 pr-4 text-center">Status</th>
+                      {canCancel && (
+                        <th className="py-2 pr-4 text-center">Ações</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {report.sales.map((sale) => (
+                      <tr key={sale.id}>
+                        <td className="py-2 pr-4 text-center">
+                          #{sale.sale_number}
+                        </td>
+                        <td className="py-2 pr-4 text-center">
+                          {new Date(sale.created_at).toLocaleString("pt-BR")}
+                        </td>
+                        <td className="py-2 pr-4 text-left">
+                          {formatSalePayments(sale)}
+                        </td>
+                        <td className="py-2 pr-4 text-center">
+                          {formatCurrencyInCents(sale.total_in_cents)}
+                        </td>
+                        <td className="py-2 pr-4 text-center">
+                          {sale.status === "completed"
+                            ? "Concluída"
+                            : "Cancelada"}
+                        </td>
+                        {canCancel && (
+                          <td className="py-2 pr-4">
+                            {sale.status === "completed" && (
+                              <div className="flex items-center justify-center gap-2">
+                                <Button
+                                  variant={
+                                    pendingCancelSaleId === sale.id
+                                      ? "warning"
+                                      : "danger"
+                                  }
+                                  size="small"
+                                  onClick={() => handleCancel(sale.id)}
+                                  disabled={
+                                    cancellingSaleId === sale.id ||
+                                    (pendingCancelSaleId &&
+                                      pendingCancelSaleId !== sale.id)
+                                  }
+                                >
+                                  {cancellingSaleId === sale.id
+                                    ? "Cancelando..."
+                                    : pendingCancelSaleId === sale.id
+                                      ? "Certeza?"
+                                      : "Cancelar"}
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {report.sales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="border border-gray-200 rounded-lg p-3 text-sm"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-gray-900">
                         #{sale.sale_number}
-                      </td>
-                      <td className="py-2 pr-4 text-center">
-                        {new Date(sale.created_at).toLocaleString("pt-BR")}
-                      </td>
-                      <td className="py-2 pr-4 text-left">
-                        {sale.payments
-                          .map(
-                            (payment) =>
-                              `${payment.payment_method_name_snapshot}` +
-                              (payment.payment_method_variant_name_snapshot
-                                ? ` (${payment.payment_method_variant_name_snapshot})`
-                                : "") +
-                              (sale.payments.length > 1
-                                ? ` — ${formatCurrencyInCents(payment.amount_in_cents)}`
-                                : ""),
-                          )
-                          .join(" + ")}
-                      </td>
-                      <td className="py-2 pr-4 text-center">
-                        {formatCurrencyInCents(sale.total_in_cents)}
-                      </td>
-                      <td className="py-2 pr-4 text-center">
+                      </span>
+                      <span
+                        className={
+                          sale.status === "completed"
+                            ? "text-green-700"
+                            : "text-red-600"
+                        }
+                      >
                         {sale.status === "completed"
                           ? "Concluída"
                           : "Cancelada"}
-                      </td>
-                      {canCancel && (
-                        <td className="py-2 pr-4">
-                          {sale.status === "completed" && (
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant={
-                                  pendingCancelSaleId === sale.id
-                                    ? "warning"
-                                    : "danger"
-                                }
-                                size="small"
-                                onClick={() => handleCancel(sale.id)}
-                                disabled={
-                                  cancellingSaleId === sale.id ||
-                                  (pendingCancelSaleId &&
-                                    pendingCancelSaleId !== sale.id)
-                                }
-                              >
-                                {cancellingSaleId === sale.id
-                                  ? "Cancelando..."
-                                  : pendingCancelSaleId === sale.id
-                                    ? "Certeza?"
-                                    : "Cancelar"}
-                              </Button>
-                            </div>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    </div>
+                    <p className="text-gray-500 mb-1">
+                      {new Date(sale.created_at).toLocaleString("pt-BR")}
+                    </p>
+                    <p className="text-gray-700 mb-1">
+                      {formatSalePayments(sale)}
+                    </p>
+                    <p className="font-bold text-gray-900 mb-2">
+                      {formatCurrencyInCents(sale.total_in_cents)}
+                    </p>
+                    {canCancel && sale.status === "completed" && (
+                      <Button
+                        variant={
+                          pendingCancelSaleId === sale.id ? "warning" : "danger"
+                        }
+                        size="small"
+                        className="w-full"
+                        onClick={() => handleCancel(sale.id)}
+                        disabled={
+                          cancellingSaleId === sale.id ||
+                          (pendingCancelSaleId &&
+                            pendingCancelSaleId !== sale.id)
+                        }
+                      >
+                        {cancellingSaleId === sale.id
+                          ? "Cancelando..."
+                          : pendingCancelSaleId === sale.id
+                            ? "Certeza?"
+                            : "Cancelar"}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               {report.sales.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
                   Nenhuma venda encontrada para os filtros selecionados.
