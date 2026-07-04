@@ -325,42 +325,44 @@ export default function ProductManagement({
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-700 mb-3">
-                  Estoque:{" "}
-                  <span className="font-semibold">
-                    {product.stock_quantity}
-                  </span>
-                </p>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <p className="text-sm text-gray-700">
+                    Estoque:{" "}
+                    <span className="font-semibold">
+                      {product.stock_quantity}
+                    </span>
+                  </p>
 
-                <div className="flex items-center gap-1.5 mb-3">
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
-                    value={stockDeltaByProduct[product.id] || ""}
-                    onChange={(e) =>
-                      setStockDeltaByProduct((prev) => ({
-                        ...prev,
-                        [product.id]: e.target.value,
-                      }))
-                    }
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleStockAdjust(product.id, 1)}
-                    className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    aria-label="Adicionar ao estoque"
-                  >
-                    <FiPlus size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStockAdjust(product.id, -1)}
-                    className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    aria-label="Remover do estoque"
-                  >
-                    <FiMinus size={14} />
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
+                      value={stockDeltaByProduct[product.id] || ""}
+                      onChange={(e) =>
+                        setStockDeltaByProduct((prev) => ({
+                          ...prev,
+                          [product.id]: e.target.value,
+                        }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleStockAdjust(product.id, 1)}
+                      className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      aria-label="Adicionar ao estoque"
+                    >
+                      <FiPlus size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStockAdjust(product.id, -1)}
+                      className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      aria-label="Remover do estoque"
+                    >
+                      <FiMinus size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
