@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { FiX } from "react-icons/fi";
 import { useAuth } from "src/contexts/AuthContext.js";
 import PageLayout from "components/layouts/PageLayout";
 import Loading from "components/Loading.js";
 import Alert from "components/ui/Alert";
+import Button from "components/ui/Button";
 import ProductPalette from "components/pdv/ProductPalette";
 import Cart from "components/pdv/Cart";
 import DiscountModal from "components/pdv/DiscountModal";
@@ -19,6 +21,7 @@ export default function PdvCashierPage() {
   const cashier = usePdvCashier();
 
   const [checkoutStep, setCheckoutStep] = useState(null); // null | "discount" | "payment"
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [lastSaleMessage, setLastSaleMessage] = useState(null);
 
   // A mensagem de venda concluída some sozinha após alguns segundos.
@@ -72,6 +75,7 @@ export default function PdvCashierPage() {
 
   const handleCheckout = () => {
     setLastSaleMessage(null);
+    setIsCartModalOpen(false);
     setCheckoutStep("discount");
   };
 
@@ -85,6 +89,7 @@ export default function PdvCashierPage() {
 
     if (data) {
       setCheckoutStep(null);
+      setIsCartModalOpen(false);
       setLastSaleMessage(
         `Venda #${data.sale_number} concluída — Total ${formatCurrencyInCents(data.total_in_cents)}`,
       );
@@ -116,14 +121,14 @@ export default function PdvCashierPage() {
       {cashier.isLoadingCatalog ? (
         <Loading message="Carregando catálogo..." />
       ) : (
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-[65vh]">
+        <div className="mt-6 pb-24 lg:pb-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 lg:h-[65vh]">
             <ProductPalette
               products={cashier.products}
               onAddItem={cashier.addItem}
             />
           </div>
-          <div className="lg:col-span-1 h-[65vh]">
+          <div className="hidden lg:block lg:col-span-1 h-[65vh]">
             <Cart
               items={cashier.cartItems}
               subtotalInCents={cashier.subtotalInCents}
@@ -132,6 +137,53 @@ export default function PdvCashierPage() {
               onRemove={cashier.removeItem}
               onCheckout={handleCheckout}
             />
+          </div>
+        </div>
+      )}
+
+      {cashier.cartItems.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.08)] p-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-500">
+              {cashier.cartItems.length}{" "}
+              {cashier.cartItems.length === 1 ? "item" : "itens"}
+            </p>
+            <p className="text-lg font-bold text-gray-900">
+              {formatCurrencyInCents(cashier.subtotalInCents)}
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => setIsCartModalOpen(true)}
+          >
+            Ver Carrinho
+          </Button>
+        </div>
+      )}
+
+      {isCartModalOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-[60] flex items-end justify-center bg-black bg-opacity-50 p-0"
+          style={{ margin: 0 }}
+        >
+          <div className="bg-white rounded-t-lg w-full h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Carrinho</h3>
+              <button onClick={() => setIsCartModalOpen(false)}>
+                <FiX className="h-6 w-6 text-gray-500" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 p-4">
+              <Cart
+                items={cashier.cartItems}
+                subtotalInCents={cashier.subtotalInCents}
+                onIncrement={cashier.incrementItem}
+                onDecrement={cashier.decrementItem}
+                onRemove={cashier.removeItem}
+                onCheckout={handleCheckout}
+              />
+            </div>
           </div>
         </div>
       )}
