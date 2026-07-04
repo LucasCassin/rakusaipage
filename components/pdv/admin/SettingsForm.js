@@ -119,9 +119,9 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
-        <div className="flex flex-shrink-0 justify-end">
+        <div className="w-full sm:w-auto">
           {justSaved ? (
-            <div className="w-40 flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
+            <div className="w-full sm:w-40 flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
               <FiCheckCircle /> Salvo!
             </div>
           ) : (
@@ -129,7 +129,7 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
               type="submit"
               variant="primary"
               size="small"
-              className="w-40"
+              className="w-full sm:w-40"
             >
               Salvar
             </Button>

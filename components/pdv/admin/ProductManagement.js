@@ -168,8 +168,13 @@ export default function ProductManagement({
             />
           </div>
         )}
-        <div className="flex flex-shrink-0 justify-end gap-2">
-          <Button type="submit" variant="primary" size="small" className="w-40">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            type="submit"
+            variant="primary"
+            size="small"
+            className="w-full sm:w-40"
+          >
             {editingId ? "Salvar" : "+ Criar"}
           </Button>
           {editingId && (
@@ -177,6 +182,7 @@ export default function ProductManagement({
               type="button"
               variant="secondary"
               size="small"
+              className="w-full sm:w-40"
               onClick={resetForm}
             >
               Cancelar
@@ -187,110 +193,202 @@ export default function ProductManagement({
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Carregando...</p>
+      ) : products.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">
+          Nenhum produto cadastrado.
+        </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead>
-              <tr className="text-gray-500">
-                <th className="py-2 pr-4 text-left">Nome</th>
-                <th className="py-2 pr-4 text-center">Preço</th>
-                <th className="py-2 pr-4 text-center">Piso Unitário</th>
-                <th className="py-2 pr-4 text-center">Estoque</th>
-                <th className="py-2 pr-4 text-center">Status</th>
-                <th className="py-2 pr-4 text-center">Ajustar estoque</th>
-                <th className="py-2 pr-4 text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <td className="py-2 pr-4 font-medium text-left">
-                    {product.name}
-                  </td>
-                  <td className="py-2 pr-4 text-center">
-                    {formatCurrencyInCents(product.price_in_cents)}
-                  </td>
-                  <td className="py-2 pr-4 text-center">
-                    {formatCurrencyInCents(product.min_unit_price_in_cents)}
-                  </td>
-                  <td className="py-2 pr-4 text-center">
-                    {product.stock_quantity}
-                  </td>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Switch
-                        checked={product.is_active}
-                        onChange={() => handleToggleActive(product)}
-                      />
-                      <span className="text-gray-700">
-                        {product.is_active ? "Ativo" : "Inativo"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <input
-                        type="number"
-                        min="0"
-                        className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
-                        value={stockDeltaByProduct[product.id] || ""}
-                        onChange={(e) =>
-                          setStockDeltaByProduct((prev) => ({
-                            ...prev,
-                            [product.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleStockAdjust(product.id, 1)}
-                        className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                        aria-label="Adicionar ao estoque"
-                      >
-                        <FiPlus size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStockAdjust(product.id, -1)}
-                        className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                        aria-label="Remover do estoque"
-                      >
-                        <FiMinus size={14} />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="small"
-                        aria-label="Editar"
-                        onClick={() => startEdit(product)}
-                      >
-                        <FiEdit2 />
-                        <span className="ml-2 sm:hidden">Editar</span>
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="small"
-                        aria-label="Excluir"
-                        onClick={() => setDeleteTarget(product)}
-                      >
-                        <FiTrash2 />
-                        <span className="ml-2 sm:hidden">Excluir</span>
-                      </Button>
-                    </div>
-                  </td>
+        <>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead>
+                <tr className="text-gray-500">
+                  <th className="py-2 pr-4 text-left">Nome</th>
+                  <th className="py-2 pr-4 text-center">Preço</th>
+                  <th className="py-2 pr-4 text-center">Piso Unitário</th>
+                  <th className="py-2 pr-4 text-center">Estoque</th>
+                  <th className="py-2 pr-4 text-center">Status</th>
+                  <th className="py-2 pr-4 text-center">Ajustar estoque</th>
+                  <th className="py-2 pr-4 text-center">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {products.length === 0 && (
-            <p className="text-center text-gray-500 py-8">
-              Nenhum produto cadastrado.
-            </p>
-          )}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td className="py-2 pr-4 font-medium text-left">
+                      {product.name}
+                    </td>
+                    <td className="py-2 pr-4 text-center">
+                      {formatCurrencyInCents(product.price_in_cents)}
+                    </td>
+                    <td className="py-2 pr-4 text-center">
+                      {formatCurrencyInCents(product.min_unit_price_in_cents)}
+                    </td>
+                    <td className="py-2 pr-4 text-center">
+                      {product.stock_quantity}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <Switch
+                          checked={product.is_active}
+                          onChange={() => handleToggleActive(product)}
+                        />
+                        <span className="text-gray-700">
+                          {product.is_active ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
+                          value={stockDeltaByProduct[product.id] || ""}
+                          onChange={(e) =>
+                            setStockDeltaByProduct((prev) => ({
+                              ...prev,
+                              [product.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleStockAdjust(product.id, 1)}
+                          className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          aria-label="Adicionar ao estoque"
+                        >
+                          <FiPlus size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStockAdjust(product.id, -1)}
+                          className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          aria-label="Remover do estoque"
+                        >
+                          <FiMinus size={14} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="small"
+                          aria-label="Editar"
+                          onClick={() => startEdit(product)}
+                        >
+                          <FiEdit2 />
+                          <span className="ml-2 sm:hidden">Editar</span>
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="small"
+                          aria-label="Excluir"
+                          onClick={() => setDeleteTarget(product)}
+                        >
+                          <FiTrash2 />
+                          <span className="ml-2 sm:hidden">Excluir</span>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="border border-gray-200 rounded-lg p-4"
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {product.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {formatCurrencyInCents(product.price_in_cents)} · piso{" "}
+                      {formatCurrencyInCents(product.min_unit_price_in_cents)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={product.is_active}
+                      onChange={() => handleToggleActive(product)}
+                    />
+                    <span className="text-sm text-gray-700">
+                      {product.is_active ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <p className="text-sm text-gray-700">
+                    Estoque:{" "}
+                    <span className="font-semibold">
+                      {product.stock_quantity}
+                    </span>
+                  </p>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-14 px-2 py-1 border border-gray-300 rounded-full text-sm text-center"
+                      value={stockDeltaByProduct[product.id] || ""}
+                      onChange={(e) =>
+                        setStockDeltaByProduct((prev) => ({
+                          ...prev,
+                          [product.id]: e.target.value,
+                        }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleStockAdjust(product.id, 1)}
+                      className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      aria-label="Adicionar ao estoque"
+                    >
+                      <FiPlus size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStockAdjust(product.id, -1)}
+                      className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      aria-label="Remover do estoque"
+                    >
+                      <FiMinus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    className="flex-1"
+                    onClick={() => startEdit(product)}
+                  >
+                    <FiEdit2 />
+                    <span className="ml-2">Editar</span>
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="small"
+                    className="flex-1"
+                    onClick={() => setDeleteTarget(product)}
+                  >
+                    <FiTrash2 />
+                    <span className="ml-2">Excluir</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {deleteTarget && (

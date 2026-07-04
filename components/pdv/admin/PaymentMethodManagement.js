@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiPlus } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 import Switch from "components/ui/Switch";
@@ -110,15 +110,14 @@ export default function PaymentMethodManagement({
                       {method.is_active ? "Ativa" : "Inativa"}
                     </span>
                   </div>
-                  <Button
-                    variant="danger"
-                    size="small"
-                    aria-label="Excluir"
+                  <button
+                    type="button"
                     onClick={() => setDeleteTarget({ type: "method", method })}
+                    className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white"
+                    aria-label="Excluir"
                   >
-                    <FiTrash2 />
-                    <span className="ml-2 sm:hidden">Excluir</span>
-                  </Button>
+                    <FiTrash2 size={16} />
+                  </button>
                 </div>
               </div>
 
@@ -152,11 +151,11 @@ export default function PaymentMethodManagement({
               </div>
 
               {method.is_active && (
-                <div className="flex gap-2">
+                <div className="flex items-stretch border border-gray-300 rounded-md overflow-hidden">
                   <input
                     type="text"
                     placeholder="Nova variante (ex: Máquina Amarela)"
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                    className="flex-1 min-w-0 px-3 py-1.5 border-0 text-sm focus:outline-none"
                     value={newVariantNameByMethod[method.id] || ""}
                     onChange={(e) =>
                       setNewVariantNameByMethod((prev) => ({
@@ -164,14 +163,21 @@ export default function PaymentMethodManagement({
                         [method.id]: e.target.value,
                       }))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreateVariant(method.id);
+                      }
+                    }}
                   />
-                  <Button
-                    variant="secondary"
-                    size="small"
+                  <button
+                    type="button"
                     onClick={() => handleCreateVariant(method.id)}
+                    className="flex items-center justify-center px-4 border-l border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-rakusai-purple"
+                    aria-label="Adicionar variante"
                   >
-                    + Variante
-                  </Button>
+                    <FiPlus size={16} />
+                  </button>
                 </div>
               )}
             </div>

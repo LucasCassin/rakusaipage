@@ -22,7 +22,7 @@ export default function ProductPalette({ products, onAddItem }) {
         onChange={(e) => setSearch(e.target.value)}
         className="mb-4 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-rakusai-purple focus:border-rakusai-purple sm:text-sm"
       />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 overflow-y-auto pr-1">
         {filteredProducts.length === 0 && (
           <p className="col-span-full text-center text-gray-500 py-8">
             Nenhum produto encontrado.
