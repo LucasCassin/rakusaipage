@@ -110,14 +110,14 @@ export default function PaymentMethodManagement({
                       {method.is_active ? "Ativa" : "Inativa"}
                     </span>
                   </div>
-                  <Button
-                    variant="danger"
-                    size="small"
-                    aria-label="Excluir"
+                  <button
+                    type="button"
                     onClick={() => setDeleteTarget({ type: "method", method })}
+                    className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white"
+                    aria-label="Excluir"
                   >
-                    <FiTrash2 />
-                  </Button>
+                    <FiTrash2 size={16} />
+                  </button>
                 </div>
               </div>
 
@@ -151,11 +151,11 @@ export default function PaymentMethodManagement({
               </div>
 
               {method.is_active && (
-                <div className="relative">
+                <div className="flex items-stretch border border-gray-300 rounded-md overflow-hidden">
                   <input
                     type="text"
                     placeholder="Nova variante (ex: Máquina Amarela)"
-                    className="w-full px-3 py-1.5 pr-9 border border-gray-300 rounded-md text-sm"
+                    className="flex-1 min-w-0 px-3 py-1.5 border-0 text-sm focus:outline-none"
                     value={newVariantNameByMethod[method.id] || ""}
                     onChange={(e) =>
                       setNewVariantNameByMethod((prev) => ({
@@ -170,16 +170,14 @@ export default function PaymentMethodManagement({
                       }
                     }}
                   />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCreateVariant(method.id)}
-                      className="p-1 rounded-full text-gray-500 hover:text-rakusai-purple hover:bg-gray-100"
-                      aria-label="Adicionar variante"
-                    >
-                      <FiPlus size={16} />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCreateVariant(method.id)}
+                    className="flex items-center justify-center px-4 border-l border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-rakusai-purple"
+                    aria-label="Adicionar variante"
+                  >
+                    <FiPlus size={16} />
+                  </button>
                 </div>
               )}
             </div>
