@@ -1,8 +1,13 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { handleApiResponse } from "src/utils/handleApiResponse";
+import { generatePDF } from "src/utils/pdfGenerator.js";
+
+// Limite generoso pra trazer TODAS as vendas do período na exportação em
+// PDF, em vez do limite de 20 usado na tabela paginada da tela.
+const EXPORT_SALES_LIMIT = 5000;
 
 /**
  * Hook do painel administrativo do PDV: CRUD de produtos, formas de
@@ -31,6 +36,13 @@ export function usePdvAdmin() {
 
   const [report, setReport] = useState(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExportingReport, setIsExportingReport] = useState(false);
+  const [exportReportData, setExportReportData] = useState(null);
+  const [exportReportTitle, setExportReportTitle] = useState("");
+  const [exportIncludeAnalytic, setExportIncludeAnalytic] = useState(false);
+  const exportReportRef = useRef(null);
 
   const withHandling = useCallback(
     async (fn, successMessage) => {
@@ -347,6 +359,78 @@ export function usePdvAdmin() {
     [router, setError],
   );
 
+  // Mesma busca do relatório, mas sem tocar em `report`/`isLoadingReport` —
+  // usada pela exportação em PDF, que às vezes precisa de um `limit` bem
+  // maior (todas as vendas do período) sem sobrescrever a tabela paginada
+  // que está na tela.
+  const fetchReportForExport = useCallback(
+    async (filters = {}) => {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          params.set(key, value);
+        }
+      });
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PDV_SALES_REPORT}?${params.toString()}`,
+      );
+      return handleApiResponse({ response, router, setError });
+    },
+    [router, setError],
+  );
+
+  const openExportModal = useCallback(() => setIsExportModalOpen(true), []);
+  const closeExportModal = useCallback(() => setIsExportModalOpen(false), []);
+
+  // Segue o mesmo padrão de `usePresentationEditor`: guarda os dados a
+  // imprimir no estado, fecha o modal, e só depois de um instante (pra dar
+  // tempo do componente escondido re-renderizar com os novos dados e o
+  // navegador pintar o DOM) captura o ref com `generatePDF`.
+  const handleExportReport = useCallback(
+    async (title, includeAnalytic, filters) => {
+      setIsExportingReport(true);
+
+      let dataForExport = report;
+      if (includeAnalytic) {
+        dataForExport = await fetchReportForExport({
+          ...filters,
+          limit: EXPORT_SALES_LIMIT,
+          include_items: "true",
+        });
+        if (!dataForExport) {
+          setIsExportingReport(false);
+          return;
+        }
+      }
+
+      setExportReportTitle(title);
+      setExportIncludeAnalytic(includeAnalytic);
+      setExportReportData(dataForExport);
+      setIsExportModalOpen(false);
+
+      setTimeout(async () => {
+        const slug = title
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        try {
+          await generatePDF(
+            exportReportRef.current,
+            `relatorio-vendas${slug ? `-${slug}` : ""}.pdf`,
+            false,
+            1,
+          );
+        } catch {
+          setError("Não foi possível gerar o PDF do relatório.");
+        }
+        setIsExportingReport(false);
+      }, 1000);
+    },
+    [report, fetchReportForExport, setError],
+  );
+
   // --- Cancelamento de vendas ---
   const cancelSale = useCallback(
     (saleId, reason) =>
@@ -402,6 +486,16 @@ export function usePdvAdmin() {
     report,
     isLoadingReport,
     fetchReport,
+
+    isExportModalOpen,
+    isExportingReport,
+    exportReportData,
+    exportReportTitle,
+    exportIncludeAnalytic,
+    exportReportRef,
+    openExportModal,
+    closeExportModal,
+    handleExportReport,
 
     cancelSale,
   };
