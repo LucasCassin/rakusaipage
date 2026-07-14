@@ -8,6 +8,8 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
     min_cart_value_in_cents: "0",
     max_discount_in_cents: "",
     max_discount_percentage: "",
+    default_cart_discount_type: "none",
+    default_cart_discount_value: "",
   });
   const [justSaved, setJustSaved] = useState(false);
 
@@ -31,6 +33,14 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
           pdvSettings.max_discount_percentage != null
             ? String(pdvSettings.max_discount_percentage)
             : "",
+        default_cart_discount_type:
+          pdvSettings.default_cart_discount_type || "none",
+        default_cart_discount_value:
+          pdvSettings.default_cart_discount_value != null
+            ? pdvSettings.default_cart_discount_type === "percentage"
+              ? String(pdvSettings.default_cart_discount_value)
+              : (pdvSettings.default_cart_discount_value / 100).toFixed(2)
+            : "",
       });
     }
   }, [pdvSettings]);
@@ -40,9 +50,18 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDefaultDiscountTypeChange = (type) => {
+    setFormData((prev) => ({
+      ...prev,
+      default_cart_discount_type: type,
+      default_cart_discount_value: "",
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setJustSaved(false);
+    const hasDefaultDiscount = formData.default_cart_discount_type !== "none";
     const result = await onUpdate({
       min_cart_value_in_cents: Math.round(
         Number(formData.min_cart_value_in_cents || 0) * 100,
@@ -52,6 +71,14 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
         : null,
       max_discount_percentage: formData.max_discount_percentage
         ? Math.round(Number(formData.max_discount_percentage))
+        : null,
+      default_cart_discount_type: hasDefaultDiscount
+        ? formData.default_cart_discount_type
+        : null,
+      default_cart_discount_value: hasDefaultDiscount
+        ? formData.default_cart_discount_type === "percentage"
+          ? Math.round(Number(formData.default_cart_discount_value || 0))
+          : Math.round(Number(formData.default_cart_discount_value || 0) * 100)
         : null,
     });
     if (result) setJustSaved(true);
@@ -119,6 +146,80 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             onChange={handleChange}
           />
         </div>
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Desconto padrão do carrinho
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Aplicado quando o vendedor pula a tela de desconto no fechamento da
+            venda.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleDefaultDiscountTypeChange("none")}
+                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
+                  formData.default_cart_discount_type === "none"
+                    ? "bg-rakusai-purple text-white border-rakusai-purple"
+                    : "border-gray-300 text-gray-700"
+                }`}
+              >
+                Nenhum
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDefaultDiscountTypeChange("percentage")}
+                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
+                  formData.default_cart_discount_type === "percentage"
+                    ? "bg-rakusai-purple text-white border-rakusai-purple"
+                    : "border-gray-300 text-gray-700"
+                }`}
+              >
+                Percentual (%)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDefaultDiscountTypeChange("fixed")}
+                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
+                  formData.default_cart_discount_type === "fixed"
+                    ? "bg-rakusai-purple text-white border-rakusai-purple"
+                    : "border-gray-300 text-gray-700"
+                }`}
+              >
+                Valor (R$)
+              </button>
+            </div>
+            {formData.default_cart_discount_type !== "none" && (
+              <div className="w-32">
+                <FormInput
+                  id="pdv-settings-default-discount-value"
+                  name="default_cart_discount_value"
+                  type="number"
+                  step={
+                    formData.default_cart_discount_type === "percentage"
+                      ? "1"
+                      : "0.01"
+                  }
+                  min="0"
+                  max={
+                    formData.default_cart_discount_type === "percentage"
+                      ? "100"
+                      : undefined
+                  }
+                  placeholder={
+                    formData.default_cart_discount_type === "percentage"
+                      ? "Ex: 10"
+                      : "Ex: 5.00"
+                  }
+                  value={formData.default_cart_discount_value}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="w-full sm:w-auto">
           {justSaved ? (
             <div className="w-full sm:w-40 flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">

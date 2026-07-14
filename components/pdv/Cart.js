@@ -1,6 +1,7 @@
 import React from "react";
 import CartItemRow from "components/pdv/CartItemRow";
 import Button from "components/ui/Button";
+import Switch from "components/ui/Switch";
 import { formatCurrencyInCents } from "src/utils/formatCurrencyInCents";
 
 export default function Cart({
@@ -10,6 +11,8 @@ export default function Cart({
   onDecrement,
   onRemove,
   onCheckout,
+  skipDiscountScreen,
+  onToggleSkipDiscountScreen,
 }) {
   return (
     <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -37,6 +40,18 @@ export default function Cart({
         <div className="flex justify-between text-lg font-bold text-gray-900 mb-4">
           <span>Subtotal</span>
           <span>{formatCurrencyInCents(subtotalInCents)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-sm text-gray-700">
+            Pular tela de desconto
+            <span className="block text-xs text-gray-400">
+              Usa direto o desconto padrão configurado
+            </span>
+          </span>
+          <Switch
+            checked={skipDiscountScreen}
+            onChange={onToggleSkipDiscountScreen}
+          />
         </div>
         <Button
           variant="primary"

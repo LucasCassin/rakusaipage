@@ -23,6 +23,7 @@ export default function PdvCashierPage() {
   const [checkoutStep, setCheckoutStep] = useState(null); // null | "discount" | "payment"
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [lastSaleMessage, setLastSaleMessage] = useState(null);
+  const [skipDiscountScreen, setSkipDiscountScreen] = useState(false);
 
   // A mensagem de venda concluída some sozinha após alguns segundos.
   useEffect(() => {
@@ -30,6 +31,22 @@ export default function PdvCashierPage() {
     const timer = setTimeout(() => setLastSaleMessage(null), 3000);
     return () => clearTimeout(timer);
   }, [lastSaleMessage]);
+
+  // A preferência de pular a tela de desconto é lembrada entre vendas (e
+  // entre sessões), já que raramente muda de uma venda para a outra.
+  useEffect(() => {
+    setSkipDiscountScreen(
+      localStorage.getItem("pdv:skipDiscountScreen") === "true",
+    );
+  }, []);
+
+  const toggleSkipDiscountScreen = () => {
+    setSkipDiscountScreen((prev) => {
+      const next = !prev;
+      localStorage.setItem("pdv:skipDiscountScreen", String(next));
+      return next;
+    });
+  };
 
   const canSell = user?.features?.includes("pdv:sell");
 
@@ -73,15 +90,22 @@ export default function PdvCashierPage() {
     ? `Desconto limitado ${PDV_DISCOUNT_CAP_LABELS[cappedBy]}.`
     : null;
 
-  const handleCheckout = () => {
-    setLastSaleMessage(null);
-    setIsCartModalOpen(false);
-    setCheckoutStep("discount");
-  };
-
   const handleDiscountConfirm = (type, value) => {
     cashier.applyDiscount(type, value);
     setCheckoutStep("payment");
+  };
+
+  const handleCheckout = () => {
+    setLastSaleMessage(null);
+    setIsCartModalOpen(false);
+    if (skipDiscountScreen) {
+      handleDiscountConfirm(
+        cashier.pdvSettings?.default_cart_discount_type ?? null,
+        cashier.pdvSettings?.default_cart_discount_value ?? null,
+      );
+      return;
+    }
+    setCheckoutStep("discount");
   };
 
   const handlePaymentConfirm = async ({ payments, notes }) => {
@@ -136,6 +160,8 @@ export default function PdvCashierPage() {
               onDecrement={cashier.decrementItem}
               onRemove={cashier.removeItem}
               onCheckout={handleCheckout}
+              skipDiscountScreen={skipDiscountScreen}
+              onToggleSkipDiscountScreen={toggleSkipDiscountScreen}
             />
           </div>
         </div>
@@ -182,6 +208,8 @@ export default function PdvCashierPage() {
                 onDecrement={cashier.decrementItem}
                 onRemove={cashier.removeItem}
                 onCheckout={handleCheckout}
+                skipDiscountScreen={skipDiscountScreen}
+                onToggleSkipDiscountScreen={toggleSkipDiscountScreen}
               />
             </div>
           </div>
