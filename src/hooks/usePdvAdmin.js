@@ -3,6 +3,11 @@ import { useRouter } from "next/router";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { handleApiResponse } from "src/utils/handleApiResponse";
+import { generateSalesReportPdf } from "src/utils/generateSalesReportPdf.js";
+
+// Limite generoso pra trazer TODAS as vendas do período na exportação em
+// PDF, em vez do limite de 20 usado na tabela paginada da tela.
+const EXPORT_SALES_LIMIT = 5000;
 
 /**
  * Hook do painel administrativo do PDV: CRUD de produtos, formas de
@@ -31,6 +36,9 @@ export function usePdvAdmin() {
 
   const [report, setReport] = useState(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExportingReport, setIsExportingReport] = useState(false);
 
   const withHandling = useCallback(
     async (fn, successMessage) => {
@@ -347,6 +355,72 @@ export function usePdvAdmin() {
     [router, setError],
   );
 
+  // Mesma busca do relatório, mas sem tocar em `report`/`isLoadingReport` —
+  // usada pela exportação em PDF, que às vezes precisa de um `limit` bem
+  // maior (todas as vendas do período) sem sobrescrever a tabela paginada
+  // que está na tela.
+  const fetchReportForExport = useCallback(
+    async (filters = {}) => {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          params.set(key, value);
+        }
+      });
+      const response = await fetch(
+        `${settings.global.API.ENDPOINTS.PDV_SALES_REPORT}?${params.toString()}`,
+      );
+      return handleApiResponse({ response, router, setError });
+    },
+    [router, setError],
+  );
+
+  const openExportModal = useCallback(() => setIsExportModalOpen(true), []);
+  const closeExportModal = useCallback(() => setIsExportModalOpen(false), []);
+
+  // O PDF é desenhado diretamente (texto/tabelas vetoriais via jsPDF), então
+  // não depende de nenhum componente escondido re-renderizar antes de
+  // capturar — só busca os dados certos e desenha na hora.
+  const handleExportReport = useCallback(
+    async (title, includeAnalytic, filters) => {
+      setIsExportingReport(true);
+      setIsExportModalOpen(false);
+
+      let dataForExport = report;
+      if (includeAnalytic) {
+        dataForExport = await fetchReportForExport({
+          ...filters,
+          limit: EXPORT_SALES_LIMIT,
+          include_items: "true",
+        });
+        if (!dataForExport) {
+          setIsExportingReport(false);
+          return;
+        }
+      }
+
+      const slug = title
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      try {
+        generateSalesReportPdf({
+          report: dataForExport,
+          title,
+          includeAnalytic,
+          fileName: `relatorio-vendas${slug ? `-${slug}` : ""}.pdf`,
+        });
+      } catch {
+        setError("Não foi possível gerar o PDF do relatório.");
+      }
+      setIsExportingReport(false);
+    },
+    [report, fetchReportForExport, setError],
+  );
+
   // --- Cancelamento de vendas ---
   const cancelSale = useCallback(
     (saleId, reason) =>
@@ -402,6 +476,12 @@ export function usePdvAdmin() {
     report,
     isLoadingReport,
     fetchReport,
+
+    isExportModalOpen,
+    isExportingReport,
+    openExportModal,
+    closeExportModal,
+    handleExportReport,
 
     cancelSale,
   };

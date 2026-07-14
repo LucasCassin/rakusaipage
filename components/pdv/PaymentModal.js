@@ -117,6 +117,12 @@ export default function PaymentModal({
       addEntry(method.id, null);
       return;
     }
+    // Com uma única variante ativa não há escolha a fazer — adiciona direto
+    // em vez de exigir um segundo toque na variante.
+    if (activeVariants.length === 1) {
+      addEntry(method.id, activeVariants[0].id);
+      return;
+    }
     setExpandedMethodId((prev) => (prev === method.id ? null : method.id));
   };
 
@@ -124,15 +130,10 @@ export default function PaymentModal({
     addEntry(methodId, variantId);
   };
 
+  // Mantém a string digitada (mesmo vazia) como valor manual, em vez de
+  // recair no auto-split assim que o campo é apagado — senão o input parece
+  // "resetar" sozinho a cada tecla de backspace.
   const handleAmountChange = (localId, value) => {
-    if (value.trim() === "") {
-      setManualInputs((prev) => {
-        const next = { ...prev };
-        delete next[localId];
-        return next;
-      });
-      return;
-    }
     setManualInputs((prev) => ({ ...prev, [localId]: value }));
   };
 

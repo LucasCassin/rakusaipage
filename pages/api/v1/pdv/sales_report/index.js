@@ -36,6 +36,7 @@ async function getHandler(req, res) {
       paymentMethodVariantId: query.payment_method_variant_id,
       sellerId: query.seller_id,
       includeCancelled: query.include_cancelled === "true",
+      includeItems: query.include_items === "true",
       limit: query.limit ? parseInt(query.limit) : 20,
       offset: query.offset ? parseInt(query.offset) : 0,
     });

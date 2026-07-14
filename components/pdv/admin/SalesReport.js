@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { FiDownload } from "react-icons/fi";
 import Button from "components/ui/Button";
 import MultiSelectFilter from "components/pdv/admin/MultiSelectFilter";
 import SalesBreakdownChart from "components/pdv/admin/SalesBreakdownChart";
+import ExportReportModal from "components/pdv/admin/ExportReportModal";
 import { formatCurrencyInCents } from "src/utils/formatCurrencyInCents";
 
 const emptyFilters = {
@@ -20,6 +22,11 @@ export default function SalesReport({
   canCancel,
   onFetch,
   onCancelSale,
+  isExportModalOpen,
+  isExportingReport,
+  onOpenExport,
+  onCloseExport,
+  onConfirmExport,
 }) {
   const [filters, setFilters] = useState(emptyFilters);
   const [pendingCancelSaleId, setPendingCancelSaleId] = useState(null);
@@ -193,9 +200,20 @@ export default function SalesReport({
       ) : report ? (
         <>
           <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-6">
-            <h4 className="text-base font-semibold text-gray-900 mb-4">
-              Visão Geral
-            </h4>
+            <div className="flex items-center justify-between mb-4 gap-2">
+              <h4 className="text-base font-semibold text-gray-900">
+                Visão Geral
+              </h4>
+              <Button
+                variant="secondary"
+                size="small"
+                className="gap-2"
+                onClick={onOpenExport}
+              >
+                <FiDownload />
+                Exportar PDF
+              </Button>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-gray-50 rounded-lg p-4 text-center">
@@ -467,6 +485,15 @@ export default function SalesReport({
           Use os filtros acima para gerar o relatório.
         </p>
       )}
+
+      <ExportReportModal
+        isOpen={isExportModalOpen}
+        isExporting={isExportingReport}
+        onClose={onCloseExport}
+        onConfirm={(title, includeAnalytic) =>
+          onConfirmExport(title, includeAnalytic, buildReportQuery())
+        }
+      />
     </div>
   );
 }

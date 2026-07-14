@@ -144,6 +144,11 @@ export default function PdvAdminPage() {
           canCancel={permissions.canCancelSales}
           onFetch={admin.fetchReport}
           onCancelSale={admin.cancelSale}
+          isExportModalOpen={admin.isExportModalOpen}
+          isExportingReport={admin.isExportingReport}
+          onOpenExport={admin.openExportModal}
+          onCloseExport={admin.closeExportModal}
+          onConfirmExport={admin.handleExportReport}
         />
       )}
     </PageLayout>
