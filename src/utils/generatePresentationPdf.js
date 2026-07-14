@@ -706,6 +706,243 @@ function addSummaryPage(pdf, { setlist, finalComments, pageW, pageH }) {
 }
 
 /**
+ * Flows a list of measured blocks into N columns, moving to the next column
+ * once the running column height passes a "balanced" target (total content
+ * height / column count) — a reasonable stand-in for the browser's actual
+ * CSS multi-column balancing algorithm, close enough for this content.
+ * Draws a column-rule between columns spanning the tallest column used.
+ */
+async function layoutColumns(
+  pdf,
+  blocks,
+  { x, y, width, height, columnCount, columnGap },
+) {
+  const colWidth = (width - columnGap * (columnCount - 1)) / columnCount;
+  const totalHeight = blocks.reduce((sum, b) => sum + b.height, 0);
+  const targetColHeight = totalHeight / columnCount;
+
+  let col = 0;
+  let colY = y;
+  let colStartY = y;
+  let maxBottomY = y;
+
+  for (const block of blocks) {
+    const wouldOverflowPage = colY + block.height > y + height;
+    const passedBalanceTarget = colY - colStartY >= targetColHeight;
+    const placedSomethingInColumn = colY > colStartY;
+
+    if (
+      (wouldOverflowPage || passedBalanceTarget) &&
+      placedSomethingInColumn &&
+      col < columnCount - 1
+    ) {
+      col++;
+      colY = y;
+      colStartY = y;
+    }
+
+    const colX = x + col * (colWidth + columnGap);
+    await block.draw(pdf, colX, colY, colWidth);
+    colY += block.height;
+    if (colY > maxBottomY) maxBottomY = colY;
+  }
+
+  pdf.setDrawColor(...BLACK);
+  pdf.setLineWidth(0.2);
+  for (let i = 1; i < columnCount; i++) {
+    const ruleX = x + i * colWidth + (i - 0.5) * columnGap;
+    pdf.line(ruleX, y, ruleX, maxBottomY);
+  }
+}
+
+/**
+ * Compact single-page mode: header + a 3-column flow of mini formation
+ * maps, transitions, and final comments. Ports PrintablePresentation.js's
+ * compact-mode layout.
+ */
+async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
+  const marginMm = 10;
+  const contentX = marginMm;
+  const contentW = pageW - marginMm * 2;
+
+  const formattedDate = formatDateTime(presentation.date);
+  const formattedMeetTime = formatDateTime(presentation.meet_time);
+  const formationScenes = presentation.scenes.filter(
+    (s) => s.scene_type === "FORMATION",
+  );
+  const transitionScenes = presentation.scenes.filter(
+    (s) => s.scene_type !== "FORMATION",
+  );
+
+  // --- Header ---
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(pxToPt(18)); // text-lg
+  pdf.setTextColor(...BLACK);
+  pdf.text(presentation.name.toUpperCase(), contentX, marginMm + mm(13));
+  let headerY = marginMm + mm(13) + mm(10); // mb-2
+
+  let headerX = contentX;
+  const drawHeaderGroup = (label, parts) => {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(pxToPt(10));
+    pdf.setTextColor(...GRAY_600);
+    pdf.text(label, headerX, headerY);
+    headerX += pdf.getTextWidth(label) + mm(4);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(pxToPt(12));
+    pdf.setTextColor(...GRAY_800);
+    parts.filter(Boolean).forEach((part) => {
+      pdf.text(part, headerX, headerY);
+      headerX += pdf.getTextWidth(part) + mm(4);
+    });
+    headerX += mm(32); // gap-x-8 between groups
+  };
+
+  drawHeaderGroup("APRESENTAÇÃO:", [
+    presentation.location,
+    formattedDate && `| ${formattedDate}`,
+  ]);
+  if (formattedMeetTime || presentation.meet_location) {
+    drawHeaderGroup("ENCONTRO:", [
+      presentation.meet_location,
+      formattedMeetTime && `| ${formattedMeetTime}`,
+    ]);
+  }
+
+  headerY += mm(6); // pb-2
+  pdf.setDrawColor(...BLACK);
+  pdf.setLineWidth(0.75); // border-b-2
+  pdf.line(contentX, headerY, contentX + contentW, headerY);
+  headerY += mm(4);
+
+  // --- Build the flowed blocks (columnCount:3, columnGap:2rem) ---
+  const blocks = [];
+  const mapBoxHeightMm = mm(160); // h-[160px]
+
+  formationScenes.forEach((scene, idx) => {
+    blocks.push({
+      height: mm(18) + mapBoxHeightMm + mm(24),
+      draw: async (pdf, x, y, width) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(pxToPt(14));
+        pdf.setTextColor(...BLACK);
+        pdf.text(
+          truncateText(pdf, `${idx + 1}. ${scene.name}`, width),
+          x,
+          y + mm(4),
+        );
+        pdf.setDrawColor(...GRAY_300);
+        pdf.setLineWidth(0.2);
+        await drawFormationMap(pdf, {
+          x,
+          y: y + mm(8),
+          width,
+          height: mapBoxHeightMm,
+          elements: scene.scene_elements,
+        });
+      },
+    });
+  });
+
+  if (formationScenes.length > 0 && transitionScenes.length > 0) {
+    blocks.push({
+      height: mm(22),
+      draw: (pdf, x, y, width) => {
+        pdf.setDrawColor(...BLACK);
+        pdf.setLineWidth(0.75); // border-t-2
+        pdf.line(x, y + mm(4), x + width, y + mm(4));
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(pxToPt(12));
+        pdf.setTextColor(...BLACK);
+        pdf.text("TRANSIÇÕES", x, y + mm(14));
+      },
+    });
+  }
+
+  transitionScenes.forEach((scene, idx) => {
+    const steps = scene.transition_steps;
+    const stepLineHeightMm = mm(12);
+    const height =
+      mm(10) +
+      (steps.length > 0 ? steps.length * stepLineHeightMm : mm(9)) +
+      mm(8);
+    blocks.push({
+      height,
+      draw: (pdf, x, y, width) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(pxToPt(9));
+        pdf.setTextColor(...BLACK);
+        pdf.text(
+          truncateText(pdf, `${idx + 1}. ${scene.name}`, width),
+          x,
+          y + mm(3),
+        );
+        let stepY = y + mm(10);
+        if (steps.length === 0) {
+          pdf.setFont("helvetica", "italic");
+          pdf.setFontSize(pxToPt(9));
+          pdf.setTextColor(...GRAY_400);
+          pdf.text("- Direto", x + mm(2), stepY);
+        } else {
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(pxToPt(10));
+          pdf.setTextColor(...GRAY_800);
+          steps.forEach((step) => {
+            pdf.text(
+              truncateText(pdf, `- ${step.description}`, width - mm(2)),
+              x + mm(2),
+              stepY,
+            );
+            stepY += stepLineHeightMm;
+          });
+        }
+      },
+    });
+  });
+
+  if (comments) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(pxToPt(11));
+    const commentColWidth = (contentW - mm(32) * 2) / 3; // approximate a column's width for wrapping
+    const commentLines = pdf.splitTextToSize(comments, commentColWidth);
+    blocks.push({
+      height: mm(22),
+      draw: (pdf, x, y, width) => {
+        pdf.setDrawColor(...BLACK);
+        pdf.setLineWidth(0.75); // border-t-2
+        pdf.line(x, y + mm(4), x + width, y + mm(4));
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(pxToPt(12));
+        pdf.setTextColor(...BLACK);
+        pdf.text("NOTAS FINAIS", x, y + mm(14));
+      },
+    });
+    blocks.push({
+      height: commentLines.length * mm(10),
+      draw: (pdf, x, y, width) => {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(pxToPt(11));
+        pdf.setTextColor(...GRAY_900);
+        const lines = pdf.splitTextToSize(comments, width);
+        lines.forEach((line, i) => {
+          pdf.text(line, x, y + mm(3) + i * mm(10));
+        });
+      },
+    });
+  }
+
+  await layoutColumns(pdf, blocks, {
+    x: contentX,
+    y: headerY,
+    width: contentW,
+    height: pageH - marginMm - headerY,
+    columnCount: 3,
+    columnGap: mm(32), // 2rem
+  });
+}
+
+/**
  * Builds and downloads the presentation PDF, mirroring the shape of
  * generateSalesReportPdf.js: constants/helpers above, one exported entry
  * point, pdf.save(fileName) at the end. Must be async (unlike the sales
@@ -762,6 +999,8 @@ export async function generatePresentationPdf({
       (s) => s.scene_type === "FORMATION",
     );
     addSummaryPage(pdf, { setlist, finalComments: comments, pageW, pageH });
+  } else {
+    await addCompactPage(pdf, { presentation, comments, pageW, pageH });
   }
 
   pdf.save(fileName);
