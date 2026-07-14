@@ -402,7 +402,8 @@ async function getReport({
               : 0,
           top_product_name: topProduct?.product_name ?? null,
           top_product_revenue_in_cents: topProduct?.revenue_in_cents ?? null,
-          top_payment_method_name: topPaymentMethod?.payment_method_name ?? null,
+          top_payment_method_name:
+            topPaymentMethod?.payment_method_name ?? null,
           top_payment_method_revenue_in_cents:
             topPaymentMethod?.total_in_cents ?? null,
           top_variant_name: topVariant?.variant_name ?? null,

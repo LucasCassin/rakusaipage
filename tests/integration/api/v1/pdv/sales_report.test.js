@@ -215,9 +215,7 @@ describe("API /api/v1/pdv/sales_report", () => {
       expect(body.by_day).toHaveLength(1);
       expect(body.by_day[0].sales_count).toBe(1);
       expect(body.by_day[0].top_product_name).toBe("Produto Report Rota Y");
-      expect(body.by_day[0].top_payment_method_name).toBe(
-        "Cartão Report Rota",
-      );
+      expect(body.by_day[0].top_payment_method_name).toBe("Cartão Report Rota");
       expect(body.by_day[0].top_variant_name).toBe("Máquina Report Rota");
     });
 
