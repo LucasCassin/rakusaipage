@@ -816,11 +816,11 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
     ]);
   }
 
-  headerY += mm(6); // pb-2
+  headerY += mm(16); // pb-2
   pdf.setDrawColor(...BLACK);
   pdf.setLineWidth(0.75); // border-b-2
   pdf.line(contentX, headerY, contentX + contentW, headerY);
-  headerY += mm(4);
+  headerY += mm(12);
 
   // --- Build the flowed blocks (columnCount:3, columnGap:2rem) ---
   const blocks = [];
@@ -855,7 +855,7 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
 
   if (formationScenes.length > 0 && transitionScenes.length > 0) {
     blocks.push({
-      height: mm(22),
+      height: mm(34),
       draw: (pdf, x, y, width) => {
         pdf.setDrawColor(...BLACK);
         pdf.setLineWidth(0.75); // border-t-2
@@ -863,7 +863,7 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(pxToPt(12));
         pdf.setTextColor(...BLACK);
-        pdf.text("TRANSIÇÕES", x, y + mm(14));
+        pdf.text("TRANSIÇÕES", x, y + mm(22));
       },
     });
   }
@@ -915,7 +915,7 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
     const commentColWidth = (contentW - mm(32) * 2) / 3; // approximate a column's width for wrapping
     const commentLines = pdf.splitTextToSize(comments, commentColWidth);
     blocks.push({
-      height: mm(22),
+      height: mm(34),
       draw: (pdf, x, y, width) => {
         pdf.setDrawColor(...BLACK);
         pdf.setLineWidth(0.75); // border-t-2
@@ -923,7 +923,7 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(pxToPt(12));
         pdf.setTextColor(...BLACK);
-        pdf.text("NOTAS FINAIS", x, y + mm(14));
+        pdf.text("NOTAS FINAIS", x, y + mm(22));
       },
     });
     blocks.push({
