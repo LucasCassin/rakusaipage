@@ -3,6 +3,12 @@ import { FiCheckCircle } from "react-icons/fi";
 import Button from "components/ui/Button";
 import FormInput from "components/forms/FormInput";
 
+const DISCOUNT_TYPE_OPTIONS = [
+  { value: "none", label: "Nenhum" },
+  { value: "percentage", label: "Percentual (%)" },
+  { value: "fixed", label: "Valor (R$)" },
+];
+
 export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
   const [formData, setFormData] = useState({
     min_cart_value_in_cents: "0",
@@ -94,104 +100,113 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
 
   return (
     <div className="my-20 border-t border-gray-200 pt-12">
-      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-1">
         Configurações do PDV
       </h3>
+      <p className="text-sm text-gray-500 mb-6">
+        Limites de desconto do carrinho e o que aplicar quando o vendedor pula a
+        tela de desconto.
+      </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-4">
-        <div className="flex-1 min-w-[160px]">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Piso do carrinho (R$)
-          </label>
-          <FormInput
-            id="pdv-settings-min-cart"
-            name="min_cart_value_in_cents"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.min_cart_value_in_cents}
-            onChange={handleChange}
-          />
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+            Limites do carrinho
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Piso do carrinho (R$)
+              </label>
+              <FormInput
+                id="pdv-settings-min-cart"
+                name="min_cart_value_in_cents"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.min_cart_value_in_cents}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Teto de desconto (R$)
+              </label>
+              <FormInput
+                id="pdv-settings-max-discount"
+                name="max_discount_in_cents"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.max_discount_in_cents}
+                onChange={handleChange}
+              />
+              <p className="text-xs text-gray-400 mt-1">Vazio = sem limite</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Teto de desconto (%)
+              </label>
+              <FormInput
+                id="pdv-settings-max-discount-percentage"
+                name="max_discount_percentage"
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                value={formData.max_discount_percentage}
+                onChange={handleChange}
+              />
+              <p className="text-xs text-gray-400 mt-1">Vazio = sem limite</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-500 mt-3">
+            Se os dois tetos forem preenchidos, vale o que resultar no menor
+            desconto para o carrinho.
+          </p>
         </div>
-        <div className="flex-1 min-w-[180px]">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Limite de desconto em R$
-            <br />
-            (vazio = sem limite)
-          </label>
-          <FormInput
-            id="pdv-settings-max-discount"
-            name="max_discount_in_cents"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.max_discount_in_cents}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="flex-1 min-w-[180px]">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Limite de desconto em %
-            <br />
-            (vazio = sem limite)
-          </label>
-          <FormInput
-            id="pdv-settings-max-discount-percentage"
-            name="max_discount_percentage"
-            type="number"
-            step="1"
-            min="0"
-            max="100"
-            value={formData.max_discount_percentage}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+
+        <div className="pt-8 border-t border-gray-100">
+          <h4 className="text-sm font-semibold text-gray-900 mb-1">
             Desconto padrão do carrinho
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
+          </h4>
+          <p className="text-xs text-gray-500 mb-3">
             Aplicado quando o vendedor pula a tela de desconto no fechamento da
             venda.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleDefaultDiscountTypeChange("none")}
-                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
-                  formData.default_cart_discount_type === "none"
-                    ? "bg-rakusai-purple text-white border-rakusai-purple"
-                    : "border-gray-300 text-gray-700"
-                }`}
-              >
-                Nenhum
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDefaultDiscountTypeChange("percentage")}
-                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
-                  formData.default_cart_discount_type === "percentage"
-                    ? "bg-rakusai-purple text-white border-rakusai-purple"
-                    : "border-gray-300 text-gray-700"
-                }`}
-              >
-                Percentual (%)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDefaultDiscountTypeChange("fixed")}
-                className={`py-2 px-4 rounded-md border text-sm font-semibold ${
-                  formData.default_cart_discount_type === "fixed"
-                    ? "bg-rakusai-purple text-white border-rakusai-purple"
-                    : "border-gray-300 text-gray-700"
-                }`}
-              >
-                Valor (R$)
-              </button>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <span className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de desconto padrão
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      handleDefaultDiscountTypeChange(option.value)
+                    }
+                    className={`py-2 px-2 rounded-md border text-sm font-semibold text-center whitespace-nowrap ${
+                      formData.default_cart_discount_type === option.value
+                        ? "bg-rakusai-purple text-white border-rakusai-purple"
+                        : "border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
+
             {formData.default_cart_discount_type !== "none" && (
-              <div className="w-32">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Valor do desconto padrão
+                </label>
                 <FormInput
                   id="pdv-settings-default-discount-value"
                   name="default_cart_discount_value"
@@ -220,7 +235,7 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
           </div>
         </div>
 
-        <div className="w-full sm:w-auto">
+        <div className="pt-6 border-t border-gray-100 flex justify-end">
           {justSaved ? (
             <div className="w-full sm:w-40 flex items-center justify-center gap-1 py-2 px-6 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">
               <FiCheckCircle /> Salvo!
@@ -236,10 +251,6 @@ export default function SettingsForm({ pdvSettings, isLoading, onUpdate }) {
             </Button>
           )}
         </div>
-        <p className="w-full text-xs text-gray-500 -mt-2">
-          Se os dois limites de desconto forem preenchidos, vale o que resultar
-          no menor desconto para o carrinho.
-        </p>
       </form>
     </div>
   );
