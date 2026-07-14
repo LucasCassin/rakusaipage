@@ -217,6 +217,70 @@ async function getReport({
     values,
   };
 
+  // DISTINCT ON (day) pega só a linha de maior valor por dia — dá pra
+  // responder "qual produto/forma/variante vendeu mais em cada dia" sem
+  // trazer a quebra completa por dia (que o relatório já não expõe hoje).
+  const byDayTopProductQuery = {
+    text: `
+      SELECT DISTINCT ON (day)
+        day, product_id, product_name, quantity_sold, revenue_in_cents
+      FROM (
+        SELECT
+          TO_CHAR((s.created_at AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS day,
+          si.product_id,
+          si.product_name_snapshot AS product_name,
+          SUM(si.quantity)::int AS quantity_sold,
+          SUM(si.total_in_cents)::int AS revenue_in_cents
+        FROM pdv_sale_items si
+        JOIN pdv_sales s ON s.id = si.sale_id
+        ${where}
+        GROUP BY day, si.product_id, si.product_name_snapshot
+      ) t
+      ORDER BY day, revenue_in_cents DESC;
+    `,
+    values,
+  };
+
+  const byDayTopPaymentMethodQuery = {
+    text: `
+      SELECT DISTINCT ON (day)
+        day, payment_method_id, payment_method_name, total_in_cents
+      FROM (
+        SELECT
+          TO_CHAR((s.created_at AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS day,
+          sp.payment_method_id,
+          sp.payment_method_name_snapshot AS payment_method_name,
+          SUM(sp.amount_in_cents)::int AS total_in_cents
+        FROM pdv_sale_payments sp
+        JOIN pdv_sales s ON s.id = sp.sale_id
+        ${where}
+        GROUP BY day, sp.payment_method_id, sp.payment_method_name_snapshot
+      ) t
+      ORDER BY day, total_in_cents DESC;
+    `,
+    values,
+  };
+
+  const byDayTopVariantQuery = {
+    text: `
+      SELECT DISTINCT ON (day)
+        day, payment_method_variant_id, variant_name, total_in_cents
+      FROM (
+        SELECT
+          TO_CHAR((s.created_at AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS day,
+          sp.payment_method_variant_id,
+          sp.payment_method_variant_name_snapshot AS variant_name,
+          SUM(sp.amount_in_cents)::int AS total_in_cents
+        FROM pdv_sale_payments sp
+        JOIN pdv_sales s ON s.id = sp.sale_id
+        ${whereWithVariant}
+        GROUP BY day, sp.payment_method_variant_id, sp.payment_method_variant_name_snapshot
+      ) t
+      ORDER BY day, total_in_cents DESC;
+    `,
+    values,
+  };
+
   // LATERAL em vez de JOIN + GROUP BY: cada subconsulta já agrega para uma
   // única linha por venda, então dá pra somar o join de itens (usado só na
   // exportação/analítico) sem multiplicar as linhas de pagamentos.
@@ -279,6 +343,9 @@ async function getReport({
       sellerResult,
       productResult,
       dayResult,
+      dayTopProductResult,
+      dayTopPaymentMethodResult,
+      dayTopVariantResult,
       salesResult,
     ] = await Promise.all([
       client.query(generalQuery),
@@ -287,8 +354,21 @@ async function getReport({
       client.query(bySellerQuery),
       client.query(byProductQuery),
       client.query(byDayQuery),
+      client.query(byDayTopProductQuery),
+      client.query(byDayTopPaymentMethodQuery),
+      client.query(byDayTopVariantQuery),
       client.query(salesQuery),
     ]);
+
+    const topProductByDay = Object.fromEntries(
+      dayTopProductResult.rows.map((row) => [row.day, row]),
+    );
+    const topPaymentMethodByDay = Object.fromEntries(
+      dayTopPaymentMethodResult.rows.map((row) => [row.day, row]),
+    );
+    const topVariantByDay = Object.fromEntries(
+      dayTopVariantResult.rows.map((row) => [row.day, row]),
+    );
 
     const general = generalResult.rows[0];
 
@@ -310,13 +390,25 @@ async function getReport({
       by_variant: variantResult.rows,
       by_seller: sellerResult.rows,
       by_product: productResult.rows,
-      by_day: dayResult.rows.map((row) => ({
-        ...row,
-        ticket_avg_in_cents:
-          row.sales_count > 0
-            ? Math.round(row.revenue_in_cents / row.sales_count)
-            : 0,
-      })),
+      by_day: dayResult.rows.map((row) => {
+        const topProduct = topProductByDay[row.day];
+        const topPaymentMethod = topPaymentMethodByDay[row.day];
+        const topVariant = topVariantByDay[row.day];
+        return {
+          ...row,
+          ticket_avg_in_cents:
+            row.sales_count > 0
+              ? Math.round(row.revenue_in_cents / row.sales_count)
+              : 0,
+          top_product_name: topProduct?.product_name ?? null,
+          top_product_revenue_in_cents: topProduct?.revenue_in_cents ?? null,
+          top_payment_method_name: topPaymentMethod?.payment_method_name ?? null,
+          top_payment_method_revenue_in_cents:
+            topPaymentMethod?.total_in_cents ?? null,
+          top_variant_name: topVariant?.variant_name ?? null,
+          top_variant_revenue_in_cents: topVariant?.total_in_cents ?? null,
+        };
+      }),
       sales: salesResult.rows,
       count:
         salesResult.rows.length > 0

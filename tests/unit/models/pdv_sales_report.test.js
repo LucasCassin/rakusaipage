@@ -270,6 +270,20 @@ describe("Model: PdvSalesReport", () => {
       expect(report.by_day.reduce((acc, row) => acc + row.sales_count, 0)).toBe(
         report.summary.sales_count,
       );
+
+      // No dia da Venda A: só produto X pago em dinheiro, sem variante.
+      expect(dayRow.top_product_name).toBe("Produto Relatório X");
+      expect(dayRow.top_payment_method_name).toBe("Dinheiro Relatório");
+      expect(dayRow.top_variant_name).toBeNull();
+
+      // No dia da Venda D (dividida): a perna de cartão+variante (2000) supera
+      // a de dinheiro (1000), então ela é o "top" da forma/variante do dia.
+      const todayRow = report.by_day.find((row) => row.day !== targetDay);
+      expect(todayRow.top_product_name).toBe("Produto Relatório X");
+      expect(todayRow.top_payment_method_name).toBe("Cartão Relatório");
+      expect(todayRow.top_payment_method_revenue_in_cents).toBe(2000);
+      expect(todayRow.top_variant_name).toBe("Máquina Relatório");
+      expect(todayRow.top_variant_revenue_in_cents).toBe(2000);
     } finally {
       // Restaura para não afetar os outros testes deste arquivo.
       await database.query({
