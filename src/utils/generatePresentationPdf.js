@@ -658,7 +658,7 @@ function addSummaryPage(pdf, { setlist, finalComments, pageW, pageH }) {
   pdf.setTextColor(...BLACK);
   pdf.text("Ordem das músicas", leftX, bodyY + mm(16));
 
-  let itemY = bodyY + mm(16) + mm(24);
+  let itemY = bodyY + mm(16) + mm(32);
   setlist.forEach((scene, idx) => {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(pxToPt(18));
@@ -673,7 +673,7 @@ function addSummaryPage(pdf, { setlist, finalComments, pageW, pageH }) {
       leftX + mm(48),
       itemY,
     );
-    itemY += mm(24);
+    itemY += mm(32);
   });
 
   pdf.setFont("helvetica", "bold");
