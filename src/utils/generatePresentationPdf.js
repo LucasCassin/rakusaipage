@@ -257,7 +257,8 @@ async function addCoverPage(
     rightColRows + (presentation.meet_location ? 1 : 0) || 1;
   const maxRows = Math.max(leftRowCount, rightRowCount, 1);
   const rowHeightMm = mm(18) + mm(12); // text-lg line height + space-y-3 gap
-  const gridBodyHeightMm = mm(20) + maxRows * rowHeightMm; // header row + rows
+  const headerToRowGapMm = mm(10) + mm(28); // column header baseline -> first row
+  const gridBodyHeightMm = headerToRowGapMm + maxRows * rowHeightMm;
   const gridHeightMm = gridBodyHeightMm + gridPaddingMm * 2;
 
   const contentHeightMm =
@@ -339,7 +340,7 @@ async function addCoverPage(
   pdf.setFontSize(pxToPt(14));
   pdf.setTextColor(...GRAY_400);
   pdf.text("APRESENTAÇÃO", leftColX, leftY + mm(10));
-  leftY += mm(20);
+  leftY += headerToRowGapMm;
 
   // The pdf-*.svg assets already have their real on-screen stroke color
   // baked in (see public/images/pdf-*.svg), so drawing them needs no tint.
@@ -395,7 +396,7 @@ async function addCoverPage(
   pdf.setFontSize(pxToPt(14));
   pdf.setTextColor(...GRAY_400);
   pdf.text("ENCONTRO / SAÍDA", rightColX, rightY + mm(10));
-  rightY += mm(20);
+  rightY += headerToRowGapMm;
 
   if (formattedMeetTime) {
     await drawInfoRow(
@@ -439,16 +440,13 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
   const contentX = marginMm;
   const contentY = marginMm;
 
-  const headerHeightMm = contentH * 0.1;
-  const bodyHeightMm = contentH * 0.9;
-  const bodyY = contentY + headerHeightMm;
-
-  // --- Header ---
+  // --- Header (title + optional subtitle + divider line) ---
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(pxToPt(36));
   pdf.setTextColor(...GRAY_900);
   const indexText = `${pageData.index}.`;
-  pdf.text(indexText, contentX, contentY + mm(24));
+  const titleBaselineY = contentY + mm(28);
+  pdf.text(indexText, contentX, titleBaselineY);
   const indexWidth = pdf.getTextWidth(indexText);
 
   pdf.setFont("helvetica", "bold");
@@ -461,28 +459,31 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
       contentW - indexWidth - mm(12),
     ),
     contentX + indexWidth + mm(12),
-    contentY + mm(24),
+    titleBaselineY,
   );
 
+  let headerBottomY = titleBaselineY + mm(14); // clear gap below the title text
+
   if (pageData.formation.description) {
+    const descBaselineY = headerBottomY + mm(14);
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(pxToPt(14));
     pdf.setTextColor(...GRAY_600);
     pdf.text(
       truncateText(pdf, pageData.formation.description, contentW - mm(4)),
       contentX + mm(4),
-      contentY + mm(34),
+      descBaselineY,
     );
+    headerBottomY = descBaselineY + mm(14);
   }
 
+  const dividerY = headerBottomY;
   pdf.setDrawColor(...GRAY_800);
   pdf.setLineWidth(0.75);
-  pdf.line(
-    contentX,
-    contentY + headerHeightMm - mm(2),
-    contentX + contentW,
-    contentY + headerHeightMm - mm(2),
-  );
+  pdf.line(contentX, dividerY, contentX + contentW, dividerY);
+
+  const bodyY = dividerY + mm(20);
+  const bodyHeightMm = contentY + contentH - bodyY;
 
   // --- Body: map panel (75%) + transitions panel (25%), gap-4 between ---
   const gapMm = mm(16);
@@ -532,11 +533,16 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
   pdf.setFontSize(pxToPt(12));
   pdf.setTextColor(...GRAY_400);
   pdf.text("TRANSIÇÕES", transInnerX, transY + mm(8));
-  transY += mm(14);
+  const transDividerY = transY + mm(8) + mm(8);
   pdf.setDrawColor(...GRAY_100);
   pdf.setLineWidth(0.2);
-  pdf.line(transInnerX, transY, transInnerX + transInnerWidth, transY);
-  transY += mm(8);
+  pdf.line(
+    transInnerX,
+    transDividerY,
+    transInnerX + transInnerWidth,
+    transDividerY,
+  );
+  transY = transDividerY + mm(18);
 
   if (pageData.transitions.length === 0) {
     pdf.setFont("helvetica", "bold");
@@ -563,7 +569,7 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
         textX,
         transY,
       );
-      transY += mm(11);
+      transY += mm(14);
 
       if (trans.description) {
         pdf.setFont("helvetica", "italic");
@@ -575,17 +581,17 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
         );
         descLines.forEach((line) => {
           pdf.text(line, textX, transY);
-          transY += mm(9);
+          transY += mm(10);
         });
       }
-      transY += mm(3);
+      transY += mm(4);
 
       if (trans.transition_steps.length === 0) {
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(pxToPt(10));
         pdf.setTextColor(...GRAY_400);
         pdf.text("Direto (sem passos)", textX + mm(4), transY);
-        transY += mm(9);
+        transY += mm(10);
       } else {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(pxToPt(11));
@@ -598,17 +604,17 @@ async function addFormationPage(pdf, { pageData, pageW, pageH }) {
             transInnerWidth - mm(12),
           );
           stepLines.forEach((line, i) => {
-            pdf.text(line, textX + mm(6), transY + i * mm(9));
+            pdf.text(line, textX + mm(6), transY + i * mm(10));
           });
-          transY += stepLines.length * mm(9) + mm(3);
+          transY += stepLines.length * mm(10) + mm(4);
         }
       }
 
       pdf.setDrawColor(...GRAY_300);
       pdf.setLineWidth(1.1); // border-l-4
-      pdf.line(transInnerX, blockStartY - mm(9), transInnerX, transY - mm(3));
+      pdf.line(transInnerX, blockStartY - mm(10), transInnerX, transY - mm(4));
 
-      transY += mm(16); // space-y-4 between transitions
+      transY += mm(18); // space-y-4 between transitions
     }
   }
 }
@@ -779,7 +785,7 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
   pdf.setFontSize(pxToPt(18)); // text-lg
   pdf.setTextColor(...BLACK);
   pdf.text(presentation.name.toUpperCase(), contentX, marginMm + mm(13));
-  let headerY = marginMm + mm(13) + mm(10); // mb-2
+  let headerY = marginMm + mm(13) + mm(18); // mb-2
 
   let headerX = contentX;
   const drawHeaderGroup = (label, parts) => {
@@ -821,8 +827,10 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
   const mapBoxHeightMm = mm(160); // h-[160px]
 
   formationScenes.forEach((scene, idx) => {
+    const titleBaselineOffsetMm = mm(10);
+    const mapTopOffsetMm = mm(24);
     blocks.push({
-      height: mm(18) + mapBoxHeightMm + mm(24),
+      height: mapTopOffsetMm + mapBoxHeightMm + mm(24),
       draw: async (pdf, x, y, width) => {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(pxToPt(14));
@@ -830,13 +838,13 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
         pdf.text(
           truncateText(pdf, `${idx + 1}. ${scene.name}`, width),
           x,
-          y + mm(4),
+          y + titleBaselineOffsetMm,
         );
         pdf.setDrawColor(...GRAY_300);
         pdf.setLineWidth(0.2);
         await drawFormationMap(pdf, {
           x,
-          y: y + mm(8),
+          y: y + mapTopOffsetMm,
           width,
           height: mapBoxHeightMm,
           elements: scene.scene_elements,
@@ -864,9 +872,9 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
     const steps = scene.transition_steps;
     const stepLineHeightMm = mm(12);
     const height =
-      mm(10) +
+      mm(20) +
       (steps.length > 0 ? steps.length * stepLineHeightMm : mm(9)) +
-      mm(8);
+      mm(10);
     blocks.push({
       height,
       draw: (pdf, x, y, width) => {
@@ -876,9 +884,9 @@ async function addCompactPage(pdf, { presentation, comments, pageW, pageH }) {
         pdf.text(
           truncateText(pdf, `${idx + 1}. ${scene.name}`, width),
           x,
-          y + mm(3),
+          y + mm(10),
         );
-        let stepY = y + mm(10);
+        let stepY = y + mm(20);
         if (steps.length === 0) {
           pdf.setFont("helvetica", "italic");
           pdf.setFontSize(pxToPt(9));
