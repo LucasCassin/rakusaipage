@@ -130,15 +130,10 @@ export default function PaymentModal({
     addEntry(methodId, variantId);
   };
 
+  // Mantém a string digitada (mesmo vazia) como valor manual, em vez de
+  // recair no auto-split assim que o campo é apagado — senão o input parece
+  // "resetar" sozinho a cada tecla de backspace.
   const handleAmountChange = (localId, value) => {
-    if (value.trim() === "") {
-      setManualInputs((prev) => {
-        const next = { ...prev };
-        delete next[localId];
-        return next;
-      });
-      return;
-    }
     setManualInputs((prev) => ({ ...prev, [localId]: value }));
   };
 
