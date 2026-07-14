@@ -9,7 +9,6 @@ import ProductManagement from "components/pdv/admin/ProductManagement";
 import PaymentMethodManagement from "components/pdv/admin/PaymentMethodManagement";
 import SettingsForm from "components/pdv/admin/SettingsForm";
 import SalesReport from "components/pdv/admin/SalesReport";
-import PrintableSalesReport from "components/pdv/admin/PrintableSalesReport";
 import { usePdvAdmin } from "src/hooks/usePdvAdmin";
 
 export default function PdvAdminPage() {
@@ -137,28 +136,20 @@ export default function PdvAdminPage() {
       )}
 
       {permissions.canReadReports && (
-        <>
-          <SalesReport
-            report={admin.report}
-            isLoading={admin.isLoadingReport}
-            products={admin.products}
-            paymentMethods={admin.paymentMethods}
-            canCancel={permissions.canCancelSales}
-            onFetch={admin.fetchReport}
-            onCancelSale={admin.cancelSale}
-            isExportModalOpen={admin.isExportModalOpen}
-            isExportingReport={admin.isExportingReport}
-            onOpenExport={admin.openExportModal}
-            onCloseExport={admin.closeExportModal}
-            onConfirmExport={admin.handleExportReport}
-          />
-          <PrintableSalesReport
-            ref={admin.exportReportRef}
-            report={admin.exportReportData}
-            title={admin.exportReportTitle}
-            includeAnalytic={admin.exportIncludeAnalytic}
-          />
-        </>
+        <SalesReport
+          report={admin.report}
+          isLoading={admin.isLoadingReport}
+          products={admin.products}
+          paymentMethods={admin.paymentMethods}
+          canCancel={permissions.canCancelSales}
+          onFetch={admin.fetchReport}
+          onCancelSale={admin.cancelSale}
+          isExportModalOpen={admin.isExportModalOpen}
+          isExportingReport={admin.isExportingReport}
+          onOpenExport={admin.openExportModal}
+          onCloseExport={admin.closeExportModal}
+          onConfirmExport={admin.handleExportReport}
+        />
       )}
     </PageLayout>
   );

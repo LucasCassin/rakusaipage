@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { handleApiResponse } from "src/utils/handleApiResponse";
-import { generatePDF } from "src/utils/pdfGenerator.js";
+import { generateSalesReportPdf } from "src/utils/generateSalesReportPdf.js";
 
 // Limite generoso pra trazer TODAS as vendas do período na exportação em
 // PDF, em vez do limite de 20 usado na tabela paginada da tela.
@@ -39,10 +39,6 @@ export function usePdvAdmin() {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExportingReport, setIsExportingReport] = useState(false);
-  const [exportReportData, setExportReportData] = useState(null);
-  const [exportReportTitle, setExportReportTitle] = useState("");
-  const [exportIncludeAnalytic, setExportIncludeAnalytic] = useState(false);
-  const exportReportRef = useRef(null);
 
   const withHandling = useCallback(
     async (fn, successMessage) => {
@@ -382,13 +378,13 @@ export function usePdvAdmin() {
   const openExportModal = useCallback(() => setIsExportModalOpen(true), []);
   const closeExportModal = useCallback(() => setIsExportModalOpen(false), []);
 
-  // Segue o mesmo padrão de `usePresentationEditor`: guarda os dados a
-  // imprimir no estado, fecha o modal, e só depois de um instante (pra dar
-  // tempo do componente escondido re-renderizar com os novos dados e o
-  // navegador pintar o DOM) captura o ref com `generatePDF`.
+  // O PDF é desenhado diretamente (texto/tabelas vetoriais via jsPDF), então
+  // não depende de nenhum componente escondido re-renderizar antes de
+  // capturar — só busca os dados certos e desenha na hora.
   const handleExportReport = useCallback(
     async (title, includeAnalytic, filters) => {
       setIsExportingReport(true);
+      setIsExportModalOpen(false);
 
       let dataForExport = report;
       if (includeAnalytic) {
@@ -403,30 +399,24 @@ export function usePdvAdmin() {
         }
       }
 
-      setExportReportTitle(title);
-      setExportIncludeAnalytic(includeAnalytic);
-      setExportReportData(dataForExport);
-      setIsExportModalOpen(false);
+      const slug = title
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
 
-      setTimeout(async () => {
-        const slug = title
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[̀-ͯ]/g, "")
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "");
-        try {
-          await generatePDF(
-            exportReportRef.current,
-            `relatorio-vendas${slug ? `-${slug}` : ""}.pdf`,
-            false,
-            1,
-          );
-        } catch {
-          setError("Não foi possível gerar o PDF do relatório.");
-        }
-        setIsExportingReport(false);
-      }, 1000);
+      try {
+        generateSalesReportPdf({
+          report: dataForExport,
+          title,
+          includeAnalytic,
+          fileName: `relatorio-vendas${slug ? `-${slug}` : ""}.pdf`,
+        });
+      } catch {
+        setError("Não foi possível gerar o PDF do relatório.");
+      }
+      setIsExportingReport(false);
     },
     [report, fetchReportForExport, setError],
   );
@@ -489,10 +479,6 @@ export function usePdvAdmin() {
 
     isExportModalOpen,
     isExportingReport,
-    exportReportData,
-    exportReportTitle,
-    exportIncludeAnalytic,
-    exportReportRef,
     openExportModal,
     closeExportModal,
     handleExportReport,
