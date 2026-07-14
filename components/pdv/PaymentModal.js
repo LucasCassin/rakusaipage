@@ -117,6 +117,12 @@ export default function PaymentModal({
       addEntry(method.id, null);
       return;
     }
+    // Com uma única variante ativa não há escolha a fazer — adiciona direto
+    // em vez de exigir um segundo toque na variante.
+    if (activeVariants.length === 1) {
+      addEntry(method.id, activeVariants[0].id);
+      return;
+    }
     setExpandedMethodId((prev) => (prev === method.id ? null : method.id));
   };
 
