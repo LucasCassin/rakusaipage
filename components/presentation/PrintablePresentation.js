@@ -2,6 +2,11 @@ import React, { useMemo } from "react";
 import FormationMap from "./FormationMap";
 import { FiCalendar, FiMapPin, FiClock, FiNavigation } from "react-icons/fi";
 
+// NOTE: as of the native-vector PDF rewrite, this component is used
+// exclusively by the "Gerar PNG" (toPng screenshot) export path.
+// PDF export is now produced by src/utils/generatePresentationPdf.js,
+// which draws directly into jsPDF without touching the DOM.
+
 // Ajuste a porcentagem aqui para alterar a divisão da tela
 const MAP_WIDTH = "75%"; // Largura do Mapa
 const TRANSITIONS_WIDTH = "25%"; // Largura da lista de Transições

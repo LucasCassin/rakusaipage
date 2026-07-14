@@ -50,7 +50,7 @@ export default function PrintCommentModal({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    onConfirmPrint(comments, isCompact, selectedQuality.value);
+    onConfirmPrint(comments, isCompact);
     setComments("");
   };
 
