@@ -6,7 +6,7 @@ import { settings } from "config/settings.js";
 import { useMessage } from "./useMessage";
 import { toPng } from "html-to-image";
 import { calculateAutoPosition } from "components/presentation/FormationMap";
-import { generatePDF } from "src/utils/pdfGenerator";
+import { generatePresentationPdf } from "src/utils/generatePresentationPdf";
 
 const CLIPBOARD_KEY = "rakusai_scene_clipboard";
 
@@ -1214,36 +1214,25 @@ export function usePresentationEditor(presentationId) {
     setIsPrintModalOpen(false);
   };
 
-  const handlePrintConfirm = async (pixelRatio) => {
-    try {
-      setIsLoadingPrint(true);
-      // A ref vem do PrintablePresentation (que deve estar renderizado, mesmo que off-screen)
-      const element = componentToPrintRef.current;
-
-      // Nome do arquivo
-      const fileName = `${presentation.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
-
-      // Chama o gerador
-      await generatePDF(element, fileName, printIsCompact, pixelRatio);
-      closePrintModal(); // Fecha o modal de comentários
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoadingPrint(false);
-    }
-  };
-
   const handleProcessPrint = useCallback(
-    (comments, isCompact, pixelRatio = 3) => {
-      setPrintComments(comments);
-      setPrintIsCompact(isCompact);
-
+    async (comments, isCompact) => {
       setIsPrintModalOpen(false);
-      setTimeout(() => {
-        handlePrintConfirm(pixelRatio);
-      }, 1000);
+      setIsLoadingPrint(true);
+      try {
+        const fileName = `${presentation.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+        await generatePresentationPdf({
+          presentation,
+          comments,
+          isCompact,
+          fileName,
+        });
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoadingPrint(false);
+      }
     },
-    [handlePrintConfirm],
+    [presentation],
   );
 
   const handleDownloadPng = useCallback(
