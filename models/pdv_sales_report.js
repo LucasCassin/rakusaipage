@@ -14,6 +14,7 @@ async function getReport({
   paymentMethodVariantId,
   sellerId,
   includeCancelled = false,
+  includeItems = false,
   limit = 20,
   offset = 0,
 } = {}) {
@@ -199,31 +200,69 @@ async function getReport({
     values,
   };
 
+  // Quebra por dia (fuso de São Paulo, já que as vendas acontecem
+  // presencialmente em eventos no Brasil) — usada no gráfico de KPIs por dia.
+  const byDayQuery = {
+    text: `
+      SELECT
+        TO_CHAR((s.created_at AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS day,
+        COUNT(*)::int AS sales_count,
+        COALESCE(SUM(s.total_in_cents), 0)::int AS revenue_in_cents,
+        COALESCE(SUM(s.discount_in_cents), 0)::int AS total_discount_in_cents
+      FROM pdv_sales s
+      ${where}
+      GROUP BY day
+      ORDER BY day;
+    `,
+    values,
+  };
+
+  // LATERAL em vez de JOIN + GROUP BY: cada subconsulta já agrega para uma
+  // única linha por venda, então dá pra somar o join de itens (usado só na
+  // exportação/analítico) sem multiplicar as linhas de pagamentos.
   const salesQueryValues = [...values, cleanFilters.limit, cleanFilters.offset];
   const salesQuery = {
     text: `
       SELECT
         s.*,
         count(*) OVER() as total_count,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', sp.id,
-              'payment_method_id', sp.payment_method_id,
-              'payment_method_name_snapshot', sp.payment_method_name_snapshot,
-              'payment_method_variant_id', sp.payment_method_variant_id,
-              'payment_method_variant_name_snapshot', sp.payment_method_variant_name_snapshot,
-              'amount_in_cents', sp.amount_in_cents,
-              'cash_given_in_cents', sp.cash_given_in_cents,
-              'change_in_cents', sp.change_in_cents
-            )
-          ) FILTER (WHERE sp.id IS NOT NULL),
-          '[]'
-        ) AS payments
+        COALESCE(p.payments, '[]') AS payments
+        ${includeItems ? ", COALESCE(i.items, '[]') AS items" : ""}
       FROM pdv_sales s
-      LEFT JOIN pdv_sale_payments sp ON sp.sale_id = s.id
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'id', sp.id,
+            'payment_method_id', sp.payment_method_id,
+            'payment_method_name_snapshot', sp.payment_method_name_snapshot,
+            'payment_method_variant_id', sp.payment_method_variant_id,
+            'payment_method_variant_name_snapshot', sp.payment_method_variant_name_snapshot,
+            'amount_in_cents', sp.amount_in_cents,
+            'cash_given_in_cents', sp.cash_given_in_cents,
+            'change_in_cents', sp.change_in_cents
+          )
+        ) AS payments
+        FROM pdv_sale_payments sp
+        WHERE sp.sale_id = s.id
+      ) p ON true
+      ${
+        includeItems
+          ? `LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'product_id', si.product_id,
+            'product_name_snapshot', si.product_name_snapshot,
+            'unit_price_in_cents', si.unit_price_in_cents,
+            'quantity', si.quantity,
+            'total_in_cents', si.total_in_cents
+          )
+        ) AS items
+        FROM pdv_sale_items si
+        WHERE si.sale_id = s.id
+      ) i ON true`
+          : ""
+      }
       ${where}
-      GROUP BY s.id
       ORDER BY s.created_at DESC
       LIMIT $${values.length + 1} OFFSET $${values.length + 2};
     `,
@@ -239,6 +278,7 @@ async function getReport({
       variantResult,
       sellerResult,
       productResult,
+      dayResult,
       salesResult,
     ] = await Promise.all([
       client.query(generalQuery),
@@ -246,6 +286,7 @@ async function getReport({
       client.query(byVariantQuery),
       client.query(bySellerQuery),
       client.query(byProductQuery),
+      client.query(byDayQuery),
       client.query(salesQuery),
     ]);
 
@@ -269,6 +310,13 @@ async function getReport({
       by_variant: variantResult.rows,
       by_seller: sellerResult.rows,
       by_product: productResult.rows,
+      by_day: dayResult.rows.map((row) => ({
+        ...row,
+        ticket_avg_in_cents:
+          row.sales_count > 0
+            ? Math.round(row.revenue_in_cents / row.sales_count)
+            : 0,
+      })),
       sales: salesResult.rows,
       count:
         salesResult.rows.length > 0
