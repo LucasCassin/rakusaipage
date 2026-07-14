@@ -204,5 +204,36 @@ describe("API /api/v1/pdv/sales_report", () => {
       expect(body.summary.sales_count).toBe(1);
       expect(body.by_seller[0].seller_id).toBe(sellerB.id);
     });
+
+    test("Should always return a by_day breakdown", async () => {
+      const res = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?seller_id=${sellerB.id}`,
+        { headers: { cookie: `session_id=${reportsSession.token}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.by_day).toHaveLength(1);
+      expect(body.by_day[0].sales_count).toBe(1);
+    });
+
+    test("Should omit each sale's items by default and include them with include_items=true", async () => {
+      const withoutItems = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?seller_id=${sellerB.id}`,
+        { headers: { cookie: `session_id=${reportsSession.token}` } },
+      );
+      const bodyWithoutItems = await withoutItems.json();
+      expect(bodyWithoutItems.sales[0].items).toBeUndefined();
+
+      const withItems = await fetch(
+        `${orchestrator.webserverUrl}/api/v1/pdv/sales_report?seller_id=${sellerB.id}&include_items=true`,
+        { headers: { cookie: `session_id=${reportsSession.token}` } },
+      );
+      const bodyWithItems = await withItems.json();
+      expect(bodyWithItems.sales[0].items).toHaveLength(1);
+      expect(bodyWithItems.sales[0].items[0]).toMatchObject({
+        product_id: productY.id,
+        quantity: 1,
+      });
+    });
   });
 });
